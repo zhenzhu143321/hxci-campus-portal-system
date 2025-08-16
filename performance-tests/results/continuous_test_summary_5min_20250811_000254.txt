@@ -1,0 +1,39 @@
+﻿INTELLIGENT NOTIFICATION SYSTEM - CONTINUOUS PERFORMANCE TEST REPORT
+Generated: 08/11/2025 00:08:50
+==================================================================
+
+TEST CONFIGURATION:
+- Duration: 5.89 minutes
+- Concurrent Users: 15  
+- Test Types: Health Check, Authentication, Notification List (Mixed Load)
+
+PERFORMANCE RESULTS:
+- Total Requests: 3165
+- Success Rate: 100%
+- Average RPS: 8.96
+- Average Response Time: 137.58 ms
+- 95th Percentile Response Time: 41.84 ms
+- Maximum Response Time: 6424.84 ms
+
+SYSTEM STABILITY:
+- Initial System State: CPU 9%, Memory 65162.3MB
+- Final System State: CPU 1%, Memory 65162.3MB
+- System remained stable throughout the test: YES
+
+MEMORY LEAK ASSESSMENT:
+- Memory Change: 0MB
+- Memory Leak Risk: LOW
+
+CONTINUOUS LOAD CAPACITY:
+- System can handle 15 concurrent users for 5.89 minutes
+- Performance remained EXCELLENT
+- Response times remained acceptable (avg: 137.58 ms)
+
+RECOMMENDATIONS:
+- System demonstrates excellent stability under continuous load
+- Current configuration suitable for production deployment
+- Monitor system resources in production for similar load patterns
+
+Detailed Data Files:
+- Request Details: D:\ClaudeCode\AI_Web\performance-tests\results\continuous_test_5min_20250811_000254.csv
+- System Monitoring: 

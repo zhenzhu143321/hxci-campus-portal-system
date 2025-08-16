@@ -1,0 +1,11 @@
+﻿RequestId,UserId,ApiType,StartTime,ResponseTime_ms,StatusCode,Success,Error
+User1_Req1,1,HealthCheck,2025-08-10 23:45:05.283,34.49,200,True,
+User2_Req1,2,Authentication,2025-08-10 23:45:05.326,72.98,200,True,
+User3_Req1,3,NotificationList,2025-08-10 23:45:05.375,75.51,200,True,
+User4_Req1,4,Authentication,2025-08-10 23:45:05.423,68.76,200,True,
+User5_Req1,5,Authentication,2025-08-10 23:45:05.476,75.09,200,True,
+User6_Req1,6,Authentication,2025-08-10 23:45:05.516,68.6,200,True,
+User7_Req1,7,NotificationList,2025-08-10 23:45:05.559,66.68,200,True,
+User8_Req1,8,NotificationList,2025-08-10 23:45:05.608,67.37,200,True,
+User9_Req1,9,HealthCheck,2025-08-10 23:45:05.651,32.9,200,True,
+User10_Req1,10,Authentication,2025-08-10 23:45:05.692,64.52,200,True,

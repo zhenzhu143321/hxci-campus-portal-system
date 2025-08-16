@@ -1,0 +1,121 @@
+server:
+  port: 48080
+
+--- #################### 数据库相关配置 ####################
+spring:
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.quartz.QuartzAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+  
+  # 使用H2内存数据库进行演示
+  datasource:
+    druid:
+      web-stat-filter:
+        enabled: true
+      stat-view-servlet:
+        enabled: true
+        allow: 
+        url-pattern: /druid/*
+        login-username: admin
+        login-password: admin123
+      filter:
+        stat:
+          enabled: true
+          log-slow-sql: true
+          slow-sql-millis: 1000
+          merge-sql: true
+        wall:
+          config:
+            multi-statement-allow: true
+    dynamic:
+      druid:
+        initial-size: 1
+        min-idle: 1
+        max-active: 20
+        max-wait: 60000
+        time-between-eviction-runs-millis: 60000
+        min-evictable-idle-time-millis: 300000
+        validation-query: SELECT 1
+        test-while-idle: true
+        test-on-borrow: false
+        test-on-return: false
+      primary: master
+      datasource:
+        master:
+          url: jdbc:h2:mem:notification_demo;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=MySQL
+          driver-class-name: org.h2.Driver
+          username: sa
+          password: 
+          schema: classpath:db/init-h2.sql
+
+  # H2数据库控制台配置
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+      settings:
+        trace: false
+        web-allow-others: false
+
+  # SQL初始化
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:db/init-h2.sql
+      encoding: UTF-8
+
+  # Redis 配置（如果没有Redis服务，会自动跳过）
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      database: 1
+      timeout: 2000ms
+      # 设置连接池参数
+      lettuce:
+        pool:
+          max-active: 8
+          max-wait: -1ms
+          max-idle: 8
+          min-idle: 0
+        shutdown-timeout: 100ms # 快速关机，防止Redis连接超时
+      # 设置较短的连接超时，如果Redis不可用则快速失败
+      connect-timeout: 1000ms
+      client-type: lettuce
+
+# MyBatis Plus 配置
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl  # 打印SQL日志
+  global-config:
+    db-config:
+      id-type: AUTO
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+    banner: false
+
+# 日志配置
+logging:
+  level:
+    cn.iocoder.yudao.module.notification: DEBUG
+    org.springframework.web: INFO
+    org.springframework.security: WARN
+    org.mybatis: INFO
+    com.alibaba.druid: WARN
+    org.springframework.boot: INFO
+  pattern:
+    console: '%clr(%d{HH:mm:ss.SSS}){faint} %clr(%5p) %clr(${PID:- }){magenta} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %m%n'
+
+# 芋道配置
+yudao:
+  captcha:
+    enable: false  # 关闭验证码，方便测试
+  security:
+    mock-enable: true  # 启用模拟登录，方便测试
+  demo: false
+  access-log:
+    enable: false  # 关闭访问日志
+  tenant:
+    enable: false  # 关闭多租户

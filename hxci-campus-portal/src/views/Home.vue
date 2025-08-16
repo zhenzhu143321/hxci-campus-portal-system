@@ -1,0 +1,2625 @@
+<template>
+  <div class="portal-container">
+    <!-- 顶部导航栏 -->
+    <div class="portal-header">
+      <div class="header-content">
+        <div class="header-left">
+          <div class="school-brand">
+            <el-icon class="brand-icon" :size="28"><School /></el-icon>
+            <div class="brand-info">
+              <h1 class="brand-title">哈尔滨信息工程学院</h1>
+              <span class="brand-subtitle">智慧校园门户</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="header-right">
+          <div class="user-panel" v-if="currentUserInfo">
+            <el-avatar 
+              class="user-avatar" 
+              :size="40"
+              :icon="Avatar"
+              :alt="currentUserInfo.username"
+            />
+            <div class="user-details">
+              <div class="user-name">{{ currentUserInfo?.username }}</div>
+              <div class="user-role">{{ currentUserInfo?.roleName }}</div>
+            </div>
+            <el-button type="danger" size="small" @click="handleLogout">
+              <el-icon><SwitchButton /></el-icon>
+              退出
+            </el-button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 个性化问候 -->
+    <div class="welcome-banner">
+      <div class="welcome-content">
+        <h2 class="greeting">{{ getGreeting() }}，{{ currentUserInfo?.username }}！</h2>
+        <p class="date-info">{{ getCurrentDate() }}</p>
+      </div>
+      <!-- 天气组件 -->
+      <WeatherWidget />
+    </div>
+
+    <!-- 三区布局主体 -->
+    <div class="portal-main">
+      <!-- 左侧：快捷服务区 -->
+      <div class="quick-services">
+        <div class="section-header">
+          <h3><el-icon><Setting /></el-icon>快捷服务</h3>
+        </div>
+        <div class="service-grid">
+          <div 
+            v-for="service in quickServices" 
+            :key="service.id" 
+            class="service-item"
+            :class="{ disabled: !service.available }"
+            @click="handleServiceClick(service)"
+          >
+            <div class="service-icon" :style="{ color: service.color }">
+              <el-icon :size="24">
+                <Bell />
+              </el-icon>
+            </div>
+            <div class="service-info">
+              <div class="service-name">{{ service.name }}</div>
+              <div class="service-desc">{{ service.desc }}</div>
+            </div>
+            <div class="service-arrow">
+              <el-icon><Bell /></el-icon>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 中间：智能通知工作台（革命性重构） -->
+      <div class="intelligent-workspace">
+        <div class="section-header">
+          <h3><el-icon><Bell /></el-icon>📋 智能通知工作台</h3>
+          <el-button type="text" size="small" @click="showAllNotifications = true">查看更多</el-button>
+        </div>
+        
+        <!-- 🚨 Level 1-3 未读通知（按Level 1→2→3严格排序） -->
+        <div v-if="unreadPriorityNotifications.length > 0" class="priority-workspace-section">
+          <div class="workspace-priority-header">
+            <h4>🎯 优先处理通知</h4>
+            <el-tag type="info" size="small">{{ unreadPriorityNotifications.length }}条未读</el-tag>
+          </div>
+          
+          <div class="priority-notification-list">
+            <div 
+              v-for="notification in unreadPriorityNotifications.slice(0, 5)" 
+              :key="notification.id"
+              class="priority-notification-card"
+              :class="{
+                'level-1-emergency': notification.level === 1,
+                'level-2-important': notification.level === 2,
+                'level-3-regular': notification.level === 3
+              }"
+              @click="handleNotificationClick(notification)"
+            >
+              <div class="notification-priority-content">
+                <div class="notification-header-row">
+                  <span class="notification-title-priority">{{ notification.title }}</span>
+                  <div class="notification-actions">
+                    <el-tag 
+                      :type="notification.level === 1 ? 'danger' : notification.level === 2 ? 'warning' : 'primary'" 
+                      size="small"
+                    >
+                      {{ getLevelText(notification.level) }}
+                    </el-tag>
+                    <!-- 根据已读状态显示不同的按钮 -->
+                    <el-button 
+                      v-if="!isRead(notification.id)"
+                      type="success" 
+                      size="small" 
+                      @click.stop="handleMarkAsRead(notification.id)"
+                      class="mark-read-btn"
+                    >
+                      <el-icon><Check /></el-icon>
+                      标记已读
+                    </el-button>
+                    <el-tag 
+                      v-else
+                      type="success" 
+                      size="small"
+                      effect="plain"
+                    >
+                      <el-icon><CircleCheck /></el-icon>
+                      已读
+                    </el-tag>
+                  </div>
+                </div>
+                <div class="notification-summary-priority">{{ getContentPreview(notification.content, 80) }}</div>
+                <div class="notification-meta-priority">
+                  <span class="notification-publisher-priority">{{ notification.publisherName }}</span>
+                  <span class="notification-time-priority">{{ formatDate(notification.createTime) }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div v-if="unreadPriorityNotifications.length > 5" class="show-more-priority">
+            <el-button type="text" size="small" @click="showAllNotifications = true">
+              查看全部{{ unreadPriorityNotifications.length }}条优先通知 →
+            </el-button>
+          </div>
+        </div>
+        
+        <!-- 📚 今日课程安排（新增功能模块） -->
+        <div class="workspace-module-card course-module">
+          <div class="module-header">
+            <h4><el-icon><Clock /></el-icon>📚 今日课程安排</h4>
+            <el-tag type="info" size="small">{{ todayCourses.length }}节课</el-tag>
+          </div>
+          <div class="course-schedule-list">
+            <div 
+              v-for="course in todayCourses" 
+              :key="course.id" 
+              class="course-schedule-item"
+              :class="{
+                'course-completed': course.status === 'completed',
+                'course-current': course.status === 'current',
+                'course-upcoming': course.status === 'upcoming'
+              }"
+            >
+              <div class="course-time-info">{{ course.time }}</div>
+              <div class="course-details">
+                <div class="course-name-main">{{ course.name }}</div>
+                <div class="course-location-teacher">{{ course.location }} · {{ course.teacher }}</div>
+              </div>
+              <el-tag 
+                :type="course.status === 'current' ? 'warning' : course.status === 'upcoming' ? 'success' : 'info'" 
+                size="small"
+              >
+                {{ course.status === 'current' ? '进行中' : course.status === 'upcoming' ? '即将开始' : '已结束' }}
+              </el-tag>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 📋 待办通知（Level 5专用区域） -->
+        <div class="workspace-module-card todo-notification-module">
+          <div class="module-header">
+            <h4><el-icon><Document /></el-icon>📋 待办通知</h4>
+            <el-tag type="primary" size="small">{{ pendingTodoCount }}项待办</el-tag>
+          </div>
+          <TodoNotificationWidget 
+            :notifications="todoStore.todoNotifications" 
+            :max-display-items="4"
+            :is-loading="todoStore.isLoading"
+            :error="todoStore.error"
+            display-mode="homepage"
+            @complete="handleTodoComplete"
+            @view-all="handleViewAllTodos"
+          />
+        </div>
+        
+        <!-- 💬 通知消息（Level 4专用区域） -->
+        <div class="workspace-module-card level4-module" v-if="level4Messages.length > 0">
+          <div class="module-header">
+            <h4><el-icon><Bell /></el-icon>💬 通知消息</h4>
+            <el-tag type="success" size="small">{{ level4Messages.length }}条提醒</el-tag>
+          </div>
+          <div class="level4-messages-list">
+            <div 
+              v-for="message in level4Messages.slice(0, 4)" 
+              :key="message.id"
+              class="level4-message-item"
+              :class="{ 'level4-read': isRead(message.id) }"
+              @click="handleNotificationClick(message, false)"
+            >
+              <div class="level4-icon">
+                <el-icon :style="{ color: '#67C23A' }"><Bell /></el-icon>
+              </div>
+              <div class="level4-content">
+                <div class="level4-title">{{ message.title }}</div>
+                <div class="level4-time">{{ formatDate(message.createTime) }}</div>
+              </div>
+              
+              <!-- 新增：根据已读状态显示不同按钮 -->
+              <div class="level4-actions">
+                <el-button 
+                  v-if="!isRead(message.id)"
+                  type="success" 
+                  size="small" 
+                  @click.stop="handleMarkAsRead(message.id)"
+                  class="mark-read-btn"
+                >
+                  <el-icon><Check /></el-icon>
+                  标记已读
+                </el-button>
+                <el-tag 
+                  v-else
+                  type="success" 
+                  size="small"
+                  effect="plain"
+                  class="level4-read-tag"
+                >
+                  <el-icon><CircleCheck /></el-icon>
+                  已读
+                </el-tag>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 统计模块已移除，简化界面布局 -->
+      </div>
+
+      <!-- 右侧：校园资讯区 -->
+      <div class="campus-news">
+        <div class="section-header">
+          <h3><el-icon><User /></el-icon>校园资讯</h3>
+          <el-button type="text" size="small">更多资讯</el-button>
+        </div>
+        
+        <div class="news-content">
+          <!-- 校园新闻 -->
+          <div class="news-card">
+            <h4>📢 校园新闻</h4>
+            <div class="news-list">
+              <div v-for="news in campusNews" :key="news.id" class="news-item">
+                <img :src="news.image" :alt="news.title" class="news-image" @error="handleImageError" />
+                <div class="news-info">
+                  <div class="news-title">{{ news.title }}</div>
+                  <div class="news-time">{{ news.time }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 通知公告（增强版） -->
+          <div class="news-card">
+            <h4>🔔 系统公告</h4>
+            <div class="system-announcements-list" v-loading="notificationLoading">
+              <div v-if="systemAnnouncements.length === 0 && !notificationLoading" class="no-announcements">
+                <el-empty description="暂无系统公告" :image-size="80">
+                  <template #description>
+                    <p style="color: #909399; font-size: 14px;">暂无系统公告</p>
+                    <p style="color: #c0c4cc; font-size: 12px;">系统公告会显示最新的重要通知</p>
+                  </template>
+                </el-empty>
+              </div>
+              <div v-for="announcement in systemAnnouncements" :key="announcement.id" class="system-announcement-item" @click="handleNotificationClick(announcement)">
+                <div class="announcement-header">
+                  <el-tag :type="getAnnouncementType(announcement.level)" size="small">
+                    {{ getLevelText(announcement.level) }}
+                  </el-tag>
+                  <div class="announcement-time">{{ formatDate(announcement.createTime) }}</div>
+                </div>
+                <div class="announcement-title">{{ announcement.title }}</div>
+                <div class="announcement-summary" v-if="announcement.summary">
+                  {{ announcement.summary }}
+                </div>
+                <div class="announcement-content-preview" v-else>
+                  {{ getFormattedPreview(announcement.content, 120) }}
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 已读归档（解耦重构版） -->
+          <NotificationArchivePanel
+            v-if="readArchivedNotifications.length > 0"
+            :archived-notifications="readArchivedNotifications"
+            :max-display-count="5"
+            :show-actions="true"
+            @notification-click="handleNotificationClick"
+            @restore-from-archive="handleMarkAsUnread"
+            @permanent-delete="handlePermanentDeleteNotification"
+            @clear-all-archive="handleClearAllArchive"
+            @show-more="showAllNotifications = true"
+          />
+
+          <!-- 校园服务 -->
+          <div class="news-card">
+            <h4>🌤️ 校园服务</h4>
+            <div class="service-info-list">
+              <div class="service-info-item">
+                <el-icon><Bell /></el-icon>
+                <div class="info-content">
+                  <div class="info-title">食堂菜单</div>
+                  <div class="info-desc">今日推荐：宫保鸡丁</div>
+                </div>
+              </div>
+              <div class="service-info-item">
+                <el-icon><User /></el-icon>
+                <div class="info-content">
+                  <div class="info-title">图书馆</div>
+                  <div class="info-desc">开放时间：8:00-22:00</div>
+                </div>
+              </div>
+              <div class="service-info-item">
+                <el-icon><Setting /></el-icon>
+                <div class="info-content">
+                  <div class="info-title">校园巴士</div>
+                  <div class="info-desc">下班班次：15分钟后</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- API测试按钮（开发调试用） -->
+    <div class="debug-panel" v-show="showDebugPanel">
+      <el-button @click="testHealthCheck" :loading="testLoading.health" size="small">
+        健康检查
+      </el-button>
+      <el-button @click="testTokenVerify" :loading="testLoading.verify" size="small">
+        验证Token
+      </el-button>
+      <el-button @click="testNotificationAPI" :loading="testLoading.notification" size="small">
+        通知API
+      </el-button>
+    </div>
+  </div>
+
+  <!-- 全部通知对话框 -->
+  <el-dialog 
+    v-model="showAllNotifications" 
+    title="全部通知" 
+    width="80%" 
+    :close-on-click-modal="false"
+    class="notification-dialog"
+  >
+    <div class="notification-dialog-content">
+      <div class="notification-filters">
+        <el-select v-model="notificationFilter.level" placeholder="按级别筛选" clearable size="small" style="width: 120px">
+          <el-option label="紧急" :value="1" />
+          <el-option label="重要" :value="2" />
+          <el-option label="常规" :value="3" />
+          <el-option label="提醒" :value="4" />
+        </el-select>
+        <el-select v-model="notificationFilter.scope" placeholder="按范围筛选" clearable size="small" style="width: 120px">
+          <el-option label="全校" value="SCHOOL_WIDE" />
+          <el-option label="部门" value="DEPARTMENT" />
+          <el-option label="年级" value="GRADE" />
+          <el-option label="班级" value="CLASS" />
+        </el-select>
+        <el-input v-model="notificationFilter.search" placeholder="搜索通知标题" clearable size="small" style="width: 200px" />
+      </div>
+      
+      <div class="notification-table">
+        <el-table :data="filteredNotifications" height="400" style="width: 100%">
+          <el-table-column label="级别" width="80" align="center">
+            <template #default="{ row }">
+              <el-tag :color="row.levelColor" effect="plain" size="small">
+                {{ getLevelText(row.level) }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="title" label="标题" min-width="200" show-overflow-tooltip />
+          <el-table-column prop="publisherName" label="发布者" width="120" />
+          <el-table-column prop="scope" label="范围" width="100" align="center">
+            <template #default="{ row }">
+              <el-tag size="small" type="info">{{ getScopeText(row.scope) }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="createTime" label="发布时间" width="120" />
+          <el-table-column label="操作" width="100" align="center">
+            <template #default="{ row }">
+              <el-button type="primary" link size="small" @click="handleNotificationClick(row)">查看详情</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+      
+      <div class="notification-pagination">
+        <el-pagination
+          v-model:current-page="notificationPagination.currentPage"
+          v-model:page-size="notificationPagination.pageSize"
+          :page-sizes="[10, 20, 50, 100]"
+          :total="allNotifications.length"
+          layout="total, sizes, prev, pager, next, jumper"
+          size="small"
+        />
+      </div>
+    </div>
+  </el-dialog>
+
+  <!-- 通知详情对话框 -->
+  <el-dialog 
+    v-model="showNotificationDetail" 
+    :title="selectedNotification?.title || '通知详情'" 
+    width="60%"
+    class="notification-detail-dialog"
+  >
+    <div v-if="selectedNotification" class="notification-detail">
+      <div class="notification-meta">
+        <div class="meta-row">
+          <span class="meta-label">级别：</span>
+          <el-tag :color="selectedNotification.levelColor" effect="plain" size="small">
+            {{ getLevelText(selectedNotification.level) }}
+          </el-tag>
+        </div>
+        <div class="meta-row">
+          <span class="meta-label">发布者：</span>
+          <span>{{ selectedNotification.publisherName }}</span>
+        </div>
+        <div class="meta-row">
+          <span class="meta-label">发布范围：</span>
+          <el-tag size="small" type="info">{{ getScopeText(selectedNotification.scope) }}</el-tag>
+        </div>
+        <div class="meta-row">
+          <span class="meta-label">发布时间：</span>
+          <span>{{ selectedNotification.createTime }}</span>
+        </div>
+      </div>
+      
+      <div class="notification-content-detail">
+        <h4>通知内容：</h4>
+        <div class="content-text formatted-content">{{ formatNotificationContent(selectedNotification.content) }}</div>
+      </div>
+    </div>
+    
+    <template #footer>
+      <el-button @click="showNotificationDetail = false">关闭</el-button>
+      <el-button 
+        v-if="selectedNotification && !isRead(selectedNotification.id)" 
+        type="primary" 
+        @click="handleMarkAsRead(selectedNotification.id); showNotificationDetail = false"
+      >
+        标记为已读
+      </el-button>
+      <el-button 
+        v-else-if="selectedNotification && isRead(selectedNotification.id)" 
+        type="info" 
+        @click="handleMarkAsUnread(selectedNotification.id); showNotificationDetail = false"
+      >
+        撤销已读
+      </el-button>
+    </template>
+  </el-dialog>
+</template>
+
+<script setup lang="ts">
+import { computed, onMounted, reactive, ref, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { 
+  School, Avatar, SwitchButton, Bell, User, Setting,
+  Clock, Document, Check, CircleCheck
+} from '@element-plus/icons-vue'
+import { useUserStore } from '@/stores/user'
+import { authAPI } from '@/api/auth'
+import { notificationAPI } from '@/api/notification'
+import type { NotificationItem } from '@/api/notification'
+import { useNotificationReadStatus } from '@/composables/useNotificationReadStatus'
+import { useNotificationArchiveAnimation } from '@/composables/useNotificationArchiveAnimation'
+import WeatherWidget from '@/components/WeatherWidget.vue'
+import TodoNotificationWidget from '@/components/TodoNotificationWidget.vue'
+import NotificationArchiveIndicator from '@/components/notification/NotificationArchiveIndicator.vue'
+import NotificationArchivePanel from '@/components/notification/NotificationArchivePanel.vue'
+import type { TodoNotificationItem } from '@/types/todo'
+import { useTodoStore } from '@/stores/todo'
+import dayjs from 'dayjs'
+
+const router = useRouter()
+const userStore = useUserStore()
+const todoStore = useTodoStore()
+
+// 直接使用localStorage的用户状态（绕过Pinia响应式问题）
+const currentToken = ref<string>('')
+const currentUserInfo = ref<any>(null)
+const isUserLoggedIn = ref<boolean>(false)
+
+// 从localStorage直接加载用户状态
+const loadUserStateFromStorage = () => {
+  const savedToken = localStorage.getItem('campus_token')
+  const savedUserInfo = localStorage.getItem('campus_user_info')
+  
+  console.log('🔍 直接从localStorage加载用户状态...')
+  
+  if (savedToken && savedUserInfo) {
+    try {
+      const userInfo = JSON.parse(savedUserInfo)
+      currentToken.value = savedToken
+      currentUserInfo.value = userInfo
+      isUserLoggedIn.value = true
+      
+      console.log('✅ 用户状态加载成功:')
+      console.log('👤 用户:', userInfo.username)
+      console.log('🔑 Token长度:', savedToken.length)
+      
+      return true
+    } catch (error) {
+      console.error('❌ 用户信息解析失败:', error)
+    }
+  }
+  
+  console.log('❌ 未找到有效的用户状态')
+  return false
+}
+
+// 测试加载状态
+const testLoading = reactive({
+  health: false,
+  verify: false,
+  notification: false
+})
+
+// 测试结果
+const testResults = ref<any>(null)
+
+// 登录时间
+const loginTime = ref('')
+
+// 调试面板显示状态
+const showDebugPanel = ref(true)
+
+
+// 通知相关状态
+const notificationLoading = ref(false)
+const recentNotifications = ref<NotificationItem[]>([])
+const allNotifications = ref<NotificationItem[]>([]) // 存储所有通知
+const unreadNotificationCount = ref(0)
+
+// 初始化智能工作台已读状态管理（响应式初始化，解决异步用户ID问题）
+let readStatusManager: any = null
+let archiveAnimationManager: any = null
+
+// 初始化已读状态管理器（当用户信息可用时）
+const initializeReadStatusManager = () => {
+  const userId = currentUserInfo.value?.userId
+  if (userId && !readStatusManager) {
+    readStatusManager = useNotificationReadStatus(userId)
+    console.log('🔧 [已读状态] 初始化完成，用户ID:', userId)
+  }
+  return readStatusManager
+}
+
+// 初始化归档动画管理器
+const initializeArchiveAnimationManager = () => {
+  if (!archiveAnimationManager) {
+    archiveAnimationManager = useNotificationArchiveAnimation()
+    console.log('🎬 [归档动画] 初始化完成')
+  }
+  return archiveAnimationManager
+}
+
+// 已读状态操作函数（延迟初始化）
+const markAsRead = (notificationId: number) => {
+  const manager = initializeReadStatusManager()
+  if (manager) {
+    manager.markAsRead(notificationId)
+  }
+}
+
+const markAsUnread = (notificationId: number) => {
+  const manager = initializeReadStatusManager()
+  if (manager) {
+    manager.markAsUnread(notificationId)
+  }
+}
+
+const isRead = (notificationId: number): boolean => {
+  const manager = initializeReadStatusManager()
+  return manager ? manager.isRead(notificationId) : false
+}
+
+const categorizeNotifications = computed(() => {
+  const manager = initializeReadStatusManager()
+  return manager ? manager.categorizeNotifications.value : (() => ({
+    unreadPriority: [],
+    readArchive: [],
+    level4Messages: [],
+    systemAnnouncements: [],
+    emergencyNotifications: [],
+    importantNotifications: []
+  }))
+})
+
+const unreadCounts = computed(() => {
+  const manager = initializeReadStatusManager()
+  return manager ? manager.unreadCounts.value : (() => ({
+    total: 0,
+    emergency: 0,
+    important: 0,
+    level4: 0
+  }))
+})
+
+// 智能工作台核心计算属性 - 基于革命性一次遍历多重分类算法
+const categorizedNotifications = computed(() => {
+  return categorizeNotifications.value(allNotifications.value)
+})
+
+// 未读优先级通知 (Level 1-3未读，工作台主要显示区域) - 修复响应式更新
+const unreadPriorityNotifications = computed(() => {
+  const manager = initializeReadStatusManager()
+  if (!manager) return []
+  
+  // 强制依赖已读状态变化，确保响应式更新
+  const readIds = manager.readNotificationIds.value
+  const categories = categorizeNotifications.value(allNotifications.value)
+  
+  console.log('🔍 [响应式更新] 未读优先级计算:', {
+    已读ID数量: readIds.size,
+    未读优先级数量: categories.unreadPriority.length,
+    全部通知数量: allNotifications.value.length
+  })
+  
+  return categories.unreadPriority
+})
+
+// 系统公告 (右侧系统公告区域显示) - 🔧 修复响应式依赖
+const systemAnnouncements = computed(() => {
+  const manager = initializeReadStatusManager()
+  if (!manager) {
+    console.log('🔧 [DEBUG] 系统公告: 管理器未初始化')
+    return []
+  }
+  
+  // 🔧 强制依赖已读状态变化，确保响应式更新（关键修复）
+  const readIds = manager.readNotificationIds.value
+  const allData = allNotifications.value
+  const categories = categorizeNotifications.value(allData)
+  
+  console.log('🔧 [DEBUG] 系统公告计算:', {
+    全部通知数量: allData.length,
+    已读状态数量: readIds.size,
+    系统公告数量: categories.systemAnnouncements.length,
+    系统公告内容: categories.systemAnnouncements.map(n => ({ id: n.id, title: n.title, role: n.publisherRole }))
+  })
+  
+  console.log('🔍 [响应式更新] 系统公告计算:', {
+    系统公告数量: categories.systemAnnouncements.length,
+    全部通知数量: allData.length,
+    已读ID数量: readIds.size,
+    分类结果: Object.keys(categories).map(key => `${key}: ${categories[key].length}`)
+  })
+  
+  return categories.systemAnnouncements
+})
+
+// 已读归档通知 (右侧归档区域显示) - 🔧 强化调试日志
+const readArchivedNotifications = computed(() => {
+  const manager = initializeReadStatusManager()
+  if (!manager) {
+    console.log('🔧 [DEBUG] 归档计算: 管理器未初始化')
+    return []
+  }
+  
+  // 强制依赖已读状态变化，确保响应式更新
+  const readIds = manager.readNotificationIds.value
+  const categories = categorizeNotifications.value(allNotifications.value)
+  
+  console.log('🔧 [DEBUG] 归档计算: 已读数量=', readIds.size, '归档数量=', categories.readArchive.length)
+  console.log('🔧 [DEBUG] 归档计算: 归档ID列表=', categories.readArchive.map(n => n.id))
+  
+  console.log('🔍 [响应式更新] 已读归档计算:', {
+    已读ID数量: readIds.size,
+    归档通知数量: categories.readArchive.length,
+    全部通知数量: allNotifications.value.length
+  })
+  
+  return categories.readArchive // 返回完整归档数据，显示限制由组件内部处理
+})
+
+// Level 4 通知消息 (工作台底部专区显示)
+const level4Messages = computed(() => {
+  return categorizedNotifications.value.level4Messages
+})
+
+// 紧急通知 (Level 1)
+const emergencyNotifications = computed(() => {
+  return categorizedNotifications.value.emergencyNotifications
+})
+
+// 重要通知 (Level 2-3)
+const importantNotifications = computed(() => {
+  return categorizedNotifications.value.importantNotifications
+})
+
+// 未读数量统计 - 修复响应式更新
+const unreadStats = computed(() => {
+  const manager = initializeReadStatusManager()
+  if (!manager) return { total: 0, emergency: 0, important: 0, level4: 0 }
+  
+  // 强制依赖已读状态变化
+  const readIds = manager.readNotificationIds.value
+  const counts = unreadCounts.value(allNotifications.value)
+  
+  console.log('🔍 [响应式更新] 未读统计计算:', {
+    已读ID数量: readIds.size,
+    未读统计: counts
+  })
+  
+  return counts
+})
+
+// 处理"已读"按钮点击（集成归档动画）- 🔧 强化调试日志
+const handleMarkAsRead = async (notificationId: number) => {
+  console.log('🔧 [DEBUG] === 开始标记已读 ===', notificationId)
+  
+  const statusManager = initializeReadStatusManager()
+  const animationManager = initializeArchiveAnimationManager()
+  
+  console.log('🔧 [DEBUG] 状态管理器:', !!statusManager)
+  console.log('🔧 [DEBUG] 动画管理器:', !!animationManager)
+  
+  if (statusManager) {
+    console.log('🔧 [DEBUG] 标记前已读列表长度:', statusManager.readNotificationIds.value.size)
+    console.log('🔧 [DEBUG] 标记前归档列表长度:', readArchivedNotifications.value.length)
+    
+    statusManager.markAsRead(notificationId)
+    
+    // 延迟检查状态更新
+    await nextTick()
+    
+    console.log('🔧 [DEBUG] 标记后已读列表长度:', statusManager.readNotificationIds.value.size)
+    console.log('🔧 [DEBUG] 标记后归档列表长度:', readArchivedNotifications.value.length)
+    console.log('🔧 [DEBUG] 归档列表内容:', readArchivedNotifications.value.map(n => n.id))
+    
+    console.log('📝 [用户操作] 标记通知为已读:', notificationId)
+    
+    // 触发归档动画
+    if (animationManager) {
+      await animationManager.triggerArchiveAnimation(notificationId, {
+        successMessage: '已标记为已读并归档',
+        enableSound: true
+      })
+    } else {
+      ElMessage.success('已标记为已读')
+    }
+  } else {
+    console.error('❌ [ERROR] 状态管理器未初始化')
+  }
+  
+  console.log('🔧 [DEBUG] === 标记已读完成 ===')
+}
+
+// 处理"撤销已读"按钮点击
+const handleMarkAsUnread = (notificationId: number) => {
+  markAsUnread(notificationId)
+  console.log('🔄 [用户操作] 撤销已读状态:', notificationId)
+  ElMessage.info('已撤销已读状态')
+}
+
+// 处理永久删除通知（新增功能）
+const handlePermanentDeleteNotification = (notificationId: number) => {
+  // 这里可以调用API删除通知，目前仅从本地状态移除
+  const index = allNotifications.value.findIndex(n => n.id === notificationId)
+  if (index !== -1) {
+    allNotifications.value.splice(index, 1)
+    console.log('🗑️ [用户操作] 永久删除通知:', notificationId)
+  }
+}
+
+// 处理清空所有归档（修复版本 - 永久删除）
+const handleClearAllArchive = () => {
+  ElMessageBox.confirm(
+    '确定要永久删除所有已读归档消息吗？此操作不可恢复。',
+    '清空归档确认',
+    {
+      confirmButtonText: '确定删除',
+      cancelButtonText: '取消',
+      type: 'warning',
+      confirmButtonClass: 'el-button--danger'
+    }
+  ).then(() => {
+    const statusManager = initializeReadStatusManager()
+    if (statusManager) {
+      // 获取所有已读归档消息
+      const archivedNotifications = readArchivedNotifications.value
+      const archivedCount = archivedNotifications.length
+      
+      // 从allNotifications中永久删除这些消息
+      archivedNotifications.forEach(notification => {
+        const index = allNotifications.value.findIndex(n => n.id === notification.id)
+        if (index !== -1) {
+          allNotifications.value.splice(index, 1)
+        }
+      })
+      
+      // 清空已读状态记录
+      statusManager.readNotificationIds.value = new Set()
+      statusManager.saveReadStatus()
+      
+      ElMessage.success(`已永久删除 ${archivedCount} 条归档消息`)
+      console.log('🧹 [用户操作] 永久删除所有归档消息，数量:', archivedCount)
+    }
+  }).catch(() => {
+    console.log('👤 [用户操作] 取消清空归档')
+  })
+}
+
+// 通知对话框相关
+const showAllNotifications = ref(false)
+const showNotificationDetail = ref(false)
+const selectedNotification = ref<NotificationItem | null>(null)
+
+// 通知筛选和分页
+const notificationFilter = reactive({
+  level: null as number | null,
+  scope: '' as string,
+  search: '' as string
+})
+
+// 待办统计计算属性 - 使用store中的数据
+const pendingTodoCount = computed(() => todoStore.pendingCount)
+
+const notificationPagination = reactive({
+  currentPage: 1,
+  pageSize: 20
+})
+
+// 快捷服务列表 - 简化版本
+const quickServices = computed(() => [
+  {
+    id: 'education',
+    name: '教务系统',
+    desc: '课程查询、成绩管理',
+    color: '#409EFF',
+    available: false
+  },
+  {
+    id: 'student-affairs',
+    name: '学工系统',  
+    desc: '学生管理、事务办理',
+    color: '#67C23A',
+    available: false
+  },
+  {
+    id: 'library',
+    name: '图书馆',
+    desc: '图书借阅、座位预约',
+    color: '#E6A23C',
+    available: false
+  },
+  {
+    id: 'finance',
+    name: '财务查询',
+    desc: '学费、奖学金查询',
+    color: '#F56C6C',
+    available: false
+  },
+  {
+    id: 'dormitory',
+    name: '宿舍管理',
+    desc: '宿舍分配、报修',
+    color: '#909399',
+    available: false
+  },
+  {
+    id: 'course-selection',
+    name: '选课系统',
+    desc: '课程选择、时间表',
+    color: '#9C27B0',
+    available: false
+  }
+])
+
+// 今日课程安排 Mock数据（革命性工作台功能）
+const todayCourses = ref([
+  {
+    id: 1,
+    time: '08:00-09:40',
+    name: '高等数学',
+    location: 'A101',
+    teacher: '王教授',
+    status: 'completed'
+  },
+  {
+    id: 2,
+    time: '10:00-11:40',
+    name: '数据结构',
+    location: 'B201',
+    teacher: '李老师',
+    status: 'current' // 当前进行中
+  },
+  {
+    id: 3,
+    time: '14:00-15:40',
+    name: '英语听说',
+    location: 'C301',
+    teacher: '张老师',
+    status: 'upcoming'
+  },
+  {
+    id: 4,
+    time: '16:00-17:40',
+    name: '计算机网络',
+    location: 'D401',
+    teacher: '刘教授',
+    status: 'upcoming'
+  }
+])
+
+// 处理通知点击 - 修复版：默认不自动标记已读
+const handleNotificationClick = async (notification: NotificationItem, autoMarkRead: boolean = false) => {
+  console.log('📖 点击查看通知详情:', notification.title)
+  
+  try {
+    const result = await notificationAPI.getNotificationDetail(notification.id)
+    
+    if (result.success) {
+      selectedNotification.value = result.data
+      showNotificationDetail.value = true
+      
+      // 只有明确指定才自动标记为已读
+      if (autoMarkRead && !isRead(notification.id)) {
+        markAsRead(notification.id)
+        console.log('🏷️ [自动标记] 通知已标记为已读:', notification.id)
+      }
+    } else {
+      ElMessage.error('获取通知详情失败')
+    }
+  } catch (error) {
+    console.error('❌ 查看通知详情失败:', error)
+    ElMessage.error('查看通知详情失败')
+  }
+}
+
+// 获取级别文本
+const getLevelText = (level: number): string => {
+  switch (level) {
+    case 1: return '紧急'
+    case 2: return '重要'
+    case 3: return '常规'
+    case 4: return '提醒'
+    default: return '未知'
+  }
+}
+
+// 格式化通知内容（处理换行符和格式）
+const formatNotificationContent = (content: string): string => {
+  if (!content) return ''
+  // 将\n转换为实际换行符，处理各种换行格式
+  return content
+    .replace(/\\n/g, '\n')  // 转义的\n转为真换行
+    .replace(/\n\s*\n/g, '\n\n')  // 规范化多重换行
+    .replace(/^\s+|\s+$/g, '')  // 去除首尾空白
+    .trim()
+}
+
+// 获取内容预览（用于卡片显示，将换行转为空格）
+const getContentPreview = (content: string, maxLength: number = 50): string => {
+  if (!content) return ''
+  // 先格式化，然后将换行符替换为空格用于预览
+  const formatted = formatNotificationContent(content)
+  const preview = formatted.replace(/\n{2,}/g, ' | ').replace(/\n/g, ' ')
+  return preview.length > maxLength ? preview.substring(0, maxLength) + '...' : preview
+}
+
+// 获取格式化的内容预览（用于右侧通知公告）
+const getFormattedPreview = (content: string, maxLength: number = 80): string => {
+  if (!content) return ''
+  const formatted = formatNotificationContent(content)
+  // 将换行符替换为空格用于预览，但保持段落结构
+  const preview = formatted.replace(/\n{2,}/g, ' | ').replace(/\n/g, ' ')
+  return preview.length > maxLength ? preview.substring(0, maxLength) + '...' : preview
+}
+
+// 获取范围文本
+const getScopeText = (scope: string): string => {
+  switch (scope) {
+    case 'SCHOOL_WIDE': return '全校'
+    case 'DEPARTMENT': return '部门'
+    case 'GRADE': return '年级'
+    case 'CLASS': return '班级'
+    default: return scope
+  }
+}
+
+// 筛选后的通知列表
+const filteredNotifications = computed(() => {
+  let filtered = allNotifications.value
+
+  // 按级别筛选
+  if (notificationFilter.level !== null) {
+    filtered = filtered.filter(item => item.level === notificationFilter.level)
+  }
+
+  // 按范围筛选
+  if (notificationFilter.scope) {
+    filtered = filtered.filter(item => item.scope === notificationFilter.scope)
+  }
+
+  // 按标题搜索
+  if (notificationFilter.search) {
+    filtered = filtered.filter(item => 
+      item.title.toLowerCase().includes(notificationFilter.search.toLowerCase())
+    )
+  }
+
+  return filtered
+})
+
+// 校园新闻
+const campusNews = ref([
+  {
+    id: 1,
+    title: '我校在全国程序设计竞赛中获得佳绩',
+    time: '2025-08-12',
+    image: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA2MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjRjVGNUY1Ii8+CjxwYXRoIGQ9Ik0yNSAyMEMyNSAxNy4yMzg2IDI3LjIzODYgMTUgMzAgMTVDMzIuNzYxNCAxNSAzNSAxNy4yMzg2IDM1IDIwQzM1IDIyLjc2MTQgMzIuNzYxNCAyNSAzMCAyNUMyNy4yMzg2IDI1IDI1IDIyLjc2MTQgMjUgMjBaIiBmaWxsPSIjQ0NDQ0NDIi8+CjxwYXRoIGQ9Ik0yMCAyOEwyNS41IDIyLjVMMzIuNSAyOS41TDQwIDIyTDQwIDMySDIwVjI4WiIgZmlsbD0iI0NDQ0NDQyIvPgo8L3N2Zz4K'
+  },
+  {
+    id: 2,
+    title: '2025年春季学期开学典礼成功举行',
+    time: '2025-08-11', 
+    image: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA2MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjRjBGOEZGIi8+CjxjaXJjbGUgY3g9IjMwIiBjeT0iMTYiIHI9IjQiIGZpbGw9IiM0MDlFRkYiLz4KPHBhdGggZD0iTTIyIDI2QzIyIDIzLjc5MDkgMjMuNzkwOSAyMiAyNiAyMkgzNEMzNi4yMDkxIDIyIDM4IDIzLjc5MDkgMzggMjZWMzJIMjJWMjZaIiBmaWxsPSIjNDA5RUZGIi8+Cjwvc3ZnPgo='
+  }
+])
+
+// 当前显示的紧急通知（支持轮播，基于智能分类结果）
+const currentEmergencyNotification = computed(() => {
+  return emergencyNotifications.value[0] || null
+})
+
+// 公告通知数据（右侧通知公告栏专用，改为使用智能分类的系统公告）
+const announcementNotifications = computed(() => systemAnnouncements.value)
+
+// 获取问候语
+const getGreeting = () => {
+  const hour = new Date().getHours()
+  if (hour < 6) return '夜深了'
+  if (hour < 9) return '早上好'
+  if (hour < 12) return '上午好'
+  if (hour < 14) return '中午好'
+  if (hour < 18) return '下午好'
+  if (hour < 22) return '晚上好'
+  return '夜深了'
+}
+
+// 获取当前日期
+const getCurrentDate = () => {
+  return dayjs().format('YYYY年MM月DD日 dddd')
+}
+
+
+// 获取通知类型
+const getAnnouncementType = (level: number): string => {
+  switch (level) {
+    case 1: return 'danger'  // 紧急
+    case 2: return 'warning' // 重要
+    case 3: return 'info'    // 常规
+    case 4: return 'success' // 提醒
+    default: return 'info'
+  }
+}
+
+// 格式化日期
+const formatDate = (dateStr: string): string => {
+  if (!dateStr) return ''
+  try {
+    const date = new Date(dateStr)
+    if (isNaN(date.getTime())) return dateStr
+    return dayjs(date).format('YYYY-MM-DD')
+  } catch (error) {
+    console.error('日期格式化错误:', error)
+    return dateStr
+  }
+}
+
+// 处理紧急通知点击（兼容性保留）
+const handleEmergencyClick = (notification: NotificationItem) => {
+  console.log('🚨 点击紧急通知:', notification.title)
+  handleNotificationClick(notification)
+}
+
+// 更新通知加载逻辑，添加智能统计
+const loadNotificationData = async () => {
+  console.log('📢 开始加载通知数据...')
+  notificationLoading.value = true
+  
+  try {
+    const result = await notificationAPI.getNotificationList({ pageSize: 100 })
+    
+    if (result.success && result.data.list) {
+      allNotifications.value = result.data.list
+      recentNotifications.value = result.data.list.slice(0, 3) // 兼容原有逻辑
+      console.log('✅ 通知数据加载成功:', allNotifications.value.length, '条')
+      
+      // 🔧 立即验证系统公告数据加载
+      console.log('🔍 [系统公告验证] 原始数据检查:')
+      allNotifications.value.forEach(n => {
+        if (n.publisherRole === 'SYSTEM_ADMIN' || n.publisherRole === 'SYSTEM') {
+          console.log(`  - ID=${n.id}, 标题="${n.title}", 发布者="${n.publisherName}", 角色="${n.publisherRole}"`)
+        }
+      })
+      
+      // 强制触发系统公告计算
+      setTimeout(() => {
+        console.log('🔍 [强制验证] 系统公告计算结果:', systemAnnouncements.value.length, '条')
+        systemAnnouncements.value.forEach(n => {
+          console.log(`  - 系统公告: ID=${n.id}, 标题="${n.title}"`)
+        })
+        
+        // 🔥 强制触发完整分类统计
+        const manager = initializeReadStatusManager()
+        if (manager) {
+          const categories = categorizeNotifications.value(allNotifications.value)
+          console.log('🔥 [完整统计] 通知分类结果:')
+          console.log(`  - 未读优先级: ${categories.unreadPriority.length}条`)
+          console.log(`  - 已读归档: ${categories.readArchive.length}条`)
+          console.log(`  - Level4消息: ${categories.level4Messages.length}条`)
+          console.log(`  - 系统公告: ${categories.systemAnnouncements.length}条`)
+          console.log(`  - 紧急通知: ${categories.emergencyNotifications.length}条`)
+          console.log(`  - 重要通知: ${categories.importantNotifications.length}条`)
+        }
+      }, 100)
+      
+      // 更新未读数量
+      updateUnreadCount()
+    } else {
+      console.log('⚠️ 通知API返回失败，使用默认数据')
+      allNotifications.value = notificationAPI.getDefaultNotifications()
+      recentNotifications.value = allNotifications.value.slice(0, 3)
+      ElMessage.warning('使用默认通知数据')
+    }
+  } catch (error) {
+    console.error('❌ 加载通知数据失败:', error)
+    allNotifications.value = notificationAPI.getDefaultNotifications()
+    recentNotifications.value = allNotifications.value.slice(0, 3)
+    ElMessage.error('通知数据加载失败，使用默认数据')
+  } finally {
+    notificationLoading.value = false
+    console.log('🏁 通知数据加载完成')
+  }
+}
+
+// 更新未读通知数量 - 使用智能统计
+const updateUnreadCount = () => {
+  try {
+    const counts = unreadStats.value
+    unreadNotificationCount.value = counts.total
+    console.log('🔔 [智能统计] 更新未读通知数量:', counts)
+  } catch (error) {
+    console.error('❌ 更新未读数量失败:', error)
+  }
+}
+
+
+// API测试方法
+const testHealthCheck = async () => {
+  console.log('=== 健康检查测试开始 ===')
+  console.log('🏥 开始测试Mock School API健康检查...')
+  
+  testLoading.health = true
+  testResults.value = null
+  
+  try {
+    console.log('📤 发送健康检查请求...')
+    const result = await authAPI.healthCheck()
+    console.log('📥 健康检查响应:', result)
+    
+    if (result.success) {
+      console.log('✅ 健康检查成功')
+      ElMessage.success('Mock School API 服务正常运行')
+    } else {
+      console.log('❌ 健康检查失败')
+    }
+  } catch (error) {
+    console.log('❌ 健康检查异常:', error)
+  } finally {
+    testLoading.health = false
+    console.log('=== 健康检查测试结束 ===')
+  }
+}
+
+const testTokenVerify = async () => {
+  console.log('=== Token验证测试开始 ===')
+  console.log('🔑 当前Token:', currentToken.value?.substring(0, 50) + '...')
+  
+  testLoading.verify = true
+  testResults.value = null
+  
+  if (!currentToken.value) {
+    console.log('❌ 没有可验证的Token')
+    testLoading.verify = false
+    return
+  }
+  
+  try {
+    console.log('📤 发送Token验证请求...')
+    const result = await authAPI.verifyToken(currentToken.value)
+    console.log('📥 Token验证响应:', result)
+    
+    if (result.success) {
+      console.log('✅ Token验证成功')
+      ElMessage.success('Token验证通过')
+    } else {
+      console.log('❌ Token验证失败')
+    }
+  } catch (error: any) {
+    console.log('❌ Token验证异常:', error)
+  } finally {
+    testLoading.verify = false
+    console.log('=== Token验证测试结束 ===')
+  }
+}
+
+const testNotificationAPI = async () => {
+  console.log('=== 通知API测试开始 ===')
+  console.log('📢 开始测试主通知服务连接...')
+  console.log('🔑 使用Token:', currentToken.value?.substring(0, 50) + '...')
+  
+  testLoading.notification = true
+  testResults.value = null
+  
+  try {
+    console.log('📤 发送通知API Ping请求...')
+    
+    // 直接使用fetch测试主通知服务
+    const response = await fetch('http://localhost:48081/admin-api/test/notification/api/ping', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${currentToken.value}`,
+        'Content-Type': 'application/json',
+        'tenant-id': '1'
+      }
+    })
+    
+    console.log('📥 通知API响应状态:', response.status, response.statusText)
+    
+    const result = await response.text()
+    console.log('📥 通知API响应内容:', result)
+    
+    if (response.ok) {
+      console.log('✅ 主通知服务连接成功')
+      ElMessage.success('主通知服务连接正常')
+    } else {
+      console.log('❌ 通知API响应错误')
+    }
+  } catch (error) {
+    console.log('❌ 通知API测试异常:', error)
+  } finally {
+    testLoading.notification = false
+    console.log('=== 通知API测试结束 ===')
+  }
+}
+
+
+// 计算属性
+const isAdmin = computed(() => {
+  return currentUserInfo.value?.roleCode === 'PRINCIPAL' || currentUserInfo.value?.roleCode === 'ACADEMIC_ADMIN'
+})
+
+// 处理用户退出登录
+const handleLogout = async () => {
+  try {
+    console.log('🔓 [退出登录] 开始处理用户退出...')
+    
+    // 显示确认对话框
+    await ElMessageBox.confirm(
+      '确定要退出登录吗？',
+      '退出确认',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+    
+    console.log('✅ [退出登录] 用户确认退出')
+    
+    // 清理本地存储数据（保留已读状态）
+    localStorage.removeItem('campus_token')
+    localStorage.removeItem('campus_user_info')
+    // ❌ 已删除：localStorage.removeItem('campus_portal_read_notifications')
+    // ✅ 已读状态应该持久化保存，用户重新登录后仍能看到已读归档
+    
+    // 清理当前状态
+    currentToken.value = ''
+    currentUserInfo.value = null
+    isUserLoggedIn.value = false
+    
+    // 🔧 重置已读状态管理器和归档动画管理器（为下次登录准备）
+    readStatusManager = null
+    archiveAnimationManager = null
+    
+    console.log('🧹 [退出登录] 清理本地数据完成')
+    
+    // 显示退出成功提示
+    ElMessage.success('退出登录成功')
+    
+    // 跳转到登录页
+    console.log('🔄 [退出登录] 跳转到登录页面')
+    router.push('/login')
+    
+  } catch (error) {
+    // 用户取消退出，不显示错误
+    if (error !== 'cancel') {
+      console.error('❌ [退出登录] 退出过程出错:', error)
+      ElMessage.error('退出登录失败')
+    }
+  }
+}
+
+// 处理快捷服务点击
+const handleServiceClick = (service: any) => {
+  if (!service.available) {
+    ElMessage.info(`${service.name} 功能即将上线，敬请期待`)
+    return
+  }
+  
+  console.log('🎯 [快捷服务] 点击服务:', service.name)
+  ElMessage.info(`正在打开 ${service.name}...`)
+}
+
+// 处理图片加载错误
+const handleImageError = (event: Event) => {
+  const target = event.target as HTMLImageElement
+  if (target) {
+    target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA2MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjRjVGNUY1Ii8+CjxwYXRoIGQ9Ik0yNSAyMEMyNSAxNy4yMzg2IDI3LjIzODYgMTUgMzAgMTVDMzIuNzYxNCAxNSAzNSAxNy4yMzg2IDM1IDIwQzM1IDIyLjc2MTQgMzIuNzYxNCAyNSAzMCAyNUMyNy4yMzg2IDI1IDI1IDIyLjc2MTQgMjUgMjBaIiBmaWxsPSIjQ0NDQ0NDIi8+CjxwYXRoIGQ9Ik0yMCAyOEwyNS41IDIyLjVMMzIuNSAyOS41TDQwIDIyTDQwIDMySDIwVjI4WiIgZmlsbD0iI0NDQ0NDQyIvPgo8L3N2Zz4K'
+  }
+}
+
+// 待办通知相关函数
+
+// 处理待办完成事件 - 优化用户体验
+const handleTodoComplete = async (id: number, completed: boolean) => {
+  try {
+    await todoStore.updateTodoStatus(id, completed)
+    
+    if (completed) {
+      ElMessage.success('🎉 待办已完成！任务已从首页移除')
+      
+      // 添加一个短暂的视觉反馈，让用户看到完成动画
+      setTimeout(() => {
+        // 触发数据刷新，确保首页显示最新状态
+        todoStore.refreshTodos()
+      }, 1000)
+    } else {
+      ElMessage.info('待办已标记为未完成')
+    }
+  } catch (error) {
+    ElMessage.error('操作失败，请重试')
+    console.error('待办状态更新失败:', error)
+  }
+}
+
+// 处理查看全部待办事件
+const handleViewAllTodos = () => {
+  router.push('/todo-management')
+  console.log('📋 跳转到待办管理页面')
+}
+
+// 组件初始化
+onMounted(() => {
+  console.log('=== 首页初始化开始 ===')
+  console.log('当前时间:', dayjs().format('YYYY/MM/DD HH:mm:ss'))
+  console.log('当前路由:', router.currentRoute.value.path)
+  
+  console.log('🔍 开始加载用户认证状态...')
+  
+  // 直接从localStorage加载用户状态，不再依赖Pinia
+  const isLoggedIn = loadUserStateFromStorage()
+  
+  if (isLoggedIn && currentUserInfo.value) {
+    loginTime.value = dayjs().format('YYYY-MM-DD HH:mm:ss')
+    console.log('✅ 用户已登录，首页初始化完成')
+    console.log('👤 当前用户:', currentUserInfo.value.username)
+    console.log('🔑 当前Token长度:', currentToken.value.length)
+    
+    // 🔧 用户信息加载完成后，强制初始化已读状态管理器和归档动画管理器
+    readStatusManager = null // 重置管理器
+    archiveAnimationManager = null // 重置动画管理器
+    initializeReadStatusManager() // 重新初始化
+    initializeArchiveAnimationManager() // 初始化动画管理器
+    
+    // 用户登录成功后加载数据
+    loadNotificationData()
+    
+    // 初始化待办通知数据 - 使用store
+    todoStore.initializeTodos()
+  } else {
+    console.log('❌ 用户未登录，准备跳转到登录页')
+    router.push('/login')
+  }
+  
+  console.log('=== 首页初始化结束 ===')
+})
+</script>
+
+<style scoped>
+/* 全局容器 - 清新学院风渐变背景 */
+.portal-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #F0F9FF 0%, #DBEAFE 20%, #BFDBFE 100%);
+  position: relative;
+}
+
+/* 添加微妙的背景图案 */
+.portal-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(16, 185, 129, 0.03) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* 确保内容在背景之上 */
+.portal-container > * {
+  position: relative;
+  z-index: 2;
+}
+
+/* 顶部导航栏 - 现代化设计 */
+.portal-header {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 20px rgba(30, 58, 138, 0.08);
+  border-bottom: 1px solid rgba(59, 130, 246, 0.1);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 24px;
+  height: 70px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.school-brand {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.brand-icon {
+  color: #1E3A8A; /* 深蓝色 */
+}
+
+.brand-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.brand-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1E3A8A; /* 深蓝色 */
+  margin: 0;
+  line-height: 1.2;
+}
+
+.brand-subtitle {
+  font-size: 12px;
+  color: #3B82F6; /* 天蓝色 */
+  line-height: 1.2;
+}
+
+.user-panel {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-details {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.user-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #262626;
+  line-height: 1.2;
+}
+
+.user-role {
+  font-size: 12px;
+  color: #8c8c8c;
+  line-height: 1.2;
+}
+
+/* 问候横幅 - 清新学院风设计 */
+.welcome-banner {
+  background: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%);
+  color: white;
+  padding: 32px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  border-radius: 16px;
+  margin: 0 24px 24px 24px;
+  box-shadow: 0 8px 32px rgba(30, 58, 138, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+/* 横幅装饰元素 */
+.welcome-banner::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -20%;
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.15) 0%, transparent 70%);
+  border-radius: 50%;
+}
+
+.welcome-banner::after {
+  content: '';
+  position: absolute;
+  bottom: -30%;
+  left: -10%;
+  width: 150px;
+  height: 150px;
+  background: radial-gradient(circle, rgba(245, 158, 11, 0.15) 0%, transparent 70%);
+  border-radius: 50%;
+}
+
+.greeting {
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+}
+
+.date-info {
+  font-size: 14px;
+  opacity: 0.9;
+  margin: 0;
+}
+
+
+/* 三区布局主体 */
+.portal-main {
+  display: grid;
+  grid-template-columns: 300px 1fr 320px;
+  gap: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* 左侧快捷服务区 - 现代化卡片 */
+.quick-services {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(30, 58, 138, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.1);
+  padding: 24px;
+  height: fit-content;
+  transition: all 0.3s ease;
+}
+
+.quick-services:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(30, 58, 138, 0.12);
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.section-header h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 16px;
+  color: #262626;
+}
+
+.service-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.service-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 1px solid transparent;
+  background: rgba(240, 249, 255, 0.3);
+}
+
+.service-item:hover {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(16, 185, 129, 0.05) 100%);
+  border-color: rgba(59, 130, 246, 0.2);
+  transform: translateX(4px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+}
+
+.service-item.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.service-item.disabled:hover {
+  background: rgba(240, 249, 255, 0.3);
+  border-color: transparent;
+  transform: none;
+  box-shadow: none;
+}
+
+.service-icon {
+  flex-shrink: 0;
+}
+
+.service-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.service-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #262626;
+  line-height: 1.2;
+  margin-bottom: 4px;
+}
+
+.service-desc {
+  font-size: 12px;
+  color: #8c8c8c;
+  line-height: 1.2;
+}
+
+.service-arrow {
+  color: #bfbfbf;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.service-item:hover .service-arrow {
+  opacity: 1;
+}
+
+/* 中间智能工作台 - 革命性重构样式 */
+.intelligent-workspace {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(30, 58, 138, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.1);
+  padding: 24px;
+  height: fit-content;
+  transition: all 0.3s ease;
+}
+
+.intelligent-workspace:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(30, 58, 138, 0.12);
+}
+
+/* 🎯 优先通知工作台区域 - 革命性分级颜色系统 */
+.priority-workspace-section {
+  margin-bottom: 24px;
+  border-radius: 12px;
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(240, 249, 255, 0.6) 0%, rgba(255, 255, 255, 0.9) 100%);
+  border: 1px solid rgba(59, 130, 246, 0.15);
+}
+
+.workspace-priority-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.1);
+}
+
+.workspace-priority-header h4 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1E3A8A;
+}
+
+.priority-notification-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* 分级通知卡片 - 红橙蓝分级设计 */
+.priority-notification-card {
+  background: white;
+  border-radius: 10px;
+  padding: 18px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Level 1 紧急通知 - 红色系 */
+.priority-notification-card.level-1-emergency {
+  background: linear-gradient(135deg, #ffebee 0%, #fef2f2 100%);
+  border-color: #f87171;
+  box-shadow: 0 4px 15px rgba(248, 113, 113, 0.15);
+}
+
+.priority-notification-card.level-1-emergency:hover {
+  border-color: #dc2626;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(220, 38, 38, 0.2);
+}
+
+.priority-notification-card.level-1-emergency::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(180deg, #dc2626 0%, #f87171 100%);
+}
+
+/* Level 2 重要通知 - 橙色系 */
+.priority-notification-card.level-2-important {
+  background: linear-gradient(135deg, #fff8e1 0%, #fffbeb 100%);
+  border-color: #fbbf24;
+  box-shadow: 0 4px 15px rgba(251, 191, 36, 0.15);
+}
+
+.priority-notification-card.level-2-important:hover {
+  border-color: #d97706;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(217, 119, 6, 0.2);
+}
+
+.priority-notification-card.level-2-important::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(180deg, #d97706 0%, #fbbf24 100%);
+}
+
+/* Level 3 常规通知 - 蓝色系 */
+.priority-notification-card.level-3-regular {
+  background: linear-gradient(135deg, #e3f2fd 0%, #f0f9ff 100%);
+  border-color: #60a5fa;
+  box-shadow: 0 4px 15px rgba(96, 165, 250, 0.15);
+}
+
+.priority-notification-card.level-3-regular:hover {
+  border-color: #2563eb;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(37, 99, 235, 0.2);
+}
+
+.priority-notification-card.level-3-regular::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(180deg, #2563eb 0%, #60a5fa 100%);
+}
+
+/* 通知内容样式 */
+.notification-priority-content {
+  position: relative;
+  z-index: 2;
+}
+
+.notification-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 10px;
+  gap: 12px;
+}
+
+.notification-title-priority {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1f2937;
+  line-height: 1.4;
+  flex: 1;
+  min-width: 0;
+}
+
+.notification-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.mark-read-btn {
+  min-width: 60px;
+  height: 28px;
+}
+
+.notification-summary-priority {
+  color: #6b7280;
+  font-size: 13px;
+  line-height: 1.6;
+  margin-bottom: 10px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 6px;
+  border-left: 3px solid #e5e7eb;
+}
+
+.notification-meta-priority {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.notification-publisher-priority {
+  font-weight: 500;
+  color: #374151;
+}
+
+.show-more-priority {
+  text-align: center;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(59, 130, 246, 0.1);
+}
+
+/* 🎨 工作台模块卡片基础样式 */
+.workspace-module-card {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+.workspace-module-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+.module-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.module-header h4 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #2d3748;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 📋 待办通知模块专用样式 - 紫色主题 */
+.todo-notification-module {
+  border-left: 4px solid #8B5CF6;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.05), rgba(255, 255, 255, 0.9));
+}
+
+.todo-notification-module:hover {
+  border-left-color: #7C3AED;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.08), rgba(255, 255, 255, 0.95));
+}
+
+.todo-notification-module .module-header h4 {
+  color: #8B5CF6;
+}
+
+.todo-notification-module .module-header .el-tag {
+  background-color: rgba(139, 92, 246, 0.1);
+  color: #8B5CF6;
+  border-color: rgba(139, 92, 246, 0.2);
+}
+
+/* 📚 今日课程安排模块 */
+.course-module {
+  border-left: 4px solid #3b82f6;
+}
+
+.course-schedule-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.course-schedule-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.course-schedule-item:hover {
+  background: rgba(59, 130, 246, 0.05);
+  transform: translateX(4px);
+}
+
+.course-schedule-item.course-completed {
+  opacity: 0.7;
+  background: rgba(156, 163, 175, 0.1);
+}
+
+.course-schedule-item.course-current {
+  background: rgba(251, 191, 36, 0.1);
+  border-left: 3px solid #fbbf24;
+  animation: pulse 2s infinite;
+}
+
+.course-schedule-item.course-upcoming {
+  background: rgba(34, 197, 94, 0.1);
+  border-left: 3px solid #22c55e;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
+}
+
+.course-time-info {
+  font-size: 12px;
+  font-weight: 500;
+  color: #374151;
+  min-width: 80px;
+  text-align: center;
+  background: rgba(59, 130, 246, 0.1);
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.course-details {
+  flex: 1;
+}
+
+.course-name-main {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 2px;
+}
+
+.course-location-teacher {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+/* 💬 Level 4 通知消息模块 */
+.level4-module {
+  border-left: 4px solid #10b981;
+}
+
+.level4-messages-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.level4-message-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: rgba(16, 185, 129, 0.05);
+  border: 1px solid rgba(16, 185, 129, 0.1);
+}
+
+.level4-message-item:hover {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.2);
+  transform: translateX(4px);
+}
+
+.level4-icon {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(16, 185, 129, 0.1);
+  border-radius: 50%;
+}
+
+.level4-content {
+  flex: 1;
+}
+
+.level4-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: #1f2937;
+  margin-bottom: 2px;
+  line-height: 1.3;
+}
+
+.level4-time {
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.level4-action {
+  flex-shrink: 0;
+}
+
+/* Level 4 已读状态样式 */
+.level4-message-item.level4-read {
+  opacity: 0.6;
+  background: rgba(156, 163, 175, 0.1);
+  border-color: rgba(156, 163, 175, 0.2);
+}
+
+.level4-message-item.level4-read:hover {
+  background: rgba(156, 163, 175, 0.15);
+  border-color: rgba(156, 163, 175, 0.3);
+}
+
+.level4-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.level4-actions .mark-read-btn {
+  padding: 4px 8px;
+  font-size: 12px;
+  min-width: 70px;
+  height: 28px;
+}
+
+.level4-read-tag {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  padding: 4px 8px;
+}
+
+/* 右侧校园资讯区 - 现代化卡片 */
+.campus-news {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(30, 58, 138, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.1);
+  padding: 24px;
+  height: fit-content;
+  transition: all 0.3s ease;
+}
+
+.campus-news:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(30, 58, 138, 0.12);
+}
+
+.news-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.news-card {
+  border: 1px solid rgba(59, 130, 246, 0.1);
+  border-radius: 12px;
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(240, 249, 255, 0.5) 0%, rgba(255, 255, 255, 0.8) 100%);
+  transition: all 0.3s ease;
+}
+
+.news-card:hover {
+  border-color: rgba(59, 130, 246, 0.2);
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.1);
+  transform: translateY(-1px);
+}
+
+.news-card h4 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  color: #262626;
+}
+
+.news-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.news-item {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.news-image {
+  width: 60px;
+  height: 40px;
+  border-radius: 4px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.news-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.news-title {
+  font-size: 13px;
+  color: #262626;
+  line-height: 1.3;
+  margin-bottom: 4px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.news-time {
+  font-size: 11px;
+  color: #8c8c8c;
+}
+
+.announcement-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* 删除重复的announcement-title和announcement-time定义，使用后面合并的版本 */
+
+.service-info-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.service-info-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.info-content {
+  flex: 1;
+}
+
+.info-title {
+  font-size: 13px;
+  color: #262626;
+  line-height: 1.2;
+  margin-bottom: 2px;
+}
+
+.info-desc {
+  font-size: 11px;
+  color: #8c8c8c;
+  line-height: 1.2;
+}
+
+/* 调试面板 */
+.debug-panel {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  gap: 8px;
+  background: white;
+  padding: 12px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+}
+
+/* 响应式设计 */
+@media (max-width: 1024px) {
+  .portal-main {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .stats-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .header-content {
+    padding: 0 16px;
+  }
+  
+  .portal-main {
+    padding: 0 16px;
+  }
+  
+  .welcome-banner {
+    padding: 16px;
+  }
+  
+  .greeting {
+    font-size: 18px;
+  }
+  
+  .brand-title {
+    font-size: 16px;
+  }
+  
+  .user-details {
+    display: none;
+  }
+}
+
+/* 通知对话框样式 */
+.notification-more {
+  text-align: center;
+  padding: 8px 0;
+  border-top: 1px solid #eee;
+  margin-top: 8px;
+}
+
+.notification-dialog .notification-filters {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  align-items: center;
+}
+
+.notification-dialog .notification-table {
+  margin-bottom: 16px;
+}
+
+.notification-dialog .notification-pagination {
+  display: flex;
+  justify-content: center;
+}
+
+.notification-detail .notification-meta {
+  background: #f5f7fa;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.notification-detail .meta-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.notification-detail .meta-row:last-child {
+  margin-bottom: 0;
+}
+
+.notification-detail .meta-label {
+  font-weight: 500;
+  width: 80px;
+  color: #606266;
+}
+
+.notification-detail .notification-content-detail {
+  line-height: 1.6;
+}
+
+/* 格式化内容样式 - 支持换行和美观格式 */
+.formatted-content {
+  white-space: pre-wrap; /* 保留换行和空格 */
+  word-wrap: break-word; /* 长单词换行 */
+  line-height: 1.8; /* 增加行高提升可读性 */
+  font-size: 14px;
+  color: #333;
+}
+
+.notification-detail .content-text {
+  background: #fff;
+  padding: 20px;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  white-space: pre-wrap; /* 关键：保留换行符格式 */
+  word-wrap: break-word;
+  color: #333;
+  line-height: 1.8; /* 提升行高 */
+  font-size: 14px;
+  max-height: 400px; /* 限制最大高度 */
+  overflow-y: auto; /* 超出滚动 */
+}
+
+/* 优先通知工作台样式(统一设计) */
+.priority-notification-section {
+  margin-bottom: 20px;
+}
+
+/* 紧急通知工作台样式 */
+.emergency-workspace-card {
+  background: linear-gradient(135deg, #fee2e2, #fef2f2);
+  border: 2px solid #fca5a5;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 12px rgba(248, 113, 113, 0.15);
+}
+
+/* 重要通知工作台样式 */
+.important-workspace-card {
+  background: linear-gradient(135deg, #fef3c7, #fffbeb);
+  border: 2px solid #fcd34d;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 12px rgba(251, 191, 36, 0.15);
+}
+
+/* 通知工作台头部(通用) */
+.notification-workspace-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.notification-workspace-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.emergency-workspace-card .notification-workspace-header h3 {
+  color: #dc2626;
+}
+
+.important-workspace-card .notification-workspace-header h3 {
+  color: #d97706;
+}
+
+/* 通知列表(通用) */
+.notification-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* 通知项(通用) */
+.notification-workspace-item {
+  background: white;
+  border-radius: 8px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* 紧急通知项样式 */
+.emergency-item {
+  border: 1px solid #fca5a5;
+}
+
+.emergency-item:hover {
+  border-color: #dc2626;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.15);
+  transform: translateY(-1px);
+}
+
+/* 重要通知项样式 */
+.important-item {
+  border: 1px solid #fcd34d;
+}
+
+.important-item:hover {
+  border-color: #d97706;
+  box-shadow: 0 2px 8px rgba(217, 119, 6, 0.15);
+  transform: translateY(-1px);
+}
+
+/* 通知内容(通用) */
+.notification-content-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.notification-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.notification-title {
+  font-weight: 600;
+  font-size: 15px;
+  margin-right: 12px;
+}
+
+.emergency-title {
+  color: #dc2626;
+}
+
+.important-title {
+  color: #d97706;
+}
+
+.notification-summary {
+  color: #666;
+  font-size: 13px;
+  line-height: 1.5;
+  margin-bottom: 8px;
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 4px;
+  white-space: pre-line; /* 支持换行 */
+  word-wrap: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 2; /* 工作台显示最多2行 */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.notification-meta {
+  display: flex;
+  gap: 16px;
+  font-size: 12px;
+  color: #999;
+}
+
+.notification-publisher {
+  font-weight: 500;
+}
+
+.notification-action-btn {
+  margin-left: 16px;
+  flex-shrink: 0;
+}
+
+/* 查看更多按钮 */
+.show-more-notifications {
+  text-align: center;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #fcd34d;
+}
+
+/* 常规统计区域样式调整 */
+.stats-section {
+  margin-bottom: 20px;
+}
+
+/* 原有紧急通知横幅样式删除 */
+
+/* 通知公告项样式 - 合并版本，避免冲突 */
+.announcement-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(59, 130, 246, 0.1);
+  margin-bottom: 12px;
+  background: linear-gradient(135deg, rgba(240, 249, 255, 0.4) 0%, rgba(255, 255, 255, 0.8) 100%);
+}
+
+.announcement-item:hover {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(16, 185, 129, 0.05) 100%);
+  transform: translateX(4px);
+  border-color: rgba(59, 130, 246, 0.2);
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.1);
+}
+
+.announcement-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.announcement-title {
+  font-weight: 600;
+  color: #262626;
+  font-size: 14px;
+  line-height: 1.4;
+  margin-bottom: 4px;
+}
+
+.announcement-summary,
+.announcement-content-preview {
+  font-size: 13px;
+  color: #666;
+  line-height: 1.6; /* 增加行高 */
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border-left: 3px solid #e9ecef;
+  white-space: pre-line; /* 支持换行但不保留多余空格 */
+  word-wrap: break-word;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 4; /* 增加到4行 */
+  -webkit-box-orient: vertical;
+}
+
+/* 系统公告专用样式 */
+.system-announcement-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  padding: 18px; /* 增加内边距 */
+  border-radius: 12px;
+  border: 1px solid rgba(59, 130, 246, 0.1);
+  margin-bottom: 12px;
+  background: linear-gradient(135deg, rgba(240, 249, 255, 0.6) 0%, rgba(255, 255, 255, 0.9) 100%);
+  min-height: 130px; /* 确保足够高度 */
+  position: relative;
+}
+
+.system-announcement-item:hover {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(16, 185, 129, 0.08) 100%);
+  transform: translateX(4px);
+  border-color: rgba(59, 130, 246, 0.3);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.15);
+}
+
+.system-announcement-item .announcement-title {
+  font-weight: 600;
+  font-size: 15px; /* 稍大标题 */
+  line-height: 1.4;
+  margin-bottom: 8px;
+  color: #1a202c;
+}
+
+.system-announcement-item .announcement-content-preview {
+  background: rgba(249, 250, 251, 0.8);
+  border-left: 3px solid #3b82f6;
+  font-size: 13px;
+  line-height: 1.6;
+  -webkit-line-clamp: 4; /* 系统公告允许更多行数 */
+}
+
+.announcement-time {
+  font-size: 11px;
+  color: #999;
+}
+
+.no-announcements {
+  text-align: center;
+  padding: 20px;
+  color: #999;
+}
+</style>

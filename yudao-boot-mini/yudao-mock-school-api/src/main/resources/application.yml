@@ -1,0 +1,70 @@
+# Mock School API 配置文件
+server:
+  port: 48082
+  servlet:
+    context-path: /
+
+spring:
+  application:
+    name: mock-school-api
+  
+  # 数据库配置
+  datasource:
+    url: jdbc:mysql://localhost:3306/ruoyi-vue-pro?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&characterEncoding=utf8mb4
+    username: root
+    password: 
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    
+  # JPA配置
+  jpa:
+    hibernate:
+      ddl-auto: update  # 自动创建/更新表结构
+    show-sql: true
+    database-platform: org.hibernate.dialect.MySQL8Dialect
+    properties:
+      hibernate:
+        format_sql: true
+        
+  # Jackson配置
+  jackson:
+    time-zone: GMT+8
+    date-format: yyyy-MM-dd HH:mm:ss
+    default-property-inclusion: non_null
+
+# 日志配置
+logging:
+  level:
+    cn.iocoder.yudao.mock.school: INFO
+    org.springframework.web: INFO
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+  pattern:
+    console: '%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n'
+
+# Mock API 特定配置
+mock:
+  school-api:
+    # 是否自动初始化测试数据
+    auto-init-data: true
+    # Token过期时间（小时）
+    token-expire-hours: 24
+    # 是否启用权限验证日志
+    enable-permission-log: true
+
+# 应用信息
+info:
+  app:
+    name: Mock School API
+    description: 模拟教育机构认证和权限验证服务
+    version: 1.0.0
+    author: Claude
+
+# 管理端点配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always

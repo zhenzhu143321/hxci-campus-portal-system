@@ -1,0 +1,130 @@
+{
+  "timestamp": "2025-08-14 16:22:20",
+  "valid_accounts": [],
+  "invalid_accounts": [
+    {
+      "userNumber": "2024010009",
+      "password": "888888",
+      "status_code": 200,
+      "success": false,
+      "data": {
+        "code": 40200,
+        "data": null,
+        "message": "密码错误"
+      },
+      "error": "密码错误"
+    },
+    {
+      "userNumber": "2024010011",
+      "password": "888888",
+      "status_code": 200,
+      "success": false,
+      "data": {
+        "code": 40200,
+        "data": null,
+        "message": "密码错误"
+      },
+      "error": "密码错误"
+    },
+    {
+      "userNumber": "2023010109",
+      "password": "888888",
+      "status_code": 200,
+      "success": false,
+      "data": {
+        "code": 40200,
+        "data": null,
+        "message": "密码错误"
+      },
+      "error": "密码错误"
+    },
+    {
+      "userNumber": "2023010114",
+      "password": "888888",
+      "status_code": 200,
+      "success": false,
+      "data": {
+        "code": 40200,
+        "data": null,
+        "message": "密码错误"
+      },
+      "error": "密码错误"
+    },
+    {
+      "userNumber": "2023010121",
+      "password": "888888",
+      "status_code": 200,
+      "success": false,
+      "data": {
+        "code": 40200,
+        "data": null,
+        "message": "密码错误"
+      },
+      "error": "密码错误"
+    },
+    {
+      "userNumber": "2022010606",
+      "password": "888888",
+      "status_code": 200,
+      "success": false,
+      "data": {
+        "code": 40200,
+        "data": null,
+        "message": "密码错误"
+      },
+      "error": "密码错误"
+    },
+    {
+      "userNumber": "2022010616",
+      "password": "888888",
+      "status_code": 200,
+      "success": false,
+      "data": {
+        "code": 40200,
+        "data": null,
+        "message": "密码错误"
+      },
+      "error": "密码错误"
+    },
+    {
+      "userNumber": "2022010619",
+      "password": "888888",
+      "status_code": 200,
+      "success": false,
+      "data": {
+        "code": 40200,
+        "data": null,
+        "message": "密码错误"
+      },
+      "error": "密码错误"
+    },
+    {
+      "userNumber": "2022010620",
+      "password": "888888",
+      "status_code": 200,
+      "success": false,
+      "data": {
+        "code": 0,
+        "data": {
+          "id": "c6a7b2c058c64b7aa96ee6be9ba55845",
+          "companyId": "2",
+          "officeId": "01",
+          "no": "2022010620",
+          "schoolName": null,
+          "name": "刘怡",
+          "email": "22360430150525@greathiit.com",
+          "phone": "15857703255",
+          "mobile": "15857703255",
+          "role": [
+            "student"
+          ],
+          "photo": null,
+          "token": "7d2c9a76-995d-4f26-9a66-710151efc51c",
+          "teacherStatus": null
+        },
+        "message": "ok"
+      },
+      "error": "ok"
+    }
+  ]
+}

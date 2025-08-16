@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔐 Phase 2: 认证功能测试 (增强版 - 含API展示)</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            margin: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            padding: 30px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #eee;
+        }
+        
+        .phase-indicator {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .phase-step {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .phase-step.completed {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .phase-step.current {
+            background: #fff3cd;
+            color: #856404;
+            border: 2px solid #ffc107;
+        }
+        
+        .phase-step.pending {
+            background: #f8f9fa;
+            color: #6c757d;
+        }
+        
+        .main-grid {
+            display: grid;
+            grid-template-columns: 400px 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .auth-panel {
+            border: 2px solid #e3e3e3;
+            border-radius: 10px;
+            padding: 20px;
+        }
+        
+        .auth-panel h3 {
+            margin-bottom: 15px;
+            color: #495057;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #495057;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #0056b3;
+            transform: translateY(-1px);
+        }
+        
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        
+        .btn-info {
+            background: #17a2b8;
+            color: white;
+        }
+        
+        .auth-status {
+            border: 2px solid #e3e3e3;
+            border-radius: 10px;
+            padding: 20px;
+            height: fit-content;
+        }
+        
+        .auth-status.authenticated {
+            border-color: #28a745;
+            background: #f8fff9;
+        }
+        
+        .auth-status.failed {
+            border-color: #dc3545;
+            background: #fff8f8;
+        }
+        
+        .token-display {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            line-height: 1.4;
+            word-break: break-all;
+            max-height: 120px;
+            overflow-y: auto;
+        }
+        
+        .user-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .info-item {
+            background: #f8f9fa;
+            padding: 8px 12px;
+            border-radius: 6px;
+            text-align: center;
+        }
+        
+        .info-item strong {
+            display: block;
+            color: #495057;
+            font-size: 12px;
+        }
+        
+        .info-item span {
+            color: #007bff;
+            font-weight: 600;
+        }
+        
+        .account-selector {
+            margin-bottom: 15px;
+        }
+        
+        .account-btn {
+            display: inline-block;
+            padding: 6px 12px;
+            margin: 4px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s ease;
+        }
+        
+        .account-btn:hover {
+            background: #e9ecef;
+            border-color: #adb5bd;
+        }
+        
+        .account-btn.selected {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+        
+        /* 新增API展示区域样式 */
+        .api-display-area {
+            border: 2px solid #17a2b8;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .api-header {
+            background: #17a2b8;
+            color: white;
+            padding: 15px;
+            font-weight: 600;
+        }
+        
+        .api-content {
+            padding: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .api-section {
+            margin-bottom: 20px;
+        }
+        
+        .api-section h4 {
+            margin-bottom: 10px;
+            color: #495057;
+            font-size: 14px;
+        }
+        
+        .code-block {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 12px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            line-height: 1.4;
+        }
+        
+        .log-area {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 2px 0;
+        }
+        
+        .log-info { color: #0066cc; }
+        .log-success { color: #00aa00; }
+        .log-error { color: #cc0000; }
+        .log-warning { color: #ff8800; }
+        
+        .next-phase {
+            text-align: center;
+            margin-top: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #28a745, #20c997);
+            border-radius: 10px;
+            color: white;
+        }
+        
+        .next-phase.disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        
+        .next-phase button {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            margin-top: 10px;
+        }
+        
+        .next-phase button:hover:not(:disabled) {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        .next-phase button:disabled {
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        
+        .url-highlight {
+            color: #007bff;
+            font-weight: 600;
+        }
+        
+        .method-highlight {
+            color: #28a745;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔐 Phase 2: 认证功能测试 (增强版)</h1>
+            <p>验证双重认证系统和JWT Token获取 + 完整API调用展示</p>
+            
+            <div class="phase-indicator">
+                <div class="phase-step completed">✅ Phase 1: 连接测试</div>
+                <div class="phase-step current">🔄 Phase 2: 认证测试</div>
+                <div class="phase-step pending">⭕ Phase 3: 发布测试</div>
+                <div class="phase-step pending">⭕ Phase 4: 列表测试</div>
+                <div class="phase-step pending">⭕ Phase 5: 审批测试</div>
+            </div>
+        </div>
+
+        <div class="main-grid">
+            <!-- 左侧：认证操作面板 -->
+            <div class="auth-panel">
+                <h3>🔑 用户认证登录</h3>
+                
+                <!-- 快速账号选择 -->
+                <div class="account-selector">
+                    <label>快速选择测试账号：</label>
+                    <div>
+                        <span class="account-btn selected" data-role="PRINCIPAL" 
+                              data-id="PRINCIPAL_001" data-name="Principal-Zhang">
+                            👑 校长
+                        </span>
+                        <span class="account-btn" data-role="ACADEMIC_ADMIN" 
+                              data-id="ACADEMIC_ADMIN_001" data-name="Director-Li">
+                            📚 教务主任
+                        </span>
+                        <span class="account-btn" data-role="TEACHER" 
+                              data-id="TEACHER_001" data-name="Teacher-Wang">
+                            👩‍🏫 教师
+                        </span>
+                        <span class="account-btn" data-role="CLASS_TEACHER" 
+                              data-id="CLASS_TEACHER_001" data-name="ClassTeacher-Liu">
+                            👨‍🎓 班主任
+                        </span>
+                        <span class="account-btn" data-role="STUDENT" 
+                              data-id="STUDENT_001" data-name="Student-Zhang">
+                            🎓 学生
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>工号 (Employee ID)</label>
+                    <input type="text" class="form-control" id="employeeId" value="PRINCIPAL_001">
+                </div>
+                
+                <div class="form-group">
+                    <label>姓名 (Name)</label>
+                    <input type="text" class="form-control" id="userName" value="Principal-Zhang">
+                </div>
+                
+                <div class="form-group">
+                    <label>密码 (Password)</label>
+                    <input type="password" class="form-control" id="password" value="admin123">
+                </div>
+                
+                <button class="btn btn-primary" onclick="testAuthentication()">
+                    🔐 执行认证测试
+                </button>
+                
+                <button class="btn btn-info" onclick="testTokenInfo()">
+                    ℹ️ 解析Token信息
+                </button>
+                
+                <button class="btn btn-success" onclick="runAllAuthTests()">
+                    🚀 全量认证测试
+                </button>
+                
+                <!-- 认证状态显示 -->
+                <div class="auth-status" id="authStatus" style="margin-top: 20px;">
+                    <h3>📊 认证状态</h3>
+                    <div id="authResult">
+                        <p>🔄 等待认证测试...</p>
+                        <p style="color: #6c757d; font-size: 14px;">点击左侧按钮开始测试双重认证流程</p>
+                    </div>
+                    
+                    <div id="tokenSection" style="display: none;">
+                        <h4 style="margin: 15px 0 10px 0;">🎫 JWT Token</h4>
+                        <div class="token-display" id="tokenDisplay"></div>
+                        
+                        <div class="user-info" id="userInfo" style="display: none;">
+                            <!-- 动态生成用户信息 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右侧：API调用展示区域 -->
+            <div class="api-display-area">
+                <div class="api-header">
+                    💻 实时API调用展示 & Vue前端开发参考
+                </div>
+                <div class="api-content">
+                    <!-- 当前API调用信息 -->
+                    <div class="api-section">
+                        <h4>🔄 当前API调用</h4>
+                        <div id="currentApiCall" class="code-block">等待API调用...</div>
+                    </div>
+                    
+                    <!-- Vue前端参考代码 -->
+                    <div class="api-section">
+                        <h4>🌟 Vue 3 + TypeScript 前端参考代码</h4>
+                        <div id="vueReference" class="code-block">等待生成Vue参考代码...</div>
+                    </div>
+                    
+                    <!-- API响应结果 -->
+                    <div class="api-section">
+                        <h4>📥 API响应结果</h4>
+                        <div id="apiResponse" class="code-block">等待API响应...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 测试日志 -->
+        <div>
+            <h3>📋 认证测试日志</h3>
+            <div class="log-area" id="logArea">
+                <div class="log-entry log-info">[INFO] Phase 2 认证功能测试页面已加载 (增强版)</div>
+                <div class="log-entry log-info">[INFO] 当前选择账号: Principal-Zhang (PRINCIPAL_001)</div>
+                <div class="log-entry log-info">[INFO] API展示区域已初始化，等待认证测试</div>
+            </div>
+        </div>
+        
+        <!-- 下一阶段按钮 -->
+        <div class="next-phase disabled" id="nextPhase">
+            <h4>🎯 进入下一阶段</h4>
+            <p>认证测试成功后，可以进入通知发布测试</p>
+            <button onclick="goToPhase3()" disabled id="nextPhaseBtn">
+                📝 Phase 3: 通知发布测试
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // 全局状态
+        const authState = {
+            isAuthenticated: false,
+            currentToken: '',
+            currentUser: null,
+            selectedAccount: {
+                role: 'PRINCIPAL',
+                employeeId: 'PRINCIPAL_001',
+                name: 'Principal-Zhang'
+            }
+        };
+
+        // API配置
+        const API_CONFIG = {
+            MOCK_API: 'http://localhost:48082',
+            HEADERS: {
+                'Content-Type': 'application/json; charset=UTF-8'
+            }
+        };
+
+        // 添加日志
+        function addLog(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] [${type.toUpperCase()}] ${message}`;
+            
+            const logArea = document.getElementById('logArea');
+            const logDiv = document.createElement('div');
+            logDiv.className = `log-entry log-${type}`;
+            logDiv.textContent = logEntry;
+            logArea.appendChild(logDiv);
+            logArea.scrollTop = logArea.scrollHeight;
+            
+            console.log(logEntry);
+        }
+
+        // 显示API调用信息
+        function displayApiCall(method, url, requestData = null) {
+            const apiDisplay = document.getElementById('currentApiCall');
+            
+            let apiInfo = `🌐 API调用信息:
+${method} ${url}
+
+📤 请求头 (Headers):
+Content-Type: application/json; charset=UTF-8`;
+
+            if (requestData) {
+                apiInfo += `
+
+📦 请求体 (Request Body):
+${JSON.stringify(requestData, null, 2)}`;
+            }
+
+            apiDisplay.textContent = apiInfo;
+        }
+
+        // 显示Vue参考代码
+        function displayVueReference(apiMethod, apiUrl, requestData = null) {
+            const vueDisplay = document.getElementById('vueReference');
+            
+            const vueCode = `// Vue 3 + TypeScript 认证服务
+// 文件位置: src/services/authService.ts
+
+interface AuthRequest {
+  employeeId: string;
+  name: string;
+  password: string;
+}
+
+interface AuthResponse {
+  success: boolean;
+  code: number;
+  message: string;
+  data: {
+    accessToken: string;
+    username: string;
+    roleCode: string;
+    roleName: string;
+  };
+}
+
+class AuthService {
+  private baseURL = '${API_CONFIG.MOCK_API}';
+
+  async authenticate(authRequest: AuthRequest): Promise<AuthResponse> {
+    const response = await fetch('${apiUrl}', {
+      method: '${apiMethod}',
+      headers: {
+        'Content-Type': 'application/json; charset=UTF-8'
+      },${requestData ? `
+      body: JSON.stringify(${JSON.stringify(requestData, null, 8)})` : ''}
+    });
+
+    const data = await response.json();
+    
+    if (data.success && data.data.accessToken) {
+      // 保存JWT Token到本地存储
+      localStorage.setItem('authToken', data.data.accessToken);
+      localStorage.setItem('userInfo', JSON.stringify(data.data));
+    }
+    
+    return data;
+  }
+
+  getAuthToken(): string | null {
+    return localStorage.getItem('authToken');
+  }
+
+  getCurrentUser(): any {
+    const userInfo = localStorage.getItem('userInfo');
+    return userInfo ? JSON.parse(userInfo) : null;
+  }
+
+  logout(): void {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('userInfo');
+  }
+}
+
+// Vue组件中的使用方式:
+// 文件位置: src/views/Login.vue
+
+<script setup lang="ts">
+import { ref } from 'vue';
+import { AuthService } from '@/services/authService';
+
+const authService = new AuthService();
+const isLoading = ref(false);
+
+const loginForm = ref({
+  employeeId: '${authState.selectedAccount.employeeId}',
+  name: '${authState.selectedAccount.name}',
+  password: 'admin123'
+});
+
+const handleLogin = async () => {
+  isLoading.value = true;
+  try {
+    const result = await authService.authenticate(loginForm.value);
+    if (result.success) {
+      // 登录成功，跳转到主页
+      console.log('登录成功:', result.data);
+    } else {
+      console.error('登录失败:', result.message);
+    }
+  } catch (error) {
+    console.error('认证异常:', error);
+  } finally {
+    isLoading.value = false;
+  }
+};
+</script>`;
+
+            vueDisplay.textContent = vueCode;
+        }
+
+        // 显示API响应
+        function displayApiResponse(response) {
+            const responseDisplay = document.getElementById('apiResponse');
+            responseDisplay.textContent = JSON.stringify(response, null, 2);
+        }
+
+        // 初始化显示
+        function initializeApiDisplay() {
+            const initialRequestData = {
+                employeeId: 'PRINCIPAL_001',
+                name: 'Principal-Zhang',
+                password: 'admin123'
+            };
+            displayApiCall('POST', `${API_CONFIG.MOCK_API}/mock-school-api/auth/authenticate`, initialRequestData);
+            displayVueReference('POST', `${API_CONFIG.MOCK_API}/mock-school-api/auth/authenticate`, initialRequestData);
+        }
+
+        // 账号选择器事件
+        document.addEventListener('DOMContentLoaded', function() {
+            const accountBtns = document.querySelectorAll('.account-btn');
+            accountBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    // 移除所有选中状态
+                    accountBtns.forEach(b => b.classList.remove('selected'));
+                    
+                    // 选中当前
+                    this.classList.add('selected');
+                    
+                    // 更新表单
+                    const role = this.dataset.role;
+                    const employeeId = this.dataset.id;
+                    const name = this.dataset.name;
+                    
+                    document.getElementById('employeeId').value = employeeId;
+                    document.getElementById('userName').value = name;
+                    
+                    authState.selectedAccount = { role, employeeId, name };
+                    
+                    addLog(`切换到测试账号: ${name} (${employeeId})`);
+                    
+                    // 更新API展示
+                    const requestData = {
+                        employeeId: employeeId,
+                        name: name,
+                        password: 'admin123'
+                    };
+                    displayApiCall('POST', `${API_CONFIG.MOCK_API}/mock-school-api/auth/authenticate`, requestData);
+                    displayVueReference('POST', `${API_CONFIG.MOCK_API}/mock-school-api/auth/authenticate`, requestData);
+                });
+            });
+            
+            // 初始化API展示
+            initializeApiDisplay();
+        });
+
+        // 执行认证测试
+        async function testAuthentication() {
+            addLog('========== 开始认证测试 ==========');
+            
+            const employeeId = document.getElementById('employeeId').value.trim();
+            const userName = document.getElementById('userName').value.trim();
+            const password = document.getElementById('password').value.trim();
+            
+            if (!employeeId || !userName || !password) {
+                addLog('认证参数不完整', 'error');
+                updateAuthStatus(false, '请填写完整的认证信息');
+                return;
+            }
+            
+            const authRequest = {
+                employeeId: employeeId,
+                name: userName,
+                password: password
+            };
+            
+            addLog(`发起认证请求: ${userName} (${employeeId})`);
+            
+            // 更新API展示
+            displayApiCall('POST', `${API_CONFIG.MOCK_API}/mock-school-api/auth/authenticate`, authRequest);
+            displayVueReference('POST', `${API_CONFIG.MOCK_API}/mock-school-api/auth/authenticate`, authRequest);
+            
+            try {
+                const response = await fetch(`${API_CONFIG.MOCK_API}/mock-school-api/auth/authenticate`, {
+                    method: 'POST',
+                    headers: API_CONFIG.HEADERS,
+                    body: JSON.stringify(authRequest)
+                });
+
+                addLog(`认证响应状态: ${response.status}`);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    addLog(`认证响应数据: ${JSON.stringify(data).substring(0, 100)}...`);
+                    
+                    // 显示完整API响应
+                    displayApiResponse(data);
+                    
+                    if (data.success && data.data.accessToken) {
+                        authState.isAuthenticated = true;
+                        authState.currentToken = data.data.accessToken;
+                        authState.currentUser = data.data;
+                        
+                        // 立即保存认证数据到localStorage
+                        localStorage.setItem('currentUser', JSON.stringify(data.data));
+                        localStorage.setItem('userInfo', JSON.stringify(data.data));
+                        localStorage.setItem('authToken', data.data.accessToken);
+                        localStorage.setItem('userToken', data.data.accessToken);
+                        
+                        addLog(`✅ 认证成功: ${data.data.username} (${data.data.roleCode})`, 'success');
+                        addLog(`📦 认证数据已保存到localStorage`, 'info');
+                        updateAuthStatus(true, '认证成功', data.data);
+                        enableNextPhase();
+                        
+                    } else {
+                        throw new Error(data.message || '认证失败');
+                    }
+                } else {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+                
+            } catch (error) {
+                addLog(`❌ 认证失败: ${error.message}`, 'error');
+                displayApiResponse({
+                    error: true,
+                    message: error.message,
+                    timestamp: new Date().toISOString()
+                });
+                updateAuthStatus(false, '认证失败: ' + error.message);
+                authState.isAuthenticated = false;
+                authState.currentToken = '';
+            }
+            
+            addLog('========== 认证测试完成 ==========');
+        }
+
+        // 测试Token信息解析
+        async function testTokenInfo() {
+            if (!authState.currentToken) {
+                addLog('请先完成认证获取Token', 'warning');
+                return;
+            }
+            
+            addLog('========== 开始Token信息测试 ==========');
+            
+            try {
+                displayApiCall('POST', `${API_CONFIG.MOCK_API}/mock-school-api/auth/user-info`, {});
+                displayVueReference('POST', `${API_CONFIG.MOCK_API}/mock-school-api/auth/user-info`, {});
+                
+                const response = await fetch(`${API_CONFIG.MOCK_API}/mock-school-api/auth/user-info`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authState.currentToken}`,
+                        ...API_CONFIG.HEADERS
+                    },
+                    body: JSON.stringify({})
+                });
+
+                addLog(`Token解析响应状态: ${response.status}`);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    addLog(`Token信息解析成功`, 'success');
+                    
+                    displayApiResponse(data);
+                    
+                    // 显示Token详细信息
+                    displayTokenDetails(authState.currentToken, data.data);
+                    
+                } else {
+                    const errorText = await response.text();
+                    addLog(`Token解析失败: HTTP ${response.status}`, 'error');
+                    displayApiResponse({
+                        error: true,
+                        status: response.status,
+                        message: errorText
+                    });
+                }
+                
+            } catch (error) {
+                addLog(`Token信息测试异常: ${error.message}`, 'error');
+                displayApiResponse({
+                    error: true,
+                    message: error.message
+                });
+            }
+            
+            addLog('========== Token信息测试完成 ==========');
+        }
+
+        // 运行所有认证测试
+        async function runAllAuthTests() {
+            addLog('🚀 开始全量认证测试...');
+            
+            // 依次测试所有可用账号
+            const testAccounts = [
+                { role: 'PRINCIPAL', id: 'PRINCIPAL_001', name: 'Principal-Zhang' },
+                { role: 'ACADEMIC_ADMIN', id: 'ACADEMIC_ADMIN_001', name: 'Director-Li' },
+                { role: 'TEACHER', id: 'TEACHER_001', name: 'Teacher-Wang' },
+                { role: 'CLASS_TEACHER', id: 'CLASS_TEACHER_001', name: 'ClassTeacher-Liu' },
+                { role: 'STUDENT', id: 'STUDENT_001', name: 'Student-Zhang' }
+            ];
+            
+            for (const account of testAccounts) {
+                addLog(`\n--- 测试账号: ${account.name} (${account.role}) ---`);
+                
+                // 更新表单
+                document.getElementById('employeeId').value = account.id;
+                document.getElementById('userName').value = account.name;
+                
+                // 执行认证
+                const authRequest = {
+                    employeeId: account.id,
+                    name: account.name,
+                    password: 'admin123'
+                };
+                
+                try {
+                    displayApiCall('POST', `${API_CONFIG.MOCK_API}/mock-school-api/auth/authenticate`, authRequest);
+                    
+                    const response = await fetch(`${API_CONFIG.MOCK_API}/mock-school-api/auth/authenticate`, {
+                        method: 'POST',
+                        headers: API_CONFIG.HEADERS,
+                        body: JSON.stringify(authRequest)
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.success) {
+                            addLog(`✅ ${account.name} 认证成功`, 'success');
+                        } else {
+                            addLog(`❌ ${account.name} 认证失败: ${data.message}`, 'error');
+                        }
+                    } else {
+                        addLog(`❌ ${account.name} HTTP错误: ${response.status}`, 'error');
+                    }
+                } catch (error) {
+                    addLog(`❌ ${account.name} 异常: ${error.message}`, 'error');
+                }
+                
+                // 短暂延迟避免请求过快
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+            
+            addLog('🎉 全量认证测试完成');
+            
+            // 恢复到校长账号
+            document.getElementById('employeeId').value = 'PRINCIPAL_001';
+            document.getElementById('userName').value = 'Principal-Zhang';
+            
+            // 重新认证校长账号以准备下一阶段
+            addLog('恢复校长账号认证状态...');
+            await testAuthentication();
+        }
+
+        // 更新认证状态显示
+        function updateAuthStatus(success, message, userData = null) {
+            const statusEl = document.getElementById('authStatus');
+            const resultEl = document.getElementById('authResult');
+            
+            if (success) {
+                statusEl.className = 'auth-status authenticated';
+                resultEl.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                        <span style="font-size: 20px;">✅</span>
+                        <strong style="color: #28a745;">认证成功</strong>
+                    </div>
+                    <p style="color: #666; margin-bottom: 15px;">${message}</p>
+                `;
+                
+                if (userData) {
+                    // 显示用户信息
+                    const userInfoHTML = `
+                        <div class="user-info">
+                            <div class="info-item">
+                                <strong>用户名</strong>
+                                <span>${userData.username}</span>
+                            </div>
+                            <div class="info-item">
+                                <strong>角色代码</strong>
+                                <span>${userData.roleCode}</span>
+                            </div>
+                            <div class="info-item">
+                                <strong>角色名称</strong>
+                                <span>${userData.roleName}</span>
+                            </div>
+                            <div class="info-item">
+                                <strong>工号</strong>
+                                <span>${userData.employeeId || 'N/A'}</span>
+                            </div>
+                        </div>
+                    `;
+                    resultEl.innerHTML += userInfoHTML;
+                    
+                    // 显示Token
+                    document.getElementById('tokenSection').style.display = 'block';
+                    document.getElementById('tokenDisplay').textContent = authState.currentToken;
+                }
+                
+            } else {
+                statusEl.className = 'auth-status failed';
+                resultEl.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                        <span style="font-size: 20px;">❌</span>
+                        <strong style="color: #dc3545;">认证失败</strong>
+                    </div>
+                    <p style="color: #666;">${message}</p>
+                `;
+                
+                document.getElementById('tokenSection').style.display = 'none';
+            }
+        }
+
+        // 显示Token详细信息
+        function displayTokenDetails(token, userData) {
+            const tokenParts = token.split('.');
+            const tokenInfo = {
+                header: tokenParts[0] || 'N/A',
+                payload: tokenParts[1] || 'N/A',
+                signature: tokenParts[2] || 'N/A',
+                fullLength: token.length
+            };
+            
+            const detailsHTML = `
+                <h4>🔍 Token详细信息</h4>
+                <div style="font-size: 11px; line-height: 1.6; color: #495057;">
+                    <strong>长度:</strong> ${tokenInfo.fullLength} 字符<br>
+                    <strong>Header:</strong> ${tokenInfo.header.substring(0, 20)}...<br>
+                    <strong>Payload:</strong> ${tokenInfo.payload.substring(0, 20)}...<br>
+                    <strong>Signature:</strong> ${tokenInfo.signature.substring(0, 20)}...<br>
+                    <strong>解析用户:</strong> ${userData.username} (${userData.roleCode})
+                </div>
+            `;
+            
+            document.getElementById('authResult').innerHTML += detailsHTML;
+        }
+
+        // 显示API响应
+        function displayApiResponse(response) {
+            const responseDisplay = document.getElementById('apiResponse');
+            responseDisplay.textContent = JSON.stringify(response, null, 2);
+        }
+
+        // 初始化显示
+        function initializeApiDisplay() {
+            const initialRequestData = {
+                employeeId: 'PRINCIPAL_001',
+                name: 'Principal-Zhang',
+                password: 'admin123'
+            };
+            displayApiCall('POST', `${API_CONFIG.MOCK_API}/mock-school-api/auth/authenticate`, initialRequestData);
+            displayVueReference('POST', `${API_CONFIG.MOCK_API}/mock-school-api/auth/authenticate`, initialRequestData);
+        }
+
+        // 启用下一阶段 (修复版本)
+        function enableNextPhase() {
+            const nextPhase = document.getElementById('nextPhase');
+            const nextBtn = document.getElementById('nextPhaseBtn');
+            
+            nextPhase.classList.remove('disabled');
+            nextPhase.style.background = 'linear-gradient(135deg, #28a745, #20c997)';
+            nextBtn.disabled = false;
+            
+            addLog('🎯 Phase 3 已解锁，可以进行通知发布测试', 'success');
+        }
+
+        // 页面加载时就启用Phase3按钮
+        document.addEventListener('DOMContentLoaded', function() {
+            // 延迟启用按钮，让用户看到页面加载完成
+            setTimeout(enableNextPhase, 1000);
+        });
+
+        // 进入Phase 3 (修复版本)
+        function goToPhase3() {
+            addLog('🚀 准备进入 Phase 3: 通知发布测试');
+            
+            // 简化跳转逻辑 - 不强制要求认证状态
+            // Phase3页面将自行处理认证问题
+            const phase3Url = 'phases/phase3-notification-publish.html?from=phase2&t=' + Date.now();
+            addLog(`🔗 正在跳转到: ${phase3Url}`);
+            
+            // 如果已认证，保存认证数据
+            if (authState.isAuthenticated && authState.currentUser && authState.currentToken) {
+                localStorage.setItem('currentUser', JSON.stringify(authState.currentUser));
+                localStorage.setItem('userInfo', JSON.stringify(authState.currentUser));
+                localStorage.setItem('authToken', authState.currentToken);
+                localStorage.setItem('userToken', authState.currentToken);
+                addLog(`✅ 认证数据已保存: ${authState.currentUser.username}`, 'success');
+            }
+            
+            // 立即跳转
+            window.location.href = phase3Url;
+        }
+    </script>
+</body>
+</html>

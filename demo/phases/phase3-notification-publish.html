@@ -1,0 +1,1910 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phase 3: 通知发布 - 智能通知系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            margin-bottom: 20px;
+        }
+
+        /* 阶段导航 */
+        .phase-navigation {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+        }
+
+        .phase-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .phase-item.completed {
+            background: rgba(76, 175, 80, 0.2);
+            color: #4CAF50;
+            border: 2px solid #4CAF50;
+        }
+
+        .phase-item.active {
+            background: rgba(255, 193, 7, 0.2);
+            color: #FFC107;
+            border: 2px solid #FFC107;
+            animation: pulse 2s infinite;
+        }
+
+        .phase-item.pending {
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.6);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .phase-arrow {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 1.2rem;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(255, 193, 7, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0); }
+        }
+
+        /* 主要内容区域 */
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .content-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* 发布表单样式 */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: #555;
+        }
+
+        .form-group .required {
+            color: #e74c3c;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-control.error {
+            border-color: #e74c3c;
+        }
+
+        textarea.form-control {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        select.form-control {
+            cursor: pointer;
+        }
+
+        .form-error {
+            color: #e74c3c;
+            font-size: 14px;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .form-error.show {
+            display: block;
+        }
+
+        /* 级别选择样式 */
+        .level-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .level-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .level-option:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+
+        .level-option.selected {
+            border-color: #667eea;
+            background: #667eea;
+            color: white;
+        }
+
+        .level-option.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: #f5f5f5;
+        }
+
+        .level-badge {
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .level-1 { background: #e74c3c; color: white; }
+        .level-2 { background: #f39c12; color: white; }
+        .level-3 { background: #3498db; color: white; }
+        .level-4 { background: #2ecc71; color: white; }
+
+        /* 权限信息显示 */
+        .permission-info {
+            background: linear-gradient(135deg, #f8f9ff 0%, #e8f0ff 100%);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+        }
+
+        .permission-info h4 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .permission-list {
+            list-style: none;
+        }
+
+        .permission-list li {
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .permission-list .allowed {
+            color: #2ecc71;
+        }
+
+        .permission-list .restricted {
+            color: #e74c3c;
+        }
+
+        /* 发布按钮 */
+        .publish-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+        }
+
+        .publish-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .publish-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* 状态显示区域 */
+        .status-info {
+            background: linear-gradient(135deg, #e8f5e8 0%, #d4edda 100%);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-left: 4px solid #28a745;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #667eea;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        /* 发布结果显示 */
+        .publish-result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 12px;
+            display: none;
+        }
+
+        .publish-result.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .publish-result.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .publish-result.loading {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .loading-spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #ffeaa7;
+            border-top: 2px solid #856404;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* API 展示区域 */
+        .api-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+
+        .api-tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .api-tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-size: 14px;
+            font-weight: 500;
+            color: #666;
+            transition: all 0.3s ease;
+        }
+
+        .api-tab.active {
+            color: #667eea;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .api-content {
+            display: none;
+        }
+
+        .api-content.active {
+            display: block;
+        }
+
+        .api-block {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-left: 4px solid #667eea;
+        }
+
+        .api-method {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 12px;
+            margin-bottom: 10px;
+        }
+
+        .method-post { background: #28a745; color: white; }
+
+        .api-url {
+            font-family: 'Courier New', monospace;
+            background: #e9ecef;
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            font-size: 14px;
+            word-break: break-all;
+        }
+
+        .code-block {
+            background: #2d3748;
+            color: #e2e8f0;
+            border-radius: 8px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+            margin-top: 10px;
+        }
+
+        /* 下一阶段按钮 */
+        .next-phase-btn {
+            display: block;
+            width: 200px;
+            margin: 20px auto;
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 25px;
+            font-weight: 600;
+            text-align: center;
+            transition: all 0.3s ease;
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        .next-phase-btn.enabled {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .next-phase-btn.enabled:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px rgba(40, 167, 69, 0.3);
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .phase-navigation {
+                gap: 5px;
+            }
+            
+            .phase-item {
+                padding: 6px 12px;
+                font-size: 14px;
+            }
+            
+            .level-options {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* 通知预览 */
+        .notification-preview {
+            background: #f8f9ff;
+            border-radius: 12px;
+            padding: 15px;
+            margin-top: 20px;
+            border: 1px solid #e0e8ff;
+        }
+
+        .notification-preview h4 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .preview-item {
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .preview-label {
+            font-weight: 500;
+            color: #555;
+        }
+
+        .preview-value {
+            color: #333;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 页面头部 -->
+        <div class="header">
+            <h1>🚀 智能通知系统</h1>
+            <div class="subtitle">Phase 3: 通知发布管理</div>
+        </div>
+
+        <!-- 阶段导航 -->
+        <div class="phase-navigation">
+            <div class="phase-item completed">
+                <span>✅</span>
+                <span>Phase 1: 服务检查</span>
+            </div>
+            <div class="phase-arrow">→</div>
+            <div class="phase-item completed">
+                <span>✅</span>
+                <span>Phase 2: 用户认证</span>
+            </div>
+            <div class="phase-arrow">→</div>
+            <div class="phase-item active">
+                <span>🔄</span>
+                <span>Phase 3: 通知发布</span>
+            </div>
+            <div class="phase-arrow">→</div>
+            <div class="phase-item pending">
+                <span>⭕</span>
+                <span>Phase 4: 通知管理</span>
+            </div>
+            <div class="phase-arrow">→</div>
+            <div class="phase-item pending">
+                <span>⭕</span>
+                <span>Phase 5: 系统监控</span>
+            </div>
+        </div>
+
+        <!-- 主要内容 -->
+        <div class="main-content">
+            <!-- 左侧：认证区域 + 通知发布表单 -->
+            <div class="content-card">
+                <h2 class="card-title">
+                    <span>📝</span>
+                    通知发布表单
+                </h2>
+
+                <!-- 认证区域 (新增) -->
+                <div id="authSection" class="permission-info" style="background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%); border-left: 4px solid #ffc107;">
+                    <h4>🔐 用户认证</h4>
+                    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 15px; align-items: end;">
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-weight: 500; color: #333;">选择测试账号：</label>
+                            <select id="quickAuthSelect" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; background: white;">
+                                <option value="PRINCIPAL_001|Principal-Zhang|PRINCIPAL">👑 校长 (Principal-Zhang)</option>
+                                <option value="ACADEMIC_ADMIN_001|Director-Li|ACADEMIC_ADMIN">📚 教务主任 (Director-Li)</option>
+                                <option value="TEACHER_001|Teacher-Wang|TEACHER">👩‍🏫 教师 (Teacher-Wang)</option>
+                                <option value="STUDENT_001|Student-Zhang|STUDENT">🎓 学生 (Student-Zhang)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <button id="quickAuthBtn" onclick="performQuickAuth()" style="width: 100%; padding: 10px; background: #ffc107; color: #333; border: none; border-radius: 6px; font-weight: 600; cursor: pointer;">
+                                🚀 一键认证
+                            </button>
+                        </div>
+                    </div>
+                    <div id="authResult" style="margin-top: 10px; font-size: 14px;">
+                        <span style="color: #856404;">💡 请选择一个角色进行认证，然后即可使用发布功能</span>
+                    </div>
+                </div>
+
+                <!-- 权限信息显示 -->
+                <div class="permission-info" id="permissionInfo" style="display: none;">
+                    <h4>📋 当前权限说明</h4>
+                    <ul class="permission-list" id="permissionList">
+                        <li>请先完成认证以查看权限信息</li>
+                    </ul>
+                </div>
+
+                <!-- 发布表单 -->
+                <div id="publishFormContainer" style="opacity: 0.5; pointer-events: none;">
+                    <form id="publishForm">
+                        <div class="form-group">
+                            <label for="title">通知标题 <span class="required">*</span></label>
+                            <input type="text" id="title" class="form-control" maxlength="200" placeholder="请输入通知标题（最大200字符）">
+                            <div class="form-error" id="titleError">请输入通知标题</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="content">通知内容 <span class="required">*</span></label>
+                            <textarea id="content" class="form-control" rows="6" placeholder="请输入通知的详细内容..."></textarea>
+                            <div class="form-error" id="contentError">请输入通知内容</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>通知级别 <span class="required">*</span></label>
+                            <div class="level-options" id="levelOptions">
+                                <div class="level-option" data-level="1">
+                                    <input type="radio" name="level" value="1" id="level1">
+                                    <label for="level1">
+                                        <span class="level-badge level-1">1级</span>
+                                        紧急通知（校园安全）
+                                    </label>
+                                </div>
+                                <div class="level-option" data-level="2">
+                                    <input type="radio" name="level" value="2" id="level2">
+                                    <label for="level2">
+                                        <span class="level-badge level-2">2级</span>
+                                        重要通知（考试安排）
+                                    </label>
+                                </div>
+                                <div class="level-option" data-level="3">
+                                    <input type="radio" name="level" value="3" id="level3">
+                                    <label for="level3">
+                                        <span class="level-badge level-3">3级</span>
+                                        常规通知（课程调整）
+                                    </label>
+                                </div>
+                                <div class="level-option" data-level="4">
+                                    <input type="radio" name="level" value="4" id="level4">
+                                    <label for="level4">
+                                        <span class="level-badge level-4">4级</span>
+                                        提醒通知（作业提醒）
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="form-error" id="levelError">请选择通知级别</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="summary">通知摘要</label>
+                            <textarea id="summary" class="form-control" rows="3" maxlength="500" placeholder="请输入通知摘要（可选，最大500字符）"></textarea>
+                        </div>
+
+                        <button type="submit" class="publish-btn" id="publishBtn">
+                            📤 发布通知
+                        </button>
+                    </form>
+                </div>
+
+                <!-- 发布结果显示 -->
+                <div class="publish-result" id="publishResult"></div>
+            </div>
+
+            <!-- 右侧：状态显示 -->
+            <div class="content-card">
+                <h2 class="card-title">
+                    <span>📊</span>
+                    发布状态监控
+                </h2>
+
+                <!-- 用户信息 -->
+                <div class="status-info" id="statusInfo">
+                    <div class="user-info" id="userInfo">
+                        <div class="user-avatar" id="userAvatar">?</div>
+                        <div>
+                            <div><strong id="userName">未认证用户</strong></div>
+                            <div style="font-size: 14px; color: #666;" id="userRole">请先完成认证</div>
+                        </div>
+                    </div>
+                    <div id="userDetails">
+                        <div><strong>认证状态:</strong> <span id="authStatus" style="color: #e74c3c;">未认证</span></div>
+                        <div><strong>Token状态:</strong> <span id="tokenStatus">无Token</span></div>
+                    </div>
+                </div>
+
+                <!-- 通知预览 -->
+                <div class="notification-preview" id="notificationPreview">
+                    <h4>📋 通知预览</h4>
+                    <div class="preview-item">
+                        <span class="preview-label">标题:</span>
+                        <span class="preview-value" id="previewTitle">-</span>
+                    </div>
+                    <div class="preview-item">
+                        <span class="preview-label">级别:</span>
+                        <span class="preview-value" id="previewLevel">-</span>
+                    </div>
+                    <div class="preview-item">
+                        <span class="preview-label">内容长度:</span>
+                        <span class="preview-value" id="previewContentLength">0 字符</span>
+                    </div>
+                    <div class="preview-item">
+                        <span class="preview-label">摘要:</span>
+                        <span class="preview-value" id="previewSummary">-</span>
+                    </div>
+                </div>
+
+                <!-- 发布历史 -->
+                <div style="margin-top: 20px;">
+                    <h4 style="color: #667eea; margin-bottom: 10px;">📈 发布历史</h4>
+                    <div id="publishHistory" style="font-size: 14px; color: #666;">
+                        暂无发布记录
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- API 展示区域 -->
+        <div class="api-section">
+            <h2 class="card-title">
+                <span>🔌</span>
+                API调用展示
+            </h2>
+
+            <div class="api-tabs">
+                <button class="api-tab active" onclick="switchTab('request')">📤 API请求</button>
+                <button class="api-tab" onclick="switchTab('response')">📥 API响应</button>
+                <button class="api-tab" onclick="switchTab('vue')">⚡ Vue代码</button>
+            </div>
+
+            <div class="api-content active" id="request-content">
+                <div class="api-block">
+                    <h4>通知发布接口</h4>
+                    <div class="api-method method-post">POST</div>
+                    <div class="api-url" id="publishApiUrl">http://localhost:48081/admin-api/test/notification/api/publish-database</div>
+                    
+                    <h5>请求头:</h5>
+                    <div class="code-block" id="requestHeaders">
+{
+  "Authorization": "Bearer [您的JWT Token]",
+  "tenant-id": "1",
+  "Content-Type": "application/json"
+}
+                    </div>
+                    
+                    <h5>请求体:</h5>
+                    <div class="code-block" id="requestBody">
+{
+  "title": "示例通知标题",
+  "content": "这是通知的详细内容...",
+  "level": 3,
+  "summary": "通知摘要信息"
+}
+                    </div>
+                </div>
+            </div>
+
+            <div class="api-content" id="response-content">
+                <div class="api-block">
+                    <h4>API响应结果</h4>
+                    <div class="code-block" id="responseData">
+// 发布通知后这里将显示API响应结果
+{
+  "message": "等待发布通知..."
+}
+                    </div>
+                </div>
+            </div>
+
+            <div class="api-content" id="vue-content">
+                <div class="api-block">
+                    <h4>Vue 3 组合式API代码生成</h4>
+                    <div class="code-block" id="vueCode">
+// 发布通知后这里将生成对应的Vue代码
+const publishNotification = async (notificationData) => {
+  // Vue代码将在发布后生成...
+}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 下一阶段按钮 - 增强版 -->
+        <div style="text-align: center; margin-top: 30px;">
+            <a href="javascript:void(0)" onclick="jumpToPhase4WithContext({}, false)" class="next-phase-btn" id="nextPhaseBtn">
+                🎯 进入Phase 4: 通知列表管理
+            </a>
+            <div style="margin-top: 10px; font-size: 14px; color: #666; max-width: 400px; margin-left: auto; margin-right: auto; line-height: 1.5;">
+                💡 <strong>无缝跳转</strong>：将自动传递您的认证状态，无需重新登录。如果您刚发布了通知，建议使用上方的"立即查看通知列表"按钮获得更好的体验。
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let currentUser = null;
+        let userToken = null;
+        let publishHistory = [];
+
+        // API基础URL
+        const API_BASE = 'http://localhost:48081';
+        const MOCK_API_BASE = 'http://localhost:48082';
+
+        // 页面初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            checkExistingAuth();
+            setupFormHandlers();
+            setupRealTimePreview();
+            checkAuthStatus();
+        });
+
+        // 检查现有认证状态 - 增强版
+        function checkExistingAuth() {
+            console.log('🔍 检查现有认证状态和跳转上下文...');
+            
+            // 🚨 新增：优先检查从Phase4返回的上下文
+            const returnContext = detectReturnFromPhase4();
+            if (returnContext) {
+                return; // 如果处理了返回上下文，直接返回
+            }
+            
+            // 尝试从localStorage获取现有认证
+            const userData = localStorage.getItem('currentUser') || 
+                           localStorage.getItem('userInfo');
+            const token = localStorage.getItem('authToken') || 
+                        localStorage.getItem('userToken');
+
+            if (userData && token) {
+                try {
+                    currentUser = JSON.parse(userData);
+                    userToken = token;
+                    
+                    console.log('Phase3: 发现现有认证数据:', {
+                        user: currentUser.username || currentUser.name,
+                        role: currentUser.roleCode,
+                        tokenLength: token.length
+                    });
+                    
+                    handleAuthenticationSuccess(currentUser, token, '从Phase2传递的认证');
+                } catch (e) {
+                    console.warn('Phase3: 现有认证数据解析失败:', e);
+                    showInitialAuthState();
+                }
+            } else {
+                console.log('Phase3: 未发现现有认证，显示认证区域');
+                showInitialAuthState();
+            }
+        }
+
+        // 🚨 新增：检测从Phase4的返回
+        function detectReturnFromPhase4() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const returnContextStorage = localStorage.getItem('phase3ReturnContext');
+            const returnContextSession = sessionStorage.getItem('phase3ReturnContext');
+            
+            console.log('🔄 检测Phase4返回上下文:', {
+                urlFrom: urlParams.get('from'),
+                urlReturn: urlParams.get('return'),
+                hasReturnContext: !!returnContextStorage,
+                hasSessionContext: !!returnContextSession
+            });
+            
+            // 如果来自Phase4，尝试自动继承认证
+            if (urlParams.get('from') === 'phase4' && urlParams.get('return') === 'true') {
+                return handlePhase4Return(urlParams, returnContextStorage, returnContextSession);
+            }
+            
+            return null;
+        }
+
+        // 🚨 新增：处理从Phase4的返回
+        function handlePhase4Return(urlParams, returnContextStorage, returnContextSession) {
+            console.log('🔄 检测到从Phase4返回，开始处理认证继承...');
+            
+            let returnContext = null;
+            
+            // 尝试解析返回上下文
+            try {
+                if (returnContextStorage) {
+                    returnContext = JSON.parse(returnContextStorage);
+                    console.log('✅ 从localStorage获取返回上下文:', returnContext);
+                } else if (returnContextSession) {
+                    returnContext = JSON.parse(returnContextSession);
+                    console.log('✅ 从sessionStorage获取返回上下文:', returnContext);
+                }
+            } catch (error) {
+                console.warn('⚠️ 解析返回上下文失败:', error);
+            }
+            
+            // 如果有有效的返回上下文且包含认证信息
+            if (returnContext && returnContext.user && returnContext.token) {
+                console.log('🎯 发现有效的认证信息，准备自动继承...');
+                
+                // 继承认证状态
+                currentUser = returnContext.user;
+                userToken = returnContext.token;
+                
+                // 显示返回欢迎信息
+                showReturnWelcome(returnContext);
+                
+                // 自动处理认证成功逻辑
+                handleAuthenticationSuccess(currentUser, userToken, '从Phase4返回的认证');
+                
+                // 清理返回上下文，避免重复使用
+                localStorage.removeItem('phase3ReturnContext');
+                sessionStorage.removeItem('phase3ReturnContext');
+                
+                return returnContext;
+            } else {
+                console.log('⚠️ 返回上下文不完整，显示认证界面');
+                showPartialReturnWelcome(urlParams);
+                return null;
+            }
+        }
+
+        // 🚨 新增：显示返回欢迎信息
+        function showReturnWelcome(returnContext) {
+            const authResult = document.getElementById('authResult');
+            authResult.innerHTML = `
+                <span style="color: #28a745;">🔄 欢迎从Phase4返回！</span><br>
+                <span style="color: #666; font-size: 12px;">
+                    认证状态已自动继承: ${returnContext.user.name || returnContext.user.username} (${returnContext.user.roleCode})<br>
+                    返回时间: ${new Date().toLocaleString()}
+                </span>
+            `;
+            
+            console.log('🎊 返回欢迎信息已显示');
+        }
+
+        // 🚨 新增：显示部分返回欢迎信息
+        function showPartialReturnWelcome(urlParams) {
+            const authResult = document.getElementById('authResult');
+            authResult.innerHTML = `
+                <span style="color: #ffc107;">🔄 从Phase4返回，但认证信息不完整</span><br>
+                <span style="color: #666; font-size: 12px;">
+                    请重新进行认证，我们会为您简化流程
+                </span>
+            `;
+            
+            // 如果URL中有用户角色信息，预选角色
+            const userRole = urlParams.get('user');
+            if (userRole) {
+                const quickAuthSelect = document.getElementById('quickAuthSelect');
+                // 根据角色码选择对应的选项
+                const roleMap = {
+                    'PRINCIPAL': 'PRINCIPAL_001|Principal-Zhang|PRINCIPAL',
+                    'ACADEMIC_ADMIN': 'ACADEMIC_ADMIN_001|Director-Li|ACADEMIC_ADMIN', 
+                    'TEACHER': 'TEACHER_001|Teacher-Wang|TEACHER',
+                    'STUDENT': 'STUDENT_001|Student-Zhang|STUDENT'
+                };
+                if (roleMap[userRole]) {
+                    quickAuthSelect.value = roleMap[userRole];
+                    console.log(`💡 根据返回参数预选角色: ${userRole}`);
+                }
+            }
+            
+            console.log('🔄 显示部分返回欢迎，需要用户重新认证');
+        }
+
+        // 显示初始认证状态
+        function showInitialAuthState() {
+            document.getElementById('authSection').style.display = 'block';
+            document.getElementById('permissionInfo').style.display = 'none';
+            document.getElementById('publishFormContainer').style.opacity = '0.5';
+            document.getElementById('publishFormContainer').style.pointerEvents = 'none';
+            
+            // 更新用户显示
+            document.getElementById('userName').textContent = '未认证用户';
+            document.getElementById('userRole').textContent = '请完成认证';
+            document.getElementById('authStatus').textContent = '未认证';
+            document.getElementById('authStatus').style.color = '#e74c3c';
+            document.getElementById('tokenStatus').textContent = '无Token';
+            document.getElementById('userAvatar').textContent = '?';
+        }
+
+        // 执行快速认证
+        async function performQuickAuth() {
+            const selectElement = document.getElementById('quickAuthSelect');
+            const authBtn = document.getElementById('quickAuthBtn');
+            const authResult = document.getElementById('authResult');
+            
+            const selectedValue = selectElement.value;
+            const [employeeId, name, roleCode] = selectedValue.split('|');
+            
+            // 显示加载状态
+            authBtn.innerHTML = '🔄 认证中...';
+            authBtn.disabled = true;
+            authResult.innerHTML = '<span style="color: #007bff;">🔄 正在向Mock API发起认证请求...</span>';
+            
+            try {
+                const response = await fetch(`${MOCK_API_BASE}/mock-school-api/auth/authenticate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        employeeId: employeeId,
+                        name: name,
+                        password: 'admin123'
+                    })
+                });
+                
+                const data = await response.json();
+                console.log('Phase3认证响应:', data);
+                
+                if (response.ok && data.success && data.data.accessToken) {
+                    // 认证成功
+                    currentUser = data.data;
+                    userToken = data.data.accessToken;
+                    
+                    // 保存到localStorage
+                    localStorage.setItem('authToken', userToken);
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    localStorage.setItem('userInfo', JSON.stringify(currentUser));
+                    localStorage.setItem('userToken', userToken);
+                    
+                    handleAuthenticationSuccess(currentUser, userToken, '页面内快速认证');
+                    
+                } else {
+                    throw new Error(data.message || `认证失败 (${response.status})`);
+                }
+                
+            } catch (error) {
+                console.error('Phase3认证失败:', error);
+                authResult.innerHTML = `
+                    <span style="color: #dc3545;">❌ 认证失败: ${error.message}</span><br>
+                    <span style="color: #666; font-size: 12px;">请检查服务是否启动 (端口48082)</span>
+                `;
+                
+                authBtn.innerHTML = '🚀 重试认证';
+                authBtn.disabled = false;
+            }
+        }
+
+        // 处理认证成功
+        function handleAuthenticationSuccess(user, token, source) {
+            console.log(`Phase3认证成功 (${source}):`, user);
+            
+            // 隐藏认证区域，显示权限信息
+            document.getElementById('authSection').style.display = 'none';
+            document.getElementById('permissionInfo').style.display = 'block';
+            
+            // 启用发布表单
+            const formContainer = document.getElementById('publishFormContainer');
+            formContainer.style.opacity = '1';
+            formContainer.style.pointerEvents = 'all';
+            
+            // 更新用户显示
+            updateUserDisplay();
+            updatePermissionDisplay();
+            updateFormAccess();
+            
+            // 显示成功消息
+            const authResult = document.getElementById('authResult');
+            authResult.innerHTML = `
+                <span style="color: #28a745;">✅ 认证成功: ${user.name || user.username} (${getRoleDisplayName(user.roleCode)})</span><br>
+                <span style="color: #666; font-size: 12px;">Token长度: ${token.length} | 来源: ${source}</span>
+            `;
+            
+            // 重置认证按钮
+            const authBtn = document.getElementById('quickAuthBtn');
+            authBtn.innerHTML = '✅ 已认证';
+            authBtn.disabled = true;
+            authBtn.style.background = '#28a745';
+            authBtn.style.color = 'white';
+            
+            // 显示成功发布结果
+            showPublishResult('success', '🎉 认证完成', `欢迎，${user.name || user.username}！\n您现在可以使用通知发布功能了。`);
+            
+            // 3秒后隐藏成功提示
+            setTimeout(() => {
+                document.getElementById('publishResult').style.display = 'none';
+            }, 3000);
+        }
+
+        // 更新用户显示
+        function updateUserDisplay() {
+            if (!currentUser) return;
+
+            document.getElementById('userName').textContent = currentUser.name || currentUser.username;
+            document.getElementById('userRole').textContent = getRoleDisplayName(currentUser.roleCode);
+            document.getElementById('authStatus').textContent = '已认证';
+            document.getElementById('authStatus').style.color = '#28a745';
+            document.getElementById('tokenStatus').textContent = userToken ? 'Token有效' : '无Token';
+            document.getElementById('userAvatar').textContent = currentUser.name ? currentUser.name.charAt(0) : 'U';
+        }
+
+        // 获取角色显示名称
+        function getRoleDisplayName(roleCode) {
+            const roleMap = {
+                'PRINCIPAL': '校长',
+                'ACADEMIC_ADMIN': '教务主任',
+                'TEACHER': '教师',
+                'STUDENT': '学生'
+            };
+            return roleMap[roleCode] || roleCode;
+        }
+
+        // 更新权限显示
+        function updatePermissionDisplay() {
+            if (!currentUser) return;
+
+            const permissionList = document.getElementById('permissionList');
+            const permissions = getPermissionsByRole(currentUser.roleCode);
+            
+            permissionList.innerHTML = '';
+            permissions.forEach(permission => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <span class="${permission.allowed ? 'allowed' : 'restricted'}">
+                        ${permission.allowed ? '✅' : '❌'}
+                    </span>
+                    <span>${permission.text}</span>
+                `;
+                permissionList.appendChild(li);
+            });
+        }
+
+        // 根据角色获取权限
+        function getPermissionsByRole(roleCode) {
+            const basePermissions = [
+                { level: 1, text: '1级紧急通知（校园安全警报）', allowed: false },
+                { level: 2, text: '2级重要通知（考试安排变更）', allowed: false },
+                { level: 3, text: '3级常规通知（课程调整）', allowed: false },
+                { level: 4, text: '4级提醒通知（作业提醒）', allowed: false }
+            ];
+
+            switch (roleCode) {
+                case 'PRINCIPAL':
+                    return basePermissions.map(p => ({ ...p, allowed: true }));
+                case 'ACADEMIC_ADMIN':
+                    // 🚨 FIX: 教务主任可以发布1级通知，但会进入审批流程
+                    return basePermissions.map(p => ({ ...p, allowed: p.level >= 1, requiresApproval: p.level === 1 }));
+                case 'TEACHER':
+                    return basePermissions.map(p => ({ ...p, allowed: p.level >= 3 }));
+                case 'STUDENT':
+                    return basePermissions.map(p => ({ ...p, allowed: p.level >= 4 }));
+                default:
+                    return basePermissions;
+            }
+        }
+
+        // 更新表单访问控制
+        function updateFormAccess() {
+            if (!currentUser) return;
+
+            const permissions = getPermissionsByRole(currentUser.roleCode);
+            const levelOptions = document.querySelectorAll('.level-option');
+
+            levelOptions.forEach((option, index) => {
+                const level = parseInt(option.dataset.level);
+                const permission = permissions.find(p => p.level === level);
+                const radio = option.querySelector('input[type="radio"]');
+
+                if (permission && permission.allowed) {
+                    option.classList.remove('disabled');
+                    radio.disabled = false;
+                    
+                    // 🚨 FIX: 添加审批提示
+                    if (permission.requiresApproval) {
+                        const approvalHint = option.querySelector('.approval-hint') || document.createElement('div');
+                        approvalHint.className = 'approval-hint';
+                        approvalHint.innerHTML = '<small style="color: #f39c12; font-weight: 500;">⚠️ 需要校长审批</small>';
+                        if (!option.querySelector('.approval-hint')) {
+                            option.appendChild(approvalHint);
+                        }
+                    }
+                } else {
+                    option.classList.add('disabled');
+                    radio.disabled = true;
+                    // 移除审批提示
+                    const approvalHint = option.querySelector('.approval-hint');
+                    if (approvalHint) {
+                        approvalHint.remove();
+                    }
+                }
+            });
+        }
+
+        // 设置表单处理器
+        function setupFormHandlers() {
+            const form = document.getElementById('publishForm');
+            const levelOptions = document.querySelectorAll('.level-option');
+
+            // 级别选择处理
+            levelOptions.forEach(option => {
+                option.addEventListener('click', function() {
+                    if (this.classList.contains('disabled')) return;
+
+                    levelOptions.forEach(opt => opt.classList.remove('selected'));
+                    this.classList.add('selected');
+                    this.querySelector('input[type="radio"]').checked = true;
+                    
+                    // 清除级别错误
+                    document.getElementById('levelError').classList.remove('show');
+                });
+            });
+
+            // 表单提交处理
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                if (validateForm()) {
+                    publishNotification();
+                }
+            });
+        }
+
+        // 设置实时预览
+        function setupRealTimePreview() {
+            const titleInput = document.getElementById('title');
+            const contentInput = document.getElementById('content');
+            const summaryInput = document.getElementById('summary');
+            const levelInputs = document.querySelectorAll('input[name="level"]');
+
+            // 标题实时预览
+            titleInput.addEventListener('input', function() {
+                document.getElementById('previewTitle').textContent = this.value || '-';
+                // 清除错误状态
+                if (this.value.trim()) {
+                    this.classList.remove('error');
+                    document.getElementById('titleError').classList.remove('show');
+                }
+            });
+
+            // 内容实时预览
+            contentInput.addEventListener('input', function() {
+                document.getElementById('previewContentLength').textContent = this.value.length + ' 字符';
+                // 清除错误状态
+                if (this.value.trim()) {
+                    this.classList.remove('error');
+                    document.getElementById('contentError').classList.remove('show');
+                }
+            });
+
+            // 摘要实时预览
+            summaryInput.addEventListener('input', function() {
+                document.getElementById('previewSummary').textContent = this.value || '-';
+            });
+
+            // 级别实时预览
+            levelInputs.forEach(input => {
+                input.addEventListener('change', function() {
+                    if (this.checked) {
+                        const levelText = this.parentElement.querySelector('label').textContent.trim();
+                        document.getElementById('previewLevel').textContent = levelText;
+                    }
+                });
+            });
+        }
+
+        // 表单验证
+        function validateForm() {
+            let isValid = true;
+            
+            // 验证标题
+            const title = document.getElementById('title');
+            const titleError = document.getElementById('titleError');
+            if (!title.value.trim()) {
+                title.classList.add('error');
+                titleError.classList.add('show');
+                isValid = false;
+            } else {
+                title.classList.remove('error');
+                titleError.classList.remove('show');
+            }
+
+            // 验证内容
+            const content = document.getElementById('content');
+            const contentError = document.getElementById('contentError');
+            if (!content.value.trim()) {
+                content.classList.add('error');
+                contentError.classList.add('show');
+                isValid = false;
+            } else {
+                content.classList.remove('error');
+                contentError.classList.remove('show');
+            }
+
+            // 验证级别
+            const levelSelected = document.querySelector('input[name="level"]:checked');
+            const levelError = document.getElementById('levelError');
+            if (!levelSelected) {
+                levelError.classList.add('show');
+                isValid = false;
+            } else {
+                levelError.classList.remove('show');
+            }
+
+            // 验证认证状态
+            if (!currentUser || !userToken) {
+                showPublishResult('error', '⚠️ 发布失败', '请先完成用户认证');
+                isValid = false;
+            }
+
+            return isValid;
+        }
+
+        // 🚨 新增：智能跳转到Phase4功能
+        function jumpToPhase4WithContext(notificationData, justPublished = false) {
+            console.log('🚀 准备跳转到Phase4，传递认证状态和通知上下文');
+            
+            // 保存跳转上下文到多个存储位置
+            const jumpContext = {
+                fromPhase: 'phase3',
+                jumpTime: new Date().toISOString(),
+                justPublished: justPublished,
+                publishedNotification: justPublished ? {
+                    id: notificationData.notificationId || notificationData.id,
+                    title: document.getElementById('title').value.trim(),
+                    level: parseInt(document.querySelector('input[name="level"]:checked').value),
+                    content: document.getElementById('content').value.trim(),
+                    publishTime: new Date().toISOString(),
+                    publisher: currentUser.name || currentUser.username
+                } : null,
+                user: currentUser,
+                token: userToken
+            };
+            
+            // 多重存储确保可靠性
+            localStorage.setItem('phase4JumpContext', JSON.stringify(jumpContext));
+            sessionStorage.setItem('phase4JumpContext', JSON.stringify(jumpContext));
+            localStorage.setItem('lastPublishedNotification', JSON.stringify(jumpContext.publishedNotification));
+            
+            console.log('✅ 跳转上下文已保存:', jumpContext);
+            
+            // 构建带参数的跳转URL
+            const phase4Url = new URL('phase4-notification-list.html', window.location.href);
+            phase4Url.searchParams.set('from', 'phase3');
+            if (justPublished && notificationData.notificationId) {
+                phase4Url.searchParams.set('highlight', notificationData.notificationId);
+                phase4Url.searchParams.set('published', 'true');
+            }
+            phase4Url.searchParams.set('user', currentUser.roleCode);
+            phase4Url.searchParams.set('timestamp', Date.now());
+            
+            console.log('🎯 即将跳转到:', phase4Url.toString());
+            
+            // 执行跳转
+            window.location.href = phase4Url.toString();
+        }
+
+        // 🚨 增强：显示发布成功后的智能操作选项
+        function showPublishSuccessWithActions(notificationData) {
+            const result = document.getElementById('publishResult');
+            result.className = 'publish-result success';
+            result.style.display = 'block';
+            
+            const notificationTitle = document.getElementById('title').value.trim();
+            const notificationLevel = parseInt(document.querySelector('input[name="level"]:checked').value);
+            
+            result.innerHTML = `
+                <h4>🎉 通知发布成功！</h4>
+                <div style="margin: 15px 0; padding: 12px; background: rgba(255,255,255,0.9); border-radius: 8px; border-left: 4px solid #28a745;">
+                    <div style="font-weight: 600; margin-bottom: 8px;">📋 刚发布的通知：</div>
+                    <div style="margin-bottom: 4px;"><strong>标题：</strong>${notificationTitle}</div>
+                    <div style="margin-bottom: 4px;"><strong>级别：</strong>${notificationLevel}级通知</div>
+                    <div style="margin-bottom: 4px;"><strong>通知ID：</strong>${notificationData.notificationId || 'N/A'}</div>
+                    <div><strong>发布时间：</strong>${new Date().toLocaleString()}</div>
+                </div>
+                <div style="margin-top: 20px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+                    <button onclick="jumpToPhase4WithContext(${JSON.stringify(notificationData).replace(/"/g, '&quot;')}, true)" 
+                            style="padding: 12px 24px; background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 12px rgba(40,167,69,0.3);" 
+                            onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(40,167,69,0.4)'" 
+                            onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(40,167,69,0.3)'">
+                        🎯 立即查看通知列表
+                    </button>
+                    <button onclick="resetFormAndContinue()" 
+                            style="padding: 12px 24px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 12px rgba(102,126,234,0.3);" 
+                            onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(102,126,234,0.4)'" 
+                            onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(102,126,234,0.3)'">
+                        📝 继续发布通知
+                    </button>
+                    <button onclick="showPublishSummary()" 
+                            style="padding: 12px 24px; background: #f8f9fa; color: #495057; border: 2px solid #dee2e6; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s ease;" 
+                            onmouseover="this.style.background='#e9ecef'; this.style.borderColor='#adb5bd'" 
+                            onmouseout="this.style.background='#f8f9fa'; this.style.borderColor='#dee2e6'">
+                        📊 查看发布摘要
+                    </button>
+                </div>
+                <div style="margin-top: 12px; font-size: 14px; color: #666; text-align: center;">
+                    💡 提示：点击"立即查看通知列表"将无缝跳转到Phase4，无需重新认证
+                </div>
+            `;
+            
+            // 自动启用下一阶段按钮
+            enableNextPhase();
+        }
+
+        // 🚨 新增：重置表单并继续发布
+        function resetFormAndContinue() {
+            resetForm();
+            document.getElementById('publishResult').style.display = 'none';
+            // 滚动到表单顶部
+            document.getElementById('publishForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            console.log('📝 表单已重置，可以继续发布新通知');
+        }
+
+        // 🚨 新增：显示发布摘要
+        function showPublishSummary() {
+            const summary = {
+                totalPublished: publishHistory.length,
+                currentUser: {
+                    name: currentUser.name || currentUser.username,
+                    role: currentUser.roleCode
+                },
+                recentNotifications: publishHistory.slice(0, 3),
+                sessionStats: {
+                    startTime: new Date().toLocaleString(),
+                    tokensUsed: userToken ? 1 : 0
+                }
+            };
+            
+            alert(`📊 发布会话摘要\n\n👤 当前用户: ${summary.currentUser.name} (${summary.currentUser.role})\n📈 本次会话发布: ${summary.totalPublished} 条通知\n\n最近发布:\n${summary.recentNotifications.map((item, index) => `${index + 1}. ${item.title} (${item.level}级)`).join('\n') || '无'}\n\n🎯 建议：点击"立即查看通知列表"查看所有通知`);
+            
+            console.log(`📊 已显示发布摘要，共${summary.totalPublished}条通知`);
+        }
+
+        // 发布通知
+        async function publishNotification() {
+            const publishBtn = document.getElementById('publishBtn');
+            
+            try {
+                // 禁用按钮，显示加载状态
+                publishBtn.disabled = true;
+                publishBtn.innerHTML = '<div class="loading-spinner"></div> 发布中...';
+                
+                showPublishResult('loading', '📤 正在发布通知...', '请稍候，正在处理您的发布请求');
+
+                // 🔧 Token预处理和验证
+                let cleanToken = userToken;
+                if (cleanToken.startsWith('Bearer ')) {
+                    cleanToken = cleanToken.substring(7);
+                }
+
+                // 🔍 Token调试信息
+                console.log('Phase3 Token调试:', {
+                    originalToken: userToken.substring(0, 50) + '...',
+                    cleanToken: cleanToken.substring(0, 50) + '...',
+                    tokenLength: cleanToken.length,
+                    user: currentUser.username || currentUser.name,
+                    role: currentUser.roleCode
+                });
+
+                // 准备请求数据
+                const formData = {
+                    title: document.getElementById('title').value.trim(),
+                    content: document.getElementById('content').value.trim(),
+                    level: parseInt(document.querySelector('input[name="level"]:checked').value),
+                    summary: document.getElementById('summary').value.trim() || null
+                };
+
+                // 🔧 准备请求头 - 确保格式正确
+                const headers = {
+                    'Authorization': `Bearer ${cleanToken}`,
+                    'tenant-id': '1',
+                    'Content-Type': 'application/json; charset=UTF-8'
+                };
+
+                console.log('Phase3 请求头调试:', headers);
+                console.log('Phase3 请求体调试:', formData);
+
+                // 更新API显示
+                updateAPIDisplay(formData, headers);
+
+                // 🔧 先验证Token有效性
+                try {
+                    const tokenVerifyResponse = await fetch(`${MOCK_API_BASE}/mock-school-api/auth/user-info`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${cleanToken}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({})
+                    });
+
+                    console.log('Token验证响应状态:', tokenVerifyResponse.status);
+
+                    if (!tokenVerifyResponse.ok) {
+                        throw new Error(`Token验证失败 (${tokenVerifyResponse.status})`);
+                    }
+
+                    const tokenData = await tokenVerifyResponse.json();
+                    console.log('Token验证结果:', tokenData);
+
+                    if (!tokenData.success) {
+                        throw new Error(`Token无效: ${tokenData.message || 'Unknown error'}`);
+                    }
+
+                } catch (tokenError) {
+                    console.error('Token验证失败:', tokenError);
+                    showPublishResult('error', '❌ Token验证失败', 
+                        `Token验证失败: ${tokenError.message}\n\n🔧 调试信息:\n- Token长度: ${cleanToken.length}\n- Token前缀: ${cleanToken.substring(0, 20)}...\n\n请尝试重新认证或使用快速认证功能`);
+                    return;
+                }
+
+                // 发送API请求
+                const response = await fetch(`${API_BASE}/admin-api/test/notification/api/publish-database`, {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(formData)
+                });
+
+                console.log('发布API响应状态:', response.status);
+                console.log('发布API响应头:', response.headers);
+
+                let result;
+                try {
+                    result = await response.json();
+                    console.log('发布API响应体:', result);
+                } catch (parseError) {
+                    const textResult = await response.text();
+                    console.error('响应JSON解析失败:', parseError, '原始响应:', textResult);
+                    result = { error: '响应格式错误', originalResponse: textResult };
+                }
+                
+                // 更新响应显示
+                updateResponseDisplay(result, response.status);
+
+                if (response.ok && result.code === 0) {
+                    // 🚨 重大改进：发布成功后显示智能操作选项
+                    showPublishSuccessWithActions(result.data);
+                    
+                    // 添加到发布历史
+                    addToPublishHistory(formData, result.data);
+                    
+                    // 生成Vue代码
+                    generateVueCode(formData, result);
+                    
+                    // 🚨 改进：不再自动重置表单，让用户选择下一步操作
+                    // resetForm(); // 注释掉自动重置，改为手动触发
+                    
+                    // 保存发布成功状态，便于Phase4识别
+                    sessionStorage.setItem('lastPublishSuccess', JSON.stringify({
+                        notificationId: result.data.notificationId,
+                        title: formData.title,
+                        level: formData.level,
+                        publishTime: new Date().toISOString(),
+                        publisher: currentUser.name || currentUser.username,
+                        publisherRole: currentUser.roleCode
+                    }));
+                    
+                    console.log(`✅ 通知发布成功！ID: ${result.data.notificationId}`);
+                    console.log('💡 用户可以选择立即查看列表或继续发布');
+                } else {
+                    // 发布失败 - 显示详细错误信息
+                    const errorMessage = result.msg || result.message || result.error || '未知错误';
+                    const debugInfo = `\n\n🔧 调试信息:\n- HTTP状态: ${response.status}\n- 响应代码: ${result.code || 'N/A'}\n- Token长度: ${cleanToken.length}\n- 用户角色: ${currentUser.roleCode}\n- 通知级别: ${formData.level}`;
+                    
+                    showPublishResult('error', '❌ 发布失败', errorMessage + debugInfo);
+                }
+
+            } catch (error) {
+                console.error('发布通知失败:', error);
+                showPublishResult('error', '❌ 网络错误', 
+                    `网络连接错误: ${error.message}\n\n🔧 请检查:\n- 服务是否启动 (http://localhost:48081)\n- 网络连接是否正常\n- CORS设置是否正确`);
+                
+                // 更新错误响应显示
+                updateResponseDisplay({ 
+                    error: error.message, 
+                    type: 'NetworkError',
+                    timestamp: new Date().toISOString()
+                }, 500);
+                
+            } finally {
+                // 恢复按钮状态
+                publishBtn.disabled = false;
+                publishBtn.innerHTML = '📤 发布通知';
+            }
+        }
+
+        // 显示发布结果
+        function showPublishResult(type, title, message) {
+            const result = document.getElementById('publishResult');
+            result.className = `publish-result ${type}`;
+            result.style.display = 'block';
+            
+            if (type === 'loading') {
+                result.innerHTML = `
+                    <div class="loading-spinner"></div>
+                    <div>
+                        <h4>${title}</h4>
+                        <p>${message}</p>
+                    </div>
+                `;
+            } else {
+                result.innerHTML = `
+                    <h4>${title}</h4>
+                    <p style="white-space: pre-line;">${message}</p>
+                `;
+            }
+        }
+
+        // 更新API请求显示
+        function updateAPIDisplay(formData, headers) {
+            // 更新请求头 - 显示实际使用的headers
+            const displayHeaders = headers || {
+                "Authorization": `Bearer ${userToken ? userToken.substring(0, 20) + '...' : 'No Token'}`,
+                "tenant-id": "1",
+                "Content-Type": "application/json; charset=UTF-8"
+            };
+            
+            document.getElementById('requestHeaders').textContent = JSON.stringify(displayHeaders, null, 2);
+
+            // 更新请求体
+            document.getElementById('requestBody').textContent = JSON.stringify(formData, null, 2);
+        }
+
+        // 更新API响应显示
+        function updateResponseDisplay(data, status) {
+            const responseElement = document.getElementById('responseData');
+            responseElement.textContent = JSON.stringify({
+                status: status,
+                timestamp: new Date().toISOString(),
+                data: data
+            }, null, 2);
+        }
+
+        // 生成Vue代码
+        function generateVueCode(formData, result) {
+            const vueCode = `
+// Vue 3 组合式API - 通知发布功能
+import { ref, reactive } from 'vue'
+import { ElMessage } from 'element-plus'
+
+export default {
+  setup() {
+    const loading = ref(false)
+    const form = reactive({
+      title: '${formData.title}',
+      content: '${formData.content}',
+      level: ${formData.level},
+      summary: '${formData.summary || ''}'
+    })
+
+    const publishNotification = async () => {
+      loading.value = true
+      try {
+        const response = await fetch('${API_BASE}/admin-api/test/notification/api/publish-database', {
+          method: 'POST',
+          headers: {
+            'Authorization': \`Bearer \${getToken()}\`,
+            'tenant-id': '1',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(form)
+        })
+
+        const result = await response.json()
+        
+        if (response.ok && result.code === 0) {
+          ElMessage.success('通知发布成功！')
+          resetForm()
+        } else {
+          ElMessage.error(result.msg || '发布失败')
+        }
+      } catch (error) {
+        console.error('发布失败:', error)
+        ElMessage.error('网络错误，请稍后重试')
+      } finally {
+        loading.value = false
+      }
+    }
+
+    const resetForm = () => {
+      Object.keys(form).forEach(key => {
+        form[key] = ''
+      })
+    }
+
+    return {
+      form,
+      loading,
+      publishNotification,
+      resetForm
+    }
+  }
+}`;
+            
+            document.getElementById('vueCode').textContent = vueCode;
+        }
+
+        // 添加到发布历史
+        function addToPublishHistory(formData, resultData) {
+            const historyItem = {
+                timestamp: new Date().toLocaleString(),
+                title: formData.title,
+                level: formData.level,
+                id: resultData.notificationId || Date.now()
+            };
+            
+            publishHistory.unshift(historyItem);
+            updatePublishHistoryDisplay();
+        }
+
+        // 更新发布历史显示
+        function updatePublishHistoryDisplay() {
+            const historyElement = document.getElementById('publishHistory');
+            
+            if (publishHistory.length === 0) {
+                historyElement.innerHTML = '暂无发布记录';
+                return;
+            }
+
+            historyElement.innerHTML = publishHistory.map(item => `
+                <div style="margin-bottom: 8px; padding: 8px; background: #f8f9ff; border-radius: 6px;">
+                    <div><strong>${item.title}</strong></div>
+                    <div style="font-size: 12px; color: #999;">
+                        ${item.level}级通知 • ${item.timestamp} • ID: ${item.id}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 重置表单
+        function resetForm() {
+            document.getElementById('publishForm').reset();
+            document.querySelectorAll('.level-option').forEach(opt => opt.classList.remove('selected'));
+            
+            // 重置预览
+            document.getElementById('previewTitle').textContent = '-';
+            document.getElementById('previewLevel').textContent = '-';
+            document.getElementById('previewContentLength').textContent = '0 字符';
+            document.getElementById('previewSummary').textContent = '-';
+        }
+
+        // 启用下一阶段
+        function enableNextPhase() {
+            const nextPhaseBtn = document.getElementById('nextPhaseBtn');
+            nextPhaseBtn.classList.add('enabled');
+            
+            // 存储通知发布完成状态
+            localStorage.setItem('phase3Completed', 'true');
+            sessionStorage.setItem('phase3Completed', 'true');
+        }
+
+        // 检查认证状态 (简化版)
+        function checkAuthStatus() {
+            // 页面已经在 checkExistingAuth() 中处理了认证检查
+            // 这里只需要检查URL参数提示
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('from') === 'phase2') {
+                console.log('Phase3: 从Phase2跳转而来，已在初始化时检查认证状态');
+            }
+        }
+
+        // 切换API标签页
+        function switchTab(tab) {
+            // 更新标签激活状态
+            document.querySelectorAll('.api-tab').forEach(t => t.classList.remove('active'));
+            document.querySelector(`.api-tab[onclick="switchTab('${tab}')"]`).classList.add('active');
+            
+            // 更新内容显示
+            document.querySelectorAll('.api-content').forEach(c => c.classList.remove('active'));
+            document.getElementById(`${tab}-content`).classList.add('active');
+        }
+
+        // 🔧 新增Token测试功能
+        async function testTokenValidity() {
+            const publishResult = document.getElementById('publishResult');
+            publishResult.className = 'publish-result loading';
+            publishResult.style.display = 'block';
+            publishResult.innerHTML = `
+                <div class="loading-spinner"></div>
+                <div>
+                    <h4>🔍 正在测试Token有效性...</h4>
+                    <p>验证Token是否可以正常调用API</p>
+                </div>
+            `;
+
+            try {
+                let cleanToken = userToken;
+                if (cleanToken.startsWith('Bearer ')) {
+                    cleanToken = cleanToken.substring(7);
+                }
+
+                // 测试Mock API
+                const mockResponse = await fetch(`${MOCK_API_BASE}/mock-school-api/auth/user-info`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${cleanToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({})
+                });
+
+                const mockData = await mockResponse.json();
+
+                // 测试主服务API (health check)
+                const mainResponse = await fetch(`${API_BASE}/admin-api/test/notification/api/health`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${cleanToken}`,
+                        'tenant-id': '1'
+                    }
+                });
+
+                const mainData = await mainResponse.json();
+
+                // 显示测试结果
+                const mockStatus = mockResponse.ok && mockData.success ? '✅ 通过' : '❌ 失败';
+                const mainStatus = mainResponse.ok ? '✅ 通过' : '❌ 失败';
+
+                publishResult.className = 'publish-result success';
+                publishResult.innerHTML = `
+                    <h4>🔍 Token验证测试完成</h4>
+                    <div style="margin-top: 10px;">
+                        <div><strong>Mock API (48082):</strong> ${mockStatus}</div>
+                        <div style="font-size: 12px; color: #666; margin-left: 20px;">
+                            状态: ${mockResponse.status} | 消息: ${mockData.message || 'OK'}
+                        </div>
+                        <div style="margin-top: 8px;"><strong>主服务 (48081):</strong> ${mainStatus}</div>
+                        <div style="font-size: 12px; color: #666; margin-left: 20px;">
+                            状态: ${mainResponse.status} | 消息: ${mainData.message || 'OK'}
+                        </div>
+                    </div>
+                    <div style="margin-top: 15px; padding: 8px; background: rgba(0,0,0,0.05); border-radius: 4px; font-size: 12px;">
+                        <strong>诊断建议:</strong><br>
+                        ${mockResponse.ok && mockData.success && mainResponse.ok ? 
+                            '• Token完全有效，可以正常发布通知' : 
+                            '• Token可能有问题，建议重新认证或刷新Token'}
+                    </div>
+                `;
+
+                setTimeout(() => {
+                    publishResult.style.display = 'none';
+                }, 10000);
+
+            } catch (error) {
+                publishResult.className = 'publish-result error';
+                publishResult.innerHTML = `
+                    <h4>❌ Token测试失败</h4>
+                    <p>网络错误: ${error.message}</p>
+                    <p style="font-size: 12px; color: #999; margin-top: 10px;">
+                        请检查服务是否启动，或尝试刷新Token
+                    </p>
+                `;
+            }
+        }
+
+        // 🔧 Token刷新功能
+        async function refreshToken() {
+            if (!currentUser) {
+                showPublishResult('error', '❌ 无法刷新Token', '未找到用户信息，请重新登录');
+                return;
+            }
+
+            const publishResult = document.getElementById('publishResult');
+            publishResult.className = 'publish-result loading';
+            publishResult.style.display = 'block';
+            publishResult.innerHTML = `
+                <div class="loading-spinner"></div>
+                <div>
+                    <h4>🔄 正在刷新Token...</h4>
+                    <p>使用存储的用户信息重新获取Token</p>
+                </div>
+            `;
+
+            try {
+                const refreshData = {
+                    employeeId: currentUser.employeeId || currentUser.id,
+                    name: currentUser.name || currentUser.username,
+                    password: 'admin123' // 默认密码，实际项目中应该使用refresh token
+                };
+
+                const response = await fetch(`${MOCK_API_BASE}/mock-school-api/auth/authenticate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(refreshData)
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.data.accessToken) {
+                    // 更新Token
+                    userToken = data.data.accessToken;
+                    localStorage.setItem('authToken', userToken);
+                    localStorage.setItem('userToken', userToken);
+
+                    // 更新用户信息
+                    currentUser = data.data;
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    localStorage.setItem('userInfo', JSON.stringify(currentUser));
+
+                    publishResult.className = 'publish-result success';
+                    publishResult.innerHTML = `
+                        <h4>✅ Token刷新成功！</h4>
+                        <p>新Token已获取并保存</p>
+                        <div style="font-size: 12px; color: #666; margin-top: 10px;">
+                            新Token长度: ${userToken.length} 字符<br>
+                            刷新时间: ${new Date().toLocaleString()}
+                        </div>
+                    `;
+
+                    // 更新显示
+                    updateUserDisplay();
+
+                    setTimeout(() => {
+                        publishResult.style.display = 'none';
+                    }, 5000);
+
+                } else {
+                    throw new Error(data.message || '认证失败');
+                }
+
+            } catch (error) {
+                publishResult.className = 'publish-result error';
+                publishResult.innerHTML = `
+                    <h4>❌ Token刷新失败</h4>
+                    <p>错误: ${error.message}</p>
+                    <p style="margin-top: 10px;">
+                        <button onclick="quickAuth()" style="background: #667eea; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">
+                            重新登录
+                        </button>
+                    </p>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

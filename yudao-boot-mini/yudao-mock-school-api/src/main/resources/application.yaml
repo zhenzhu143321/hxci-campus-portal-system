@@ -1,0 +1,50 @@
+server:
+  port: 48082
+
+spring:
+  application:
+    name: mock-school-api
+  profiles:
+    active: local
+  
+  # MySQL数据源配置（强制使用utf8）
+  datasource:
+    # 关键修正：移除所有可能导致utf8mb4的参数
+    url: jdbc:mysql://127.0.0.1:3306/ruoyi-vue-pro?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&rewriteBatchedStatements=true&characterEncoding=utf8&useUnicode=true
+    username: root
+    password: 
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      minimum-idle: 1
+      maximum-pool-size: 10
+      pool-name: MockSchoolHikariCP
+      connection-init-sql: "SET NAMES utf8 COLLATE utf8_general_ci"
+      # 关键：显式设置数据源属性来强制使用utf8
+      data-source-properties:
+        characterEncoding: utf8
+        useUnicode: true
+        
+  # JPA配置
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        # 不显式指定MySQLDialect，让Hibernate自动选择
+        format_sql: true
+        connection:
+          characterEncoding: utf8
+          useUnicode: true
+        # 强制使用utf8
+        globally_quoted_identifiers: true
+        
+# 日志配置
+logging:
+  level:
+    cn.iocoder.yudao.mock.school: INFO
+    org.hibernate.SQL: INFO
+    org.hibernate.type.descriptor.sql.BasicBinder: INFO
+    com.zaxxer.hikari: INFO
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"

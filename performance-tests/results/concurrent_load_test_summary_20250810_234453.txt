@@ -1,0 +1,87 @@
+﻿INTELLIGENT NOTIFICATION SYSTEM - CONCURRENT LOAD TEST REPORT
+Generated: 08/10/2025 23:47:19
+=============================================================
+
+TEST ENVIRONMENT:
+- Main Service: http://localhost:48081
+- Mock API Service: http://localhost:48082  
+- Test Types: Health Check, Authentication, Notification List (Mixed Load)
+- Operating System: Windows
+
+SUMMARY RESULTS:
+
+Users,Description,Duration(s),Total_Requests,Success_Rate(%),RPS,Avg_Response(ms),95th_Percentile(ms),99th_Percentile(ms)
+5,Light Load,1.6597695,5,100,3.01,58.23,75.03,75.03
+10,Medium Load,1.5659112,10,100,6.39,62.69,75.09,75.09
+20,Heavy Load,13.5485105,20,100,1.48,64.9,83.66,83.66
+50,High Load,60.2730514,50,100,0.83,156.3,255.76,259.97
+100,Stress Load,7.4176934,100,100,13.48,55,75.59,82.74
+200,Extreme Load,11.8901639,200,100,16.82,54.69,74.74,79.97
+
+DETAILED ANALYSIS:
+
+5 Concurrent Users (Light Load):
+  - Duration: 1.6597695 seconds
+  - Total Requests: 5
+  - Success Rate: 100%
+  - Requests per Second: 3.01
+  - Average Response Time: 58.23 ms
+  - Response Time Range: 34.46 - 75.74 ms
+  - 95th Percentile: 75.03 ms
+  - 99th Percentile: 75.03 ms
+  - Detailed Results: D:\ClaudeCode\AI_Web\performance-tests\results\concurrent_5users_20250810_234453.csv
+
+10 Concurrent Users (Medium Load):
+  - Duration: 1.5659112 seconds
+  - Total Requests: 10
+  - Success Rate: 100%
+  - Requests per Second: 6.39
+  - Average Response Time: 62.69 ms
+  - Response Time Range: 32.9 - 75.51 ms
+  - 95th Percentile: 75.09 ms
+  - 99th Percentile: 75.09 ms
+  - Detailed Results: D:\ClaudeCode\AI_Web\performance-tests\results\concurrent_10users_20250810_234453.csv
+
+20 Concurrent Users (Heavy Load):
+  - Duration: 13.5485105 seconds
+  - Total Requests: 20
+  - Success Rate: 100%
+  - Requests per Second: 1.48
+  - Average Response Time: 64.9 ms
+  - Response Time Range: 37.07 - 111 ms
+  - 95th Percentile: 83.66 ms
+  - 99th Percentile: 83.66 ms
+  - Detailed Results: D:\ClaudeCode\AI_Web\performance-tests\results\concurrent_20users_20250810_234453.csv
+
+50 Concurrent Users (High Load):
+  - Duration: 60.2730514 seconds
+  - Total Requests: 50
+  - Success Rate: 100%
+  - Requests per Second: 0.83
+  - Average Response Time: 156.3 ms
+  - Response Time Range: 32 - 326.84 ms
+  - 95th Percentile: 255.76 ms
+  - 99th Percentile: 259.97 ms
+  - Detailed Results: D:\ClaudeCode\AI_Web\performance-tests\results\concurrent_50users_20250810_234453.csv
+
+100 Concurrent Users (Stress Load):
+  - Duration: 7.4176934 seconds
+  - Total Requests: 100
+  - Success Rate: 100%
+  - Requests per Second: 13.48
+  - Average Response Time: 55 ms
+  - Response Time Range: 32 - 83.51 ms
+  - 95th Percentile: 75.59 ms
+  - 99th Percentile: 82.74 ms
+  - Detailed Results: D:\ClaudeCode\AI_Web\performance-tests\results\concurrent_100users_20250810_234453.csv
+
+200 Concurrent Users (Extreme Load):
+  - Duration: 11.8901639 seconds
+  - Total Requests: 200
+  - Success Rate: 100%
+  - Requests per Second: 16.82
+  - Average Response Time: 54.69 ms
+  - Response Time Range: 29.58 - 86.31 ms
+  - 95th Percentile: 74.74 ms
+  - 99th Percentile: 79.97 ms
+  - Detailed Results: D:\ClaudeCode\AI_Web\performance-tests\results\concurrent_200users_20250810_234453.csv

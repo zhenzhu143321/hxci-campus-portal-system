@@ -1,0 +1,245 @@
+<template>
+  <div class="weather-info">
+    <div class="weather-content">
+      <!-- 正常天气显示 -->
+      <div class="weather-main" v-if="!weatherLoading && weatherData">
+        <div class="weather-icon">
+          <el-icon :size="24" :style="{ color: getWeatherIconColor(weatherData.weatherText) }">
+            <component :is="getWeatherIcon(weatherData.weatherText)" />
+          </el-icon>
+        </div>
+        <div class="weather-details">
+          <div class="weather-primary">
+            <span class="location">{{ weatherData.cityName }}</span>
+            <span class="temperature">{{ weatherData.temperature }}°C</span>
+            <span class="weather-text">{{ weatherData.weatherText }}</span>
+          </div>
+          <div class="weather-secondary" v-if="hasSecondaryWeatherInfo(weatherData)">
+            <span v-if="weatherData.feelsLike && weatherData.feelsLike !== weatherData.temperature" class="feels-like">
+              体感{{ weatherData.feelsLike }}°C
+            </span>
+            <span v-if="weatherData.humidity" class="humidity">湿度{{ weatherData.humidity }}%</span>
+            <span v-if="weatherData.windDir && weatherData.windScale" class="wind">
+              {{ weatherData.windDir }}{{ weatherData.windScale.includes('级') ? weatherData.windScale : weatherData.windScale + '级' }}
+            </span>
+            <span v-if="weatherData.precipitation && weatherData.precipitation > 0" class="precipitation">
+              降水{{ weatherData.precipitation }}mm
+            </span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 加载状态 -->
+      <div class="weather-loading" v-else-if="weatherLoading">
+        <el-icon class="loading-icon"><Loading /></el-icon>
+        <span>加载天气中...</span>
+      </div>
+      
+      <!-- 默认状态 -->
+      <div class="weather-default" v-else>
+        <el-icon :size="20"><Sunny /></el-icon>
+        <span>{{ weatherDisplay }}</span>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { 
+  Sunny, 
+  Cloudy, 
+  Bell, 
+  Loading 
+} from '@element-plus/icons-vue'
+import { useWeatherData } from '@/composables/useWeatherData'
+import type { WeatherData } from '@/api/weather'
+
+/**
+ * 🌤️ 天气组件 - 专注于天气信息显示
+ * 功能：智能图标显示 + 完整气象信息 + 企业级UI效果
+ */
+
+// 使用组合式函数管理天气数据
+const {
+  weatherLoading,
+  weatherData,
+  weatherDisplay
+} = useWeatherData()
+
+/**
+ * 🌈 天气图标映射函数
+ * 根据天气文本返回对应的Element Plus图标
+ */
+const getWeatherIcon = (weatherText: string) => {
+  if (weatherText.includes('晴')) return Sunny
+  if (weatherText.includes('雨') || weatherText.includes('阵雨') || weatherText.includes('暴雨') || 
+      weatherText.includes('小雨') || weatherText.includes('毛毛雨') || weatherText.includes('雷')) return Bell
+  if (weatherText.includes('雪') || weatherText.includes('暴雪')) return Bell
+  if (weatherText.includes('云') || weatherText.includes('多云') || weatherText.includes('阴')) return Cloudy
+  if (weatherText.includes('风')) return Bell
+  return Sunny // 默认晴天图标
+}
+
+/**
+ * 🎨 天气图标颜色映射
+ * 根据天气状况返回对应的颜色值
+ */
+const getWeatherIconColor = (weatherText: string) => {
+  if (weatherText.includes('晴')) return '#FFD700' // 金黄色
+  if (weatherText.includes('雨') || weatherText.includes('阵雨')) return '#4A90E2' // 蓝色
+  if (weatherText.includes('雷')) return '#9B59B6' // 紫色
+  if (weatherText.includes('雪')) return '#87CEEB' // 天蓝色
+  if (weatherText.includes('云') || weatherText.includes('多云')) return '#95A5A6' // 灰色
+  if (weatherText.includes('阴')) return '#7F8C8D' // 深灰色
+  if (weatherText.includes('风')) return '#16A085' // 青色
+  return '#FFD700' // 默认金黄色
+}
+
+/**
+ * 📊 检查是否有次要天气信息
+ * 用于控制详细天气信息的显示
+ */
+const hasSecondaryWeatherInfo = (weather: WeatherData) => {
+  return (
+    (weather.feelsLike && weather.feelsLike !== weather.temperature) ||
+    weather.humidity ||
+    (weather.windDir && weather.windScale) ||
+    (weather.precipitation && weather.precipitation > 0)
+  )
+}
+</script>
+
+<style scoped>
+/* 🌤️ 天气信息区域样式 */
+.weather-info {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 280px;
+}
+
+.weather-content {
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 12px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.weather-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.weather-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.weather-details {
+  flex: 1;
+}
+
+.weather-primary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.weather-primary .location {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
+}
+
+.weather-primary .temperature {
+  font-size: 18px;
+  color: #fff;
+  font-weight: 600;
+}
+
+.weather-primary .weather-text {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.weather-secondary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 12px;
+}
+
+.weather-secondary .humidity,
+.weather-secondary .wind,
+.weather-secondary .feels-like,
+.weather-secondary .precipitation {
+  color: rgba(255, 255, 255, 0.7);
+  white-space: nowrap;
+}
+
+.weather-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 14px;
+}
+
+.weather-loading .loading-icon {
+  animation: spin 1s linear infinite;
+}
+
+.weather-default {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 14px;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 响应式适配 */
+@media (max-width: 768px) {
+  .weather-info {
+    min-width: 200px;
+  }
+  
+  .weather-content {
+    padding: 8px 12px;
+  }
+  
+  .weather-main {
+    gap: 8px;
+  }
+  
+  .weather-icon {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .weather-primary .temperature {
+    font-size: 16px;
+  }
+  
+  .weather-secondary {
+    gap: 8px;
+    font-size: 11px;
+  }
+}
+</style>

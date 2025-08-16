@@ -1,0 +1,596 @@
+{
+  "test_info": {
+    "timestamp": "2025-08-14 16:28:35",
+    "total_tested": 55,
+    "total_valid": 10,
+    "success_rate": 18.181818181818183
+  },
+  "grade_statistics": {
+    "2024": {
+      "valid": 0,
+      "total": 15,
+      "accounts": []
+    },
+    "2023": {
+      "valid": 2,
+      "total": 15,
+      "accounts": [
+        "2023010105",
+        "2023010118"
+      ]
+    },
+    "2022": {
+      "valid": 8,
+      "total": 25,
+      "accounts": [
+        "2022010603",
+        "2022010604",
+        "2022010605",
+        "2022010608",
+        "2022010612",
+        "2022010620",
+        "2022010621",
+        "2022010625"
+      ]
+    }
+  },
+  "valid_accounts": [
+    {
+      "userNumber": "2022010603",
+      "password": "888888",
+      "grade": "2022",
+      "status_code": 200,
+      "success": true,
+      "data": {
+        "code": 0,
+        "data": {
+          "id": "b494b6a26c8445a89e5e25d485fae228",
+          "companyId": "2",
+          "officeId": "01",
+          "no": "2022010603",
+          "schoolName": null,
+          "name": "车金荣",
+          "email": "22430501244437@greathiit.com",
+          "phone": "17872859838",
+          "mobile": "17872859838",
+          "role": [
+            "student"
+          ],
+          "photo": null,
+          "token": "7a96de45-55ab-4e70-9569-2b6ef913a89e",
+          "teacherStatus": null
+        },
+        "message": "ok"
+      },
+      "error": null
+    },
+    {
+      "userNumber": "2022010604",
+      "password": "888888",
+      "grade": "2022",
+      "status_code": 200,
+      "success": true,
+      "data": {
+        "code": 0,
+        "data": {
+          "id": "274c96c68a73455285ddb56473c4f60c",
+          "companyId": "2",
+          "officeId": "01",
+          "no": "2022010604",
+          "schoolName": null,
+          "name": "陈振盟",
+          "email": "22451301152094@greathiit.com",
+          "phone": "15978246233",
+          "mobile": "15978246233",
+          "role": [
+            "student"
+          ],
+          "photo": null,
+          "token": "a7b8d3e2-d603-4f8d-90aa-03492f84074e",
+          "teacherStatus": null
+        },
+        "message": "ok"
+      },
+      "error": null
+    },
+    {
+      "userNumber": "2022010605",
+      "password": "888888",
+      "grade": "2022",
+      "status_code": 200,
+      "success": true,
+      "data": {
+        "code": 0,
+        "data": {
+          "id": "cd08a5e833154ff9b4da44e553b64532",
+          "companyId": "2",
+          "officeId": "01",
+          "no": "2022010605",
+          "schoolName": null,
+          "name": "陈子豪",
+          "email": "22511303120804@greathiit.com",
+          "phone": "15982651963",
+          "mobile": "15982651963",
+          "role": [
+            "student"
+          ],
+          "photo": null,
+          "token": "9ff52589-457c-47de-a52c-2dc232712c5c",
+          "teacherStatus": null
+        },
+        "message": "ok"
+      },
+      "error": null
+    },
+    {
+      "userNumber": "2022010608",
+      "password": "888888",
+      "grade": "2022",
+      "status_code": 200,
+      "success": true,
+      "data": {
+        "code": 0,
+        "data": {
+          "id": "58745f720ca24453b58486aa03ec0d1d",
+          "companyId": "2",
+          "officeId": "01",
+          "no": "2022010608",
+          "schoolName": null,
+          "name": "窦国良",
+          "email": "22230102051668@greathiit.com",
+          "phone": "18246010358",
+          "mobile": "18246010358",
+          "role": [
+            "student"
+          ],
+          "photo": null,
+          "token": "f34fb16c-fce0-4d03-ad73-c7fbff2f9178",
+          "teacherStatus": null
+        },
+        "message": "ok"
+      },
+      "error": null
+    },
+    {
+      "userNumber": "2022010612",
+      "password": "888888",
+      "grade": "2022",
+      "status_code": 200,
+      "success": true,
+      "data": {
+        "code": 0,
+        "data": {
+          "id": "e2fba910d4764cc2b400f460e9e87511",
+          "companyId": "2",
+          "officeId": "01",
+          "no": "2022010612",
+          "schoolName": null,
+          "name": "何耀",
+          "email": "22530112151432@greathiit.com",
+          "phone": "18213523037",
+          "mobile": "18213523037",
+          "role": [
+            "student"
+          ],
+          "photo": null,
+          "token": "49695b6c-7e7c-42b6-91a5-147b5f907de6",
+          "teacherStatus": null
+        },
+        "message": "ok"
+      },
+      "error": null
+    },
+    {
+      "userNumber": "2022010620",
+      "password": "888888",
+      "grade": "2022",
+      "status_code": 200,
+      "success": true,
+      "data": {
+        "code": 0,
+        "data": {
+          "id": "c6a7b2c058c64b7aa96ee6be9ba55845",
+          "companyId": "2",
+          "officeId": "01",
+          "no": "2022010620",
+          "schoolName": null,
+          "name": "刘怡",
+          "email": "22360430150525@greathiit.com",
+          "phone": "15857703255",
+          "mobile": "15857703255",
+          "role": [
+            "student"
+          ],
+          "photo": null,
+          "token": "b1ca700e-3208-480d-b2ca-3a8659332b7e",
+          "teacherStatus": null
+        },
+        "message": "ok"
+      },
+      "error": null
+    },
+    {
+      "userNumber": "2022010621",
+      "password": "888888",
+      "grade": "2022",
+      "status_code": 200,
+      "success": true,
+      "data": {
+        "code": 0,
+        "data": {
+          "id": "c51fe44355274b59a9e09718beefdfed",
+          "companyId": "2",
+          "officeId": "01",
+          "no": "2022010621",
+          "schoolName": null,
+          "name": "马金龙",
+          "email": "22230108050530@greathiit.com",
+          "phone": "17545103972",
+          "mobile": "17545103972",
+          "role": [
+            "student"
+          ],
+          "photo": null,
+          "token": "1c860daf-d5d4-4420-be5a-e8fdae40a43d",
+          "teacherStatus": null
+        },
+        "message": "ok"
+      },
+      "error": null
+    },
+    {
+      "userNumber": "2022010625",
+      "password": "888888",
+      "grade": "2022",
+      "status_code": 200,
+      "success": true,
+      "data": {
+        "code": 0,
+        "data": {
+          "id": "15167610511a41968f319d2294b2fed8",
+          "companyId": "2",
+          "officeId": "01",
+          "no": "2022010625",
+          "schoolName": null,
+          "name": "王宝龙",
+          "email": "22230821051215@greathiit.com",
+          "phone": "13029970302",
+          "mobile": "13029970302",
+          "role": [
+            "student"
+          ],
+          "photo": null,
+          "token": "bfcf6b79-2854-401e-a228-21009fad0d95",
+          "teacherStatus": null
+        },
+        "message": "ok"
+      },
+      "error": null
+    },
+    {
+      "userNumber": "2023010105",
+      "password": "888888",
+      "grade": "2023",
+      "status_code": 200,
+      "success": true,
+      "data": {
+        "code": 0,
+        "data": {
+          "id": "23230129050231",
+          "companyId": "10000001",
+          "officeId": "01",
+          "no": "2023010105",
+          "schoolName": "江北校区",
+          "name": "顾春琳",
+          "email": "2023010105@hrbiit.edu.cn",
+          "phone": "15846029850",
+          "mobile": null,
+          "role": [
+            "student"
+          ],
+          "photo": null,
+          "token": "50f3b0e1-ccf2-4a9d-a1d3-26e190d1bbf5",
+          "teacherStatus": null
+        },
+        "message": "ok"
+      },
+      "error": null
+    },
+    {
+      "userNumber": "2023010118",
+      "password": "888888",
+      "grade": "2023",
+      "status_code": 200,
+      "success": true,
+      "data": {
+        "code": 0,
+        "data": {
+          "id": "23230200810798",
+          "companyId": "10000001",
+          "officeId": "01",
+          "no": "2023010118",
+          "schoolName": "江北校区",
+          "name": "孙雨桐",
+          "email": "2023010118@hrbiit.edu.cn",
+          "phone": "15590800327",
+          "mobile": null,
+          "role": [
+            "student"
+          ],
+          "photo": null,
+          "token": "1fddaa29-771b-40da-9e11-b8c70395f23c",
+          "teacherStatus": null
+        },
+        "message": "ok"
+      },
+      "error": null
+    }
+  ],
+  "invalid_accounts": [
+    {
+      "userNumber": "2022010601",
+      "password": "888888",
+      "grade": "2022",
+      "status_code": 200,
+      "success": false,
+      "data": {
+        "code": 40200,
+        "data": null,
+        "message": "密码错误"
+      },
+      "error": "密码错误"
+    },
+    {
+      "userNumber": "2022010602",
+      "password": "888888",
+      "grade": "2022",
+      "status_code": 200,
+      "success": false,
+      "data": {
+        "code": 40200,
+        "data": null,
+        "message": "密码错误"
+      },
+      "error": "密码错误"
+    },
+    {
+      "userNumber": "2022010606",
+      "password": "888888",
+      "grade": "2022",
+      "status_code": 200,
+      "success": false,
+      "data": {
+        "code": 40200,
+        "data": null,
+        "message": "密码错误"
+      },
+      "error": "密码错误"
+    },
+    {
+      "userNumber": "2022010607",
+      "password": "888888",
+      "grade": "2022",
+      "status_code": 200,
+      "success": false,
+      "data": {
+        "code": 40200,
+        "data": null,
+        "message": "密码错误"
+      },
+      "error": "密码错误"
+    },
+    {
+      "userNumber": "2022010609",
+      "password": "888888",
+      "grade": "2022",
+      "status_code": 200,
+      "success": false,
+      "data": {
+        "code": 40200,
+        "data": null,
+        "message": "密码错误"
+      },
+      "error": "密码错误"
+    },
+    {
+      "userNumber": "2022010610",
+      "password": "888888",
+      "grade": "2022",
+      "status_code": 200,
+      "success": false,
+      "data": {
+        "code": 40200,
+        "data": null,
+        "message": "密码错误"
+      },
+      "error": "密码错误"
+    },
+    {
+      "userNumber": "2022010611",
+      "password": "888888",
+      "grade": "2022",
+      "status_code": 200,
+      "success": false,
+      "data": {
+        "code": 40200,
+        "data": null,
+        "message": "密码错误"
+      },
+      "error": "密码错误"
+    },
+    {
+      "userNumber": "2022010613",
+      "password": "888888",
+      "grade": "2022",
+      "status_code": 200,
+      "success": false,
+      "data": {
+        "code": 40200,
+        "data": null,
+        "message": "密码错误"
+      },
+      "error": "密码错误"
+    },
+    {
+      "userNumber": "2022010614",
+      "password": "888888",
+      "grade": "2022",
+      "status_code": 200,
+      "success": false,
+      "data": {
+        "code": 40200,
+        "data": null,
+        "message": "密码错误"
+      },
+      "error": "密码错误"
+    },
+    {
+      "userNumber": "2022010615",
+      "password": "888888",
+      "grade": "2022",
+      "status_code": 200,
+      "success": false,
+      "data": {
+        "code": 40200,
+        "data": null,
+        "message": "密码错误"
+      },
+      "error": "密码错误"
+    },
+    {
+      "userNumber": "2022010616",
+      "password": "888888",
+      "grade": "2022",
+      "status_code": 200,
+      "success": false,
+      "data": {
+        "code": 40200,
+        "data": null,
+        "message": "密码错误"
+      },
+      "error": "密码错误"
+    },
+    {
+      "userNumber": "2022010617",
+      "password": "888888",
+      "grade": "2022",
+      "status_code": 200,
+      "success": false,
+      "data": {
+        "code": 40200,
+        "data": null,
+        "message": "密码错误"
+      },
+      "error": "密码错误"
+    },
+    {
+      "userNumber": "2022010618",
+      "password": "888888",
+      "grade": "2022",
+      "status_code": 200,
+      "success": false,
+      "data": {
+        "code": 40200,
+        "data": null,
+        "message": "密码错误"
+      },
+      "error": "密码错误"
+    },
+    {
+      "userNumber": "2022010619",
+      "password": "888888",
+      "grade": "2022",
+      "status_code": 200,
+      "success": false,
+      "data": {
+        "code": 40200,
+        "data": null,
+        "message": "密码错误"
+      },
+      "error": "密码错误"
+    },
+    {
+      "userNumber": "2022010622",
+      "password": "888888",
+      "grade": "2022",
+      "status_code": 200,
+      "success": false,
+      "data": {
+        "code": 40200,
+        "data": null,
+        "message": "密码错误"
+      },
+      "error": "密码错误"
+    },
+    {
+      "userNumber": "2022010623",
+      "password": "888888",
+      "grade": "2022",
+      "status_code": 200,
+      "success": false,
+      "data": {
+        "code": 40200,
+        "data": null,
+        "message": "密码错误"
+      },
+      "error": "密码错误"
+    },
+    {
+      "userNumber": "2022010624",
+      "password": "888888",
+      "grade": "2022",
+      "status_code": 200,
+      "success": false,
+      "data": {
+        "code": 40200,
+        "data": null,
+        "message": "密码错误"
+      },
+      "error": "密码错误"
+    },
+    {
+      "userNumber": "2023010104",
+      "password": "888888",
+      "grade": "2023",
+      "status_code": 200,
+      "success": false,
+      "data": {
+        "code": 40200,
+        "data": null,
+        "message": "密码错误"
+      },
+      "error": "密码错误"
+    },
+    {
+      "userNumber": "2023010106",
+      "password": "888888",
+      "grade": "2023",
+      "status_code": 200,
+      "success": false,
+      "data": {
+        "code": 40200,
+        "data": null,
+        "message": "密码错误"
+      },
+      "error": "密码错误"
+    },
+    {
+      "userNumber": "2023010107",
+      "password": "888888",
+      "grade": "2023",
+      "status_code": 200,
+      "success": false,
+      "data": {
+        "code": 40200,
+        "data": null,
+        "message": "密码错误"
+      },
+      "error": "密码错误"
+    }
+  ],
+  "next_steps": {
+    "ready_for_api_upgrade": true,
+    "waiting_for_class_grade_info": true,
+    "scope_isolation_test_ready": true
+  }
+}

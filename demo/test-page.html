@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎭 智能通知系统测试页面</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status-box {
+            background: #e8f5e8;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .error-box {
+            background: #ffe6e6;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .btn {
+            background: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .btn:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🎭 智能通知系统 - 测试页面</h1>
+        
+        <h2>🔧 系统状态检查</h2>
+        <div id="systemStatus" class="status-box">
+            <strong>系统状态:</strong> <span id="statusText">检查中...</span>
+        </div>
+        
+        <h2>🚀 服务连通性测试</h2>
+        <button class="btn" onclick="testMainAPI()">测试主服务 (48081)</button>
+        <button class="btn" onclick="testMockAPI()">测试Mock API (48082)</button>
+        
+        <div id="testResults"></div>
+        
+        <h2>📋 API调用示例</h2>
+        <button class="btn" onclick="testAuthentication()">测试用户认证</button>
+        
+        <div id="apiResults"></div>
+        
+        <h2>📊 连接状态</h2>
+        <div id="connectionStatus">
+            <p><strong>主服务 (48081):</strong> <span id="mainAPIStatus">未测试</span></p>
+            <p><strong>Mock API (48082):</strong> <span id="mockAPIStatus">未测试</span></p>
+        </div>
+    </div>
+
+    <script>
+        // 🔧 API配置
+        const API_CONFIG = {
+            MAIN_API: 'http://localhost:48081',
+            MOCK_API: 'http://localhost:48082',
+            HEADERS: {
+                'Content-Type': 'application/json; charset=UTF-8',
+                'tenant-id': '1'
+            }
+        };
+
+        // 页面加载时自动检查系统状态
+        window.addEventListener('DOMContentLoaded', function() {
+            console.log('🎭 测试页面已加载');
+            document.getElementById('statusText').textContent = '已就绪 - 可以开始测试';
+            
+            // 自动测试服务连接
+            setTimeout(() => {
+                testMainAPI();
+                testMockAPI();
+            }, 1000);
+        });
+
+        // 测试主服务
+        async function testMainAPI() {
+            console.log('🔧 测试主服务连接...');
+            const statusElement = document.getElementById('mainAPIStatus');
+            statusElement.textContent = '测试中...';
+            
+            try {
+                const response = await fetch(`${API_CONFIG.MAIN_API}/admin-api/test/notification/api/ping`);
+                
+                if (response.ok) {
+                    const data = await response.text();
+                    statusElement.innerHTML = '<span style="color: green;">✅ 连接正常</span>';
+                    addTestResult('主服务测试', 'SUCCESS', '连接正常: ' + data);
+                } else {
+                    statusElement.innerHTML = '<span style="color: red;">❌ 连接失败 (' + response.status + ')</span>';
+                    addTestResult('主服务测试', 'ERROR', '状态码: ' + response.status);
+                }
+            } catch (error) {
+                statusElement.innerHTML = '<span style="color: red;">❌ 连接失败</span>';
+                addTestResult('主服务测试', 'ERROR', error.message);
+            }
+        }
+
+        // 测试Mock API
+        async function testMockAPI() {
+            console.log('🔧 测试Mock API连接...');
+            const statusElement = document.getElementById('mockAPIStatus');
+            statusElement.textContent = '测试中...';
+            
+            try {
+                const response = await fetch(`${API_CONFIG.MOCK_API}/mock-school-api/auth/health`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    statusElement.innerHTML = '<span style="color: green;">✅ 连接正常</span>';
+                    addTestResult('Mock API测试', 'SUCCESS', '连接正常: ' + data.message);
+                } else {
+                    statusElement.innerHTML = '<span style="color: red;">❌ 连接失败 (' + response.status + ')</span>';
+                    addTestResult('Mock API测试', 'ERROR', '状态码: ' + response.status);
+                }
+            } catch (error) {
+                statusElement.innerHTML = '<span style="color: red;">❌ 连接失败</span>';
+                addTestResult('Mock API测试', 'ERROR', error.message);
+            }
+        }
+
+        // 测试用户认证
+        async function testAuthentication() {
+            console.log('🔐 测试用户认证...');
+            addTestResult('用户认证测试', 'INFO', '开始测试...');
+            
+            try {
+                const authRequest = {
+                    employeeId: 'PRINCIPAL_001',
+                    name: 'Principal-Zhang',
+                    password: 'admin123'
+                };
+                
+                const response = await fetch(`${API_CONFIG.MOCK_API}/mock-school-api/auth/authenticate`, {
+                    method: 'POST',
+                    headers: API_CONFIG.HEADERS,
+                    body: JSON.stringify(authRequest)
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    addTestResult('用户认证测试', 'SUCCESS', 
+                        `认证成功: 用户=${data.data.username}, 角色=${data.data.roleName}`);
+                } else {
+                    addTestResult('用户认证测试', 'ERROR', 
+                        `认证失败: ${data.message || '未知错误'}`);
+                }
+            } catch (error) {
+                addTestResult('用户认证测试', 'ERROR', error.message);
+            }
+        }
+
+        // 添加测试结果
+        function addTestResult(testName, status, message) {
+            const resultsDiv = document.getElementById('testResults');
+            const timestamp = new Date().toLocaleTimeString();
+            
+            let statusColor = '#666';
+            let statusIcon = 'ℹ️';
+            
+            switch(status) {
+                case 'SUCCESS':
+                    statusColor = 'green';
+                    statusIcon = '✅';
+                    break;
+                case 'ERROR':
+                    statusColor = 'red';
+                    statusIcon = '❌';
+                    break;
+                case 'INFO':
+                    statusColor = 'blue';
+                    statusIcon = 'ℹ️';
+                    break;
+            }
+            
+            const resultHTML = `
+                <div style="border-left: 4px solid ${statusColor}; padding: 10px; margin: 5px 0; background: #f9f9f9;">
+                    <strong>${statusIcon} ${testName}</strong> - ${timestamp}<br>
+                    <span style="color: ${statusColor};">${message}</span>
+                </div>
+            `;
+            
+            resultsDiv.innerHTML += resultHTML;
+        }
+    </script>
+</body>
+</html>

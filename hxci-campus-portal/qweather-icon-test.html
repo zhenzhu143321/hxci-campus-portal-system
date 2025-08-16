@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QWeather图标测试</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/qweather-icons@1.8.0/font/qweather-icons.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .icon-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .icon-item {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .icon-item i {
+            font-size: 48px;
+            margin-bottom: 10px;
+            display: block;
+        }
+        .icon-name {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        .weather-scenario {
+            font-size: 12px;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🌤️ QWeather天气图标测试</h1>
+    <p>测试WeatherWidget.vue组件中使用的QWeather专业天气图标</p>
+    
+    <div class="icon-grid">
+        <!-- 主要天气图标 -->
+        <div class="icon-item">
+            <i class="qi-100" style="color: #FFD700;"></i>
+            <div class="icon-name">qi-100</div>
+            <div class="weather-scenario">晴天</div>
+        </div>
+        
+        <div class="icon-item">
+            <i class="qi-101" style="color: #95A5A6;"></i>
+            <div class="icon-name">qi-101</div>
+            <div class="weather-scenario">多云</div>
+        </div>
+        
+        <div class="icon-item">
+            <i class="qi-104" style="color: #7F8C8D;"></i>
+            <div class="icon-name">qi-104</div>
+            <div class="weather-scenario">阴天</div>
+        </div>
+        
+        <div class="icon-item">
+            <i class="qi-305" style="color: #4A90E2;"></i>
+            <div class="icon-name">qi-305</div>
+            <div class="weather-scenario">小雨</div>
+        </div>
+        
+        <div class="icon-item">
+            <i class="qi-302" style="color: #9B59B6;"></i>
+            <div class="icon-name">qi-302</div>
+            <div class="weather-scenario">雷阵雨</div>
+        </div>
+        
+        <div class="icon-item">
+            <i class="qi-401" style="color: #87CEEB;"></i>
+            <div class="icon-name">qi-401</div>
+            <div class="weather-scenario">小雪</div>
+        </div>
+        
+        <!-- 辅助信息图标 -->
+        <div class="icon-item">
+            <i class="qi-1003" style="color: #FFA500;"></i>
+            <div class="icon-name">qi-1003</div>
+            <div class="weather-scenario">体感温度</div>
+        </div>
+        
+        <div class="icon-item">
+            <i class="qi-1002" style="color: #4A90E2;"></i>
+            <div class="icon-name">qi-1002</div>
+            <div class="weather-scenario">湿度</div>
+        </div>
+        
+        <div class="icon-item">
+            <i class="qi-1001" style="color: #16A085;"></i>
+            <div class="icon-name">qi-1001</div>
+            <div class="weather-scenario">风力</div>
+        </div>
+        
+        <div class="icon-item">
+            <i class="qi-309" style="color: #4A90E2;"></i>
+            <div class="icon-name">qi-309</div>
+            <div class="weather-scenario">毛毛雨/降水</div>
+        </div>
+    </div>
+    
+    <div style="margin-top: 40px; padding: 20px; background: rgba(255, 255, 255, 0.1); border-radius: 12px;">
+        <h3>✅ 图标映射验证</h3>
+        <p><strong>主要天气图标：</strong>已使用和风天气标准代码 (qi-100 晴天, qi-101 多云, qi-305 小雨等)</p>
+        <p><strong>辅助信息图标：</strong>使用qi-1001~qi-1003系列图标表示风力、湿度、体感温度</p>
+        <p><strong>降水图标：</strong>使用qi-309 (毛毛雨) 表示降水量</p>
+        <p><strong>颜色方案：</strong>保持原有的动态颜色映射，根据天气状况显示不同颜色</p>
+    </div>
+</body>
+</html>

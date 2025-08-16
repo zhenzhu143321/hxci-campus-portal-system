@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔄 异步状态初始化修复测试</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            padding: 30px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #eee;
+        }
+        
+        .fix-section {
+            background: linear-gradient(135deg, #d1ecf1, #bee5eb);
+            border: 1px solid #b6d4da;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+        
+        .fix-section h3 {
+            margin: 0 0 15px 0;
+            color: #0c5460;
+        }
+        
+        .fix-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin-bottom: 12px;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 6px;
+        }
+        
+        .fix-item .icon {
+            font-weight: bold;
+            color: #28a745;
+        }
+        
+        .fix-item .content {
+            flex: 1;
+        }
+        
+        .code-block {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.4;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+        
+        .test-section {
+            margin-bottom: 25px;
+            padding: 20px;
+            border: 2px solid #e3e3e3;
+            border-radius: 8px;
+            background: #f8f9fa;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            margin: 5px;
+        }
+        
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #0056b3;
+            transform: translateY(-1px);
+        }
+        
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #1e7e34;
+            transform: translateY(-1px);
+        }
+        
+        .log-area {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.4;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+        
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f1b2b7;
+        }
+        
+        .iframe-container {
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            overflow: hidden;
+            height: 500px;
+            margin-top: 20px;
+        }
+        
+        .iframe-container iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔄 异步状态初始化修复测试</h1>
+            <p>解决用户状态加载时序问题 + 确保状态正确读取</p>
+        </div>
+
+        <!-- 修复详情 -->
+        <div class="fix-section">
+            <h3>🎯 关键问题和修复方案</h3>
+            
+            <div class="fix-item">
+                <span class="icon">❌</span>
+                <div class="content">
+                    <strong>问题识别:</strong> Home.vue在onMounted中立即读取user store状态时，状态还未完全更新
+                    <div class="code-block">// 问题日志显示
+user.ts:85 最终登录状态: true  ← store已更新
+Home.vue:625 🔐 检查登录状态: undefined  ← 但Home.vue读取不到</div>
+                </div>
+            </div>
+            
+            <div class="fix-item">
+                <span class="icon">🔧</span>
+                <div class="content">
+                    <strong>解决方案 1:</strong> 将initAuth()方法改为异步，使用await等待初始化完成
+                    <div class="code-block">// user.ts - 修复前
+const initAuth = () => {
+  return initializeAuth()
+}
+
+// user.ts - 修复后
+const initAuth = async () => {
+  return new Promise&lt;void&gt;((resolve) => {
+    setTimeout(() => {
+      initializeAuth()
+      resolve()
+    }, 0)
+  })
+}</div>
+                </div>
+            </div>
+            
+            <div class="fix-item">
+                <span class="icon">⚡</span>
+                <div class="content">
+                    <strong>解决方案 2:</strong> 在Home.vue中使用异步onMounted + nextTick确保状态同步
+                    <div class="code-block">// Home.vue - 修复前
+onMounted(() => {
+  userStore.initAuth()
+  console.log('状态:', userStore.isLoggedIn) // 可能undefined
+})
+
+// Home.vue - 修复后
+onMounted(async () => {
+  await userStore.initAuth()  // 等待初始化完成
+  await nextTick()           // 等待Vue响应式更新完成
+  console.log('状态:', userStore.isLoggedIn.value) // 正确读取
+})</div>
+                </div>
+            </div>
+            
+            <div class="fix-item">
+                <span class="icon">✅</span>
+                <div class="content">
+                    <strong>预期效果:</strong> 现在用户信息应该正确显示，不再出现undefined状态
+                </div>
+            </div>
+        </div>
+
+        <!-- 测试操作 -->
+        <div class="test-section">
+            <h3>🧪 修复效果测试</h3>
+            <div style="margin-bottom: 15px;">
+                <button class="btn btn-primary" onclick="simulateLogin()">
+                    🔐 模拟登录流程
+                </button>
+                <button class="btn btn-success" onclick="checkPortalPage()">
+                    🏠 检查门户首页
+                </button>
+                <button class="btn btn-primary" onclick="clearAndTest()">
+                    🔄 清除状态重新测试
+                </button>
+                <span id="statusIndicator" class="status-indicator status-error">待测试</span>
+            </div>
+            <p style="color: #6c757d; font-size: 14px; margin: 0;">
+                💡 提示：如果修复成功，门户首页应该能正确显示用户信息，不再出现"跳转到登录页"的日志
+            </p>
+        </div>
+
+        <!-- 测试日志 -->
+        <div class="test-section">
+            <h3>📋 测试日志</h3>
+            <div class="log-area" id="logArea">[INFO] 异步状态初始化修复测试页面已加载
+[INFO] 开始验证修复效果...</div>
+        </div>
+
+        <!-- 门户首页预览 -->
+        <div class="test-section">
+            <h3>🖼️ 修复后的门户首页预览</h3>
+            <p>如果修复成功，下面应该显示完整的门户首页，包括用户信息面板</p>
+            <div class="iframe-container">
+                <iframe src="http://localhost:5173/home" id="portalPreview"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 日志记录
+        function addLog(message, type = 'INFO') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] [${type}] ${message}`;
+            
+            const logArea = document.getElementById('logArea');
+            logArea.textContent += '\n' + logEntry;
+            logArea.scrollTop = logArea.scrollHeight;
+            
+            console.log(logEntry);
+        }
+
+        // 更新状态指示器
+        function updateStatus(text, isSuccess = true) {
+            const indicator = document.getElementById('statusIndicator');
+            indicator.textContent = text;
+            indicator.className = `status-indicator ${isSuccess ? 'status-success' : 'status-error'}`;
+        }
+
+        // 模拟登录流程
+        async function simulateLogin() {
+            addLog('=== 开始模拟登录流程 ===');
+            updateStatus('测试中...', false);
+            
+            try {
+                const loginData = {
+                    employeeId: 'PRINCIPAL_001',
+                    name: 'Principal-Zhang',
+                    password: 'admin123'
+                };
+                
+                addLog('发送登录请求...');
+                const response = await fetch('http://localhost:48082/mock-school-api/auth/authenticate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json; charset=UTF-8'
+                    },
+                    body: JSON.stringify(loginData)
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        // 保存认证数据
+                        localStorage.setItem('campus_token', data.data.accessToken);
+                        localStorage.setItem('campus_user_info', JSON.stringify(data.data));
+                        
+                        addLog(`✅ 登录成功: ${data.data.username}`, 'SUCCESS');
+                        addLog(`Token长度: ${data.data.accessToken.length} 字符`);
+                        
+                        updateStatus('登录成功', true);
+                        
+                        // 延迟刷新iframe，模拟真实跳转
+                        addLog('等待2秒后刷新门户首页预览...');
+                        setTimeout(() => {
+                            document.getElementById('portalPreview').src = 'http://localhost:5173/home?t=' + Date.now();
+                            addLog('✅ 门户首页预览已刷新');
+                        }, 2000);
+                        
+                    } else {
+                        throw new Error(data.message || '登录失败');
+                    }
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                addLog(`❌ 登录失败: ${error.message}`, 'ERROR');
+                updateStatus('登录失败', false);
+            } finally {
+                addLog('=== 登录流程测试完成 ===');
+            }
+        }
+
+        // 检查门户页面状态
+        function checkPortalPage() {
+            addLog('=== 检查门户页面状态 ===');
+            
+            const token = localStorage.getItem('campus_token');
+            const userInfo = localStorage.getItem('campus_user_info');
+            
+            if (token && userInfo) {
+                try {
+                    const user = JSON.parse(userInfo);
+                    addLog(`✅ 认证状态正常: ${user.username} (${user.roleCode})`);
+                    addLog(`Token状态: 存在，长度 ${token.length} 字符`);
+                    
+                    updateStatus('状态正常', true);
+                    
+                    // 刷新iframe
+                    document.getElementById('portalPreview').src = 'http://localhost:5173/home?check=' + Date.now();
+                    addLog('🔄 门户页面已刷新');
+                    
+                } catch (error) {
+                    addLog('❌ 用户信息解析失败', 'ERROR');
+                    updateStatus('数据异常', false);
+                }
+            } else {
+                addLog('❌ 未找到认证数据，用户未登录', 'WARNING');
+                updateStatus('未登录', false);
+            }
+            
+            addLog('=== 门户页面状态检查完成 ===');
+        }
+
+        // 清除状态重新测试
+        function clearAndTest() {
+            addLog('=== 清除状态重新测试 ===');
+            
+            // 清除所有认证数据
+            localStorage.removeItem('campus_token');
+            localStorage.removeItem('campus_user_info');
+            addLog('✅ 认证数据已清除');
+            
+            updateStatus('已清除', false);
+            
+            // 刷新iframe观察未登录状态
+            document.getElementById('portalPreview').src = 'http://localhost:5173/home?clear=' + Date.now();
+            addLog('🔄 门户页面已刷新 - 应该重定向到登录页');
+            
+            addLog('=== 状态清除完成，可以重新测试登录 ===');
+        }
+
+        // 页面初始化
+        function initPage() {
+            addLog('页面初始化开始...');
+            
+            // 检查当前认证状态
+            const token = localStorage.getItem('campus_token');
+            const userInfo = localStorage.getItem('campus_user_info');
+            
+            if (token && userInfo) {
+                try {
+                    const user = JSON.parse(userInfo);
+                    addLog(`发现已保存的认证状态: ${user.username}`);
+                    updateStatus('已登录', true);
+                } catch (error) {
+                    addLog('认证数据格式异常', 'ERROR');
+                    updateStatus('数据异常', false);
+                }
+            } else {
+                addLog('未发现认证数据');
+                updateStatus('未登录', false);
+            }
+            
+            addLog('✅ 页面初始化完成');
+            addLog('');
+            addLog('📝 测试说明:');
+            addLog('1. 点击"模拟登录流程"测试完整登录过程');
+            addLog('2. 观察iframe中的门户首页是否正确显示用户信息');
+            addLog('3. 如果修复成功，应该不再看到"准备跳转到登录页"的日志');
+            addLog('4. 右上角应该显示用户信息和退出按钮');
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', initPage);
+    </script>
+</body>
+</html>

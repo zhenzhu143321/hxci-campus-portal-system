@@ -1,0 +1,2989 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phase 5: 审批工作流 - 智能通知系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            margin-bottom: 20px;
+        }
+
+        /* 阶段导航 */
+        .phase-navigation {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+        }
+
+        .phase-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .phase-item.completed {
+            background: rgba(76, 175, 80, 0.2);
+            color: #4CAF50;
+            border: 2px solid #4CAF50;
+            cursor: pointer;
+        }
+
+        .phase-item.active {
+            background: rgba(255, 193, 7, 0.2);
+            color: #FFC107;
+            border: 2px solid #FFC107;
+            animation: pulse 2s infinite;
+        }
+
+        .phase-item.pending {
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.6);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .phase-arrow {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 1.2rem;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(255, 193, 7, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0); }
+        }
+
+        /* 认证区域 */
+        .auth-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            transition: all 0.5s ease;
+        }
+
+        .auth-section.hidden {
+            max-height: 80px;
+            overflow: hidden;
+            padding: 15px 30px;
+        }
+
+        .auth-toggle {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .auth-form {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            align-items: end;
+        }
+
+        .role-switch-demo {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: #555;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #6c757d;
+            border: 2px solid #e9ecef;
+        }
+
+        .btn-secondary:hover {
+            background: #e9ecef;
+            border-color: #dee2e6;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+            border: 2px solid #28a745;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+            border-color: #218838;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+            border: 2px solid #dc3545;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+            border-color: #c82333;
+        }
+
+        .btn-info {
+            background: #17a2b8;
+            color: white;
+            border: 2px solid #17a2b8;
+        }
+
+        .btn-info:hover {
+            background: #138496;
+            border-color: #138496;
+        }
+
+        .btn-warning {
+            background: #ffc107;
+            color: #212529;
+            border: 2px solid #ffc107;
+        }
+
+        .btn-warning:hover {
+            background: #ffb300;
+            border-color: #ffb300;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* 主内容区域 */
+        .main-content {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .content-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* 角色切换演示 */
+        .role-demo-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .role-cards {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .role-card {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .role-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .role-card.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transform: scale(1.05);
+        }
+
+        .role-card.principal {
+            background: linear-gradient(135deg, #ffeaa7 0%, #fab1a0 100%);
+            color: #333;
+        }
+
+        .role-card.academic {
+            background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+        }
+
+        .role-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .role-description {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            margin-bottom: 15px;
+        }
+
+        .role-permissions {
+            font-size: 0.8rem;
+            opacity: 0.8;
+            border-top: 1px solid rgba(255,255,255,0.3);
+            padding-top: 10px;
+        }
+
+        /* 审批工作流区域 */
+        .approval-workflow {
+            margin-bottom: 30px;
+        }
+
+        .workflow-steps {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .workflow-step {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .workflow-step.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            transform: scale(1.05);
+        }
+
+        .workflow-step.completed {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+        }
+
+        .step-number {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 15px;
+            font-weight: 600;
+        }
+
+        .step-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .step-description {
+            font-size: 0.85rem;
+            opacity: 0.8;
+        }
+
+        /* 待审批通知列表 */
+        .pending-approval-list {
+            min-height: 400px;
+        }
+
+        .notification-item {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .notification-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .notification-item.pending-approval {
+            border-left: 4px solid #ffc107;
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+        }
+
+        .notification-item.rejected {
+            border-left: 4px solid #dc3545;
+            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+        }
+
+        .notification-header-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+
+        .notification-title {
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: #2d3436;
+            margin-bottom: 8px;
+        }
+
+        .notification-status {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .notification-status.pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .notification-status.rejected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .notification-meta {
+            font-size: 0.9rem;
+            color: #636e72;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .notification-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        /* 审批操作区域 */
+        .approval-actions {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 15px;
+        }
+
+        .approval-form {
+            display: grid;
+            gap: 15px;
+        }
+
+        .comment-input {
+            width: 100%;
+            min-height: 80px;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            resize: vertical;
+            font-family: inherit;
+        }
+
+        /* 审批历史记录 */
+        .approval-history {
+            margin-top: 20px;
+        }
+
+        .history-item {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-left: 4px solid #dee2e6;
+        }
+
+        .history-item.approved {
+            border-left-color: #28a745;
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+        }
+
+        .history-item.rejected {
+            border-left-color: #dc3545;
+            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+        }
+
+        .history-meta {
+            font-size: 0.85rem;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .history-comment {
+            font-size: 0.9rem;
+            color: #333;
+        }
+
+        /* 用户信息面板 */
+        .user-info {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .user-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin: 0 auto 15px;
+        }
+
+        .user-details {
+            text-align: center;
+        }
+
+        .user-name {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .user-role {
+            opacity: 0.8;
+            font-size: 0.9rem;
+        }
+
+        /* 权限说明 */
+        .permission-info {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .permission-title {
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .permission-list {
+            list-style: none;
+        }
+
+        .permission-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .permission-list li:last-child {
+            border-bottom: none;
+        }
+
+        .permission-check {
+            color: #27ae60;
+            font-size: 1.1rem;
+        }
+
+        .permission-cross {
+            color: #e74c3c;
+            font-size: 1.1rem;
+        }
+
+        /* 统计信息 */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .stat-item {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        /* 导航按钮 */
+        .navigation-section {
+            text-align: center;
+            margin-top: 40px;
+        }
+
+        .btn-nav {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 30px;
+            font-size: 1.1rem;
+            border-radius: 50px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+            transition: all 0.3s ease;
+            margin: 0 10px;
+        }
+
+        .btn-nav:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(102, 126, 234, 0.4);
+        }
+
+        /* 加载状态 */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            font-size: 1.1rem;
+            color: #666;
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f0f0f0;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 错误和成功消息 */
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        /* 空状态 */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+
+        .empty-state-text {
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+        }
+
+        .empty-state-subtext {
+            font-size: 0.9rem;
+            opacity: 0.7;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 1200px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+
+            .auth-form {
+                grid-template-columns: 1fr;
+            }
+
+            .role-cards {
+                grid-template-columns: 1fr;
+            }
+
+            .workflow-steps {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .phase-navigation {
+                gap: 10px;
+            }
+
+            .phase-item {
+                padding: 6px 12px;
+                font-size: 0.9rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .workflow-steps {
+                grid-template-columns: 1fr;
+            }
+
+            .btn-nav {
+                margin: 5px 0;
+            }
+        }
+
+        /* 隐藏类 */
+        .d-none {
+            display: none !important;
+        }
+
+        .d-block {
+            display: block !important;
+        }
+
+        /* 高亮动画 */
+        @keyframes highlightPulse {
+            0% {
+                background: #fff3cd;
+                transform: scale(1);
+            }
+            50% {
+                background: #ffeaa7;
+                transform: scale(1.02);
+            }
+            100% {
+                background: #fff3cd;
+                transform: scale(1);
+            }
+        }
+
+        .approval-highlight {
+            animation: highlightPulse 2s ease-in-out;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 页面头部 -->
+        <div class="header">
+            <h1>⚖️ 智能通知系统</h1>
+            <div class="subtitle">Phase 5: 审批工作流演示与多角色权限管理</div>
+            
+            <!-- 🚨 PHASE5-FIX: 修复完成状态提示 -->
+            <div style="background: rgba(76, 175, 80, 0.2); border: 2px solid #4CAF50; border-radius: 10px; padding: 15px; margin: 20px auto; max-width: 700px; backdrop-filter: blur(10px);">
+                <div style="color: #4CAF50; font-weight: bold; font-size: 1.1rem; margin-bottom: 8px; text-shadow: 1px 1px 2px rgba(0,0,0,0.3);">
+                    🎉 Phase5 假数据清除完成！ (100%真实API集成)
+                </div>
+                <div style="color: #2E7D32; font-size: 0.95rem; line-height: 1.4; text-shadow: 1px 1px 1px rgba(0,0,0,0.2);">
+                    ✅ <strong>假数据完全移除</strong>：generateMockPendingApprovals和mockSubmissions已删除<br>
+                    ✅ <strong>纯API数据处理</strong>：所有数据来源于真实的后端API，不再有fallback假数据<br>
+                    ✅ <strong>用户友好错误处理</strong>：API失败时显示明确错误信息和解决建议<br>
+                    💡 <strong>使用说明</strong>：如需测试审批功能，请先用教务主任身份发布1级紧急通知
+                </div>
+            </div>
+            
+            <!-- 阶段导航 -->
+            <div class="phase-navigation">
+                <div class="phase-item completed" onclick="navigateToPhase('phase1')" style="cursor: pointer;">
+                    <span>✅</span>
+                    <span>Phase 1: 连接测试</span>
+                </div>
+                <span class="phase-arrow">→</span>
+                <div class="phase-item completed" onclick="navigateToPhase('phase2')" style="cursor: pointer;">
+                    <span>✅</span>
+                    <span>Phase 2: 身份认证</span>
+                </div>
+                <span class="phase-arrow">→</span>
+                <div class="phase-item completed" onclick="navigateToPhase('phase3')" style="cursor: pointer;">
+                    <span>✅</span>
+                    <span>Phase 3: 通知发布</span>
+                </div>
+                <span class="phase-arrow">→</span>
+                <div class="phase-item completed" onclick="navigateToPhase('phase4')" style="cursor: pointer;">
+                    <span>📋</span>
+                    <span>Phase 4: 通知列表</span>
+                    <span style="font-size: 12px; opacity: 0.8; margin-left: 5px;">(点击返回)</span>
+                </div>
+                <span class="phase-arrow">→</span>
+                <div class="phase-item active">
+                    <span>🔄</span>
+                    <span>Phase 5: 审批工作流</span>
+                </div>
+                <span class="phase-arrow">→</span>
+                <div class="phase-item pending">
+                    <span>⭕</span>
+                    <span>Phase 6: 完整集成</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 认证区域 -->
+        <div class="auth-section" id="authSection">
+            <div class="auth-toggle">
+                <h3 id="authTitle">🔑 角色认证与切换</h3>
+                <button class="btn btn-secondary" id="toggleAuthBtn" onclick="toggleAuthSection()" style="display: none;">
+                    收起/展开
+                </button>
+            </div>
+            
+            <div id="authForm">
+                <div class="auth-form">
+                    <div class="form-group">
+                        <label for="roleSelect">选择演示角色 <span style="color: red;">*</span></label>
+                        <select class="form-control" id="roleSelect">
+                            <option value="PRINCIPAL">🎩 校长 (可审批所有通知)</option>
+                            <option value="ACADEMIC_ADMIN" selected>👔 教务主任 (可查看审批状态)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>认证状态</label>
+                        <div id="authStatus" style="padding: 12px; border-radius: 8px; background: #f8f9fa; color: #6c757d;">
+                            未认证
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <button class="btn btn-primary" id="authenticateBtn" onclick="authenticateInPage()">
+                            🚀 一键认证
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 角色切换演示说明 -->
+                <div class="alert alert-info" style="margin-top: 20px;">
+                    <strong>💡 演示说明：</strong><br>
+                    • <strong>校长视角</strong>：可以查看所有待审批通知，执行批准/拒绝操作<br>
+                    • <strong>教务主任视角</strong>：可以查看自己提交的通知的审批状态和历史<br>
+                    • 请先选择角色并认证，然后体验不同角色的审批权限
+                </div>
+            </div>
+        </div>
+
+        <!-- 审批工作流演示 -->
+        <div class="role-demo-section d-none" id="workflowSection">
+            <div class="card-title">🔄 审批工作流步骤</div>
+            <div class="workflow-steps">
+                <div class="workflow-step" id="step1">
+                    <div class="step-number">1</div>
+                    <div class="step-title">提交申请</div>
+                    <div class="step-description">教务主任发布1级紧急通知需要审批</div>
+                </div>
+                <div class="workflow-step" id="step2">
+                    <div class="step-number">2</div>
+                    <div class="step-title">待审批</div>
+                    <div class="step-description">通知状态变为PENDING_APPROVAL</div>
+                </div>
+                <div class="workflow-step" id="step3">
+                    <div class="step-number">3</div>
+                    <div class="step-title">校长审批</div>
+                    <div class="step-description">校长查看并决定批准或拒绝</div>
+                </div>
+                <div class="workflow-step" id="step4">
+                    <div class="step-number">4</div>
+                    <div class="step-title">审批完成</div>
+                    <div class="step-description">状态更新为APPROVED或REJECTED</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 主内容区域 -->
+        <div class="main-content d-none" id="mainContent">
+            <!-- 左侧：审批列表和操作 -->
+            <div class="content-card">
+                <div class="card-title" id="mainCardTitle">
+                    ⚖️ 审批管理
+                    <span id="approvalCount" style="font-size: 0.9rem; color: #666; font-weight: normal;"></span>
+                </div>
+                
+                <div id="principalView" class="d-none">
+                    <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+                        <button class="btn btn-primary" onclick="loadPendingApprovals()">
+                            🔄 刷新待审批
+                        </button>
+                        <button class="btn btn-info" onclick="showApprovalGuide()">
+                            📖 审批指南
+                        </button>
+                        <button class="btn btn-warning" onclick="simulateApprovalScenario()">
+                            🎭 模拟审批场景
+                        </button>
+                    </div>
+                    
+                    <div class="pending-approval-list" id="pendingApprovalList">
+                        <!-- 待审批通知列表将在这里动态生成 -->
+                    </div>
+                </div>
+                
+                <div id="academicView" class="d-none">
+                    <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+                        <button class="btn btn-primary" onclick="checkMySubmissions()">
+                            📋 查看我的提交
+                        </button>
+                        <button class="btn btn-info" onclick="showSubmissionHistory()">
+                            📊 提交历史
+                        </button>
+                        <button class="btn btn-warning" onclick="simulateSubmissionProcess()">
+                            ✍️ 模拟提交流程
+                        </button>
+                    </div>
+                    
+                    <div id="submissionList">
+                        <!-- 教务主任的提交记录将在这里显示 -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 右侧：用户信息和权限说明 -->
+            <div>
+                <!-- 当前用户信息 -->
+                <div class="content-card">
+                    <div class="card-title">👤 当前用户</div>
+                    <div class="user-info" id="userInfo">
+                        <!-- 用户信息将在这里动态生成 -->
+                    </div>
+                </div>
+                
+                <!-- 审批权限说明 -->
+                <div class="content-card">
+                    <div class="card-title">🔐 审批权限</div>
+                    <div class="permission-info">
+                        <div class="permission-title">当前角色审批权限：</div>
+                        <ul class="permission-list" id="approvalPermissionList">
+                            <!-- 审批权限列表将在这里动态生成 -->
+                        </ul>
+                    </div>
+                </div>
+                
+                <!-- 统计信息 -->
+                <div class="content-card">
+                    <div class="card-title">📊 审批统计</div>
+                    <div class="stats-grid" id="approvalStatsGrid">
+                        <!-- 审批统计信息将在这里动态生成 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 审批操作弹窗区域 -->
+        <div id="approvalModal" class="d-none" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center;">
+            <div class="content-card" style="max-width: 600px; max-height: 80vh; overflow-y: auto;">
+                <div class="card-title">⚖️ 审批操作</div>
+                <div id="modalNotificationDetail">
+                    <!-- 通知详情将在这里显示 -->
+                </div>
+                <div class="approval-form">
+                    <div class="form-group">
+                        <label for="approvalComment">审批意见 <span style="color: red;">*</span></label>
+                        <textarea class="comment-input" id="approvalComment" placeholder="请输入审批意见..."></textarea>
+                    </div>
+                    <div class="notification-actions">
+                        <button class="btn btn-success" onclick="executeApproval('approve')">
+                            ✅ 批准通知
+                        </button>
+                        <button class="btn btn-danger" onclick="executeApproval('reject')">
+                            ❌ 拒绝通知
+                        </button>
+                        <button class="btn btn-secondary" onclick="closeApprovalModal()">
+                            🚪 取消
+                        </button>
+                    </div>
+                </div>
+                <div class="approval-history" id="approvalHistory">
+                    <!-- 审批历史将在这里显示 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 测试日志 -->
+        <div class="content-card">
+            <div class="card-title">📋 操作日志</div>
+            <div id="testLog" style="max-height: 300px; overflow-y: auto; background: #f8f9fa; padding: 20px; border-radius: 12px; font-family: monospace; font-size: 14px;">
+                <div style="color: #666;">等待用户操作...</div>
+            </div>
+        </div>
+
+        <!-- 导航区域 -->
+        <div class="navigation-section">
+            <a href="phase4-notification-list.html" class="btn-nav">
+                ← 返回 Phase 4: 通知列表
+            </a>
+            <a href="#" class="btn-nav" id="nextPhaseBtn" style="display: none;">
+                进入 Phase 6: 完整集成 →
+            </a>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        const API_BASE = 'http://localhost:48081';
+        const MOCK_API_BASE = 'http://localhost:48082';
+        let currentUser = null;
+        let currentToken = null;
+        // 🚫 全局变量使用命名空间防止污染
+        window.Phase5Namespace = window.Phase5Namespace || {
+            pendingNotifications: [],
+            currentNotificationForApproval: null
+        };
+        
+        // 🚨 已删除自动创建数据逻辑 - 不再自动向数据库添加通知
+        
+        // 🚨 已删除自动创建测试数据逻辑
+        
+        // 🚨 PHASE5-FIX: 已删除generateMockPendingApprovals函数 - 不再生成假数据
+        // 该函数已被移除，现在系统只使用真实的API数据
+
+        // 角色对应的测试账号
+        const roleAccounts = {
+            'PRINCIPAL': {
+                employeeId: 'PRINCIPAL_001',
+                name: 'Principal-Zhang',
+                password: 'admin123',
+                displayName: '校长张明'
+            },
+            'ACADEMIC_ADMIN': {
+                employeeId: 'ACADEMIC_ADMIN_001', 
+                name: 'Director-Li',
+                password: 'admin123',
+                displayName: '教务主任李华'
+            }
+        };
+
+        // 角色审批权限配置
+        const roleApprovalPermissions = {
+            'PRINCIPAL': {
+                canApprove: true,
+                canReject: true,
+                canViewAll: true,
+                description: '可以审批所有待审批通知，具有完整的审批权限'
+            },
+            'ACADEMIC_ADMIN': {
+                canApprove: false,
+                canReject: false,
+                canViewAll: false,
+                description: '只能查看自己提交的通知的审批状态，无审批权限'
+            }
+        };
+
+        // 页面加载完成后的初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                addLog('⚖️ Phase 5: 审批工作流页面已加载', 'info');
+                addLog('💡 请选择角色并认证，然后体验审批功能', 'info');
+                
+                // 🔧 验证关键 DOM 元素是否存在
+                const criticalElements = [
+                    'testLog', 'roleSelect', 'authenticateBtn', 'authStatus',
+                    'pendingApprovalList', 'approvalCount', 'principalView', 
+                    'academicView', 'submissionList', 'userInfo', 
+                    'approvalPermissionList', 'approvalStatsGrid'
+                ];
+                
+                let missingElements = [];
+                criticalElements.forEach(id => {
+                    if (!document.getElementById(id)) {
+                        missingElements.push(id);
+                    }
+                });
+                
+                if (missingElements.length > 0) {
+                    addLog(`⚠️ 检测到缺失关键 DOM 元素: ${missingElements.join(', ')}`, 'warning');
+                    addLog('❌ 初始化中止，请检查页面结构', 'error');
+                    return false; // 阻止进一步初始化
+                } else {
+                    addLog('✅ 所有关键 DOM 元素都存在', 'success');
+                }
+                
+                // 检测来自Phase4的跳转
+                const urlParams = new URLSearchParams(window.location.search);
+                if (urlParams.get('from') === 'phase4') {
+                    addLog('🔄 检测到从Phase4跳转，尝试继承认证状态', 'info');
+                    inheritAuthFromPreviousPhase();
+                }
+                
+            } catch (initError) {
+                console.error('页面初始化错误:', initError);
+                addLog(`❌ 页面初始化发生错误: ${initError.message}`, 'error');
+            }
+        });
+
+        // 导航到其他Phase
+        function navigateToPhase(phase) {
+            const phaseMap = {
+                'phase1': 'phase1-connection-working.html',
+                'phase2': 'phase2-authentication-enhanced.html', 
+                'phase3': 'phase3-notification-publish.html',
+                'phase4': 'phase4-notification-list.html'
+            };
+            
+            if (phaseMap[phase]) {
+                if (currentUser && currentToken) {
+                    // 保存当前认证状态
+                    const jumpContext = {
+                        fromPhase: 'phase5',
+                        user: currentUser,
+                        token: currentToken,
+                        timestamp: Date.now()
+                    };
+                    localStorage.setItem(`${phase}JumpContext`, JSON.stringify(jumpContext));
+                    sessionStorage.setItem(`${phase}JumpContext`, JSON.stringify(jumpContext));
+                }
+                window.location.href = phaseMap[phase];
+            }
+        }
+
+        // 继承前一阶段的认证状态
+        function inheritAuthFromPreviousPhase() {
+            try {
+                const jumpContext = localStorage.getItem('phase5JumpContext') || 
+                                   sessionStorage.getItem('phase5JumpContext');
+                
+                if (jumpContext) {
+                    const context = JSON.parse(jumpContext);
+                    if (context.user && context.token) {
+                        currentUser = context.user;
+                        currentToken = context.token;
+                        
+                        addLog(`✅ 成功继承认证状态: ${context.user.name || context.user.username} (${context.user.roleCode})`, 'success');
+                        
+                        // 更新UI状态
+                        updateAuthStatus();
+                        showMainContent();
+                        
+                        return true;
+                    }
+                }
+            } catch (error) {
+                addLog(`⚠️ 继承认证状态失败: ${error.message}`, 'warning');
+            }
+            return false;
+        }
+
+        // 页面内认证函数
+        async function authenticateInPage() {
+            const selectedRole = document.getElementById('roleSelect').value;
+            const authBtn = document.getElementById('authenticateBtn');
+            const authStatus = document.getElementById('authStatus');
+            
+            try {
+                authBtn.disabled = true;
+                authBtn.innerHTML = '🔄 认证中...';
+                authStatus.innerHTML = '正在认证...';
+                authStatus.style.background = '#fff3cd';
+                authStatus.style.color = '#856404';
+                
+                addLog('🚀 开始审批流程认证', 'info');
+                addLog(`👤 选择角色: ${selectedRole}`, 'info');
+                
+                const account = roleAccounts[selectedRole];
+                if (!account) {
+                    throw new Error('未找到对应角色的测试账号');
+                }
+                
+                addLog(`🔑 使用账号: ${account.displayName} (${account.employeeId})`, 'info');
+                
+                // 调用认证API
+                const authResponse = await fetch(`${MOCK_API_BASE}/mock-school-api/auth/authenticate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(account)
+                });
+                
+                if (!authResponse.ok) {
+                    throw new Error(`认证请求失败: ${authResponse.status}`);
+                }
+                
+                const authResult = await authResponse.json();
+                addLog(`✅ 认证API响应成功`, 'success');
+                
+                if (authResult.success && authResult.data) {
+                    currentUser = authResult.data;
+                    currentToken = authResult.data.accessToken;
+                    
+                    addLog(`🎉 认证成功！用户: ${currentUser.realName || currentUser.username}`, 'success');
+                    
+                    updateAuthStatus();
+                    showMainContent();
+                    initializeApprovalWorkflow();
+                    
+                } else {
+                    throw new Error(authResult.message || '认证失败');
+                }
+                
+            } catch (error) {
+                addLog(`❌ 认证失败: ${error.message}`, 'error');
+                authStatus.innerHTML = `❌ 认证失败: ${error.message}`;
+                authStatus.style.background = '#f8d7da';
+                authStatus.style.color = '#721c24';
+            } finally {
+                authBtn.disabled = false;
+                authBtn.innerHTML = '🚀 一键认证';
+            }
+        }
+
+        // 更新认证状态显示
+        function updateAuthStatus() {
+            const authStatus = document.getElementById('authStatus');
+            const authTitle = document.getElementById('authTitle');
+            
+            // 🔧 添加DOM元素存在性检查
+            if (!authStatus || !authTitle) {
+                addLog('❌ 认证状态显示元素不存在', 'error');
+                return;
+            }
+            
+            if (currentUser) {
+                const displayName = currentUser.realName || currentUser.username || '未知用户';
+                const roleTitle = currentUser.roleCode === 'PRINCIPAL' ? '校长' : '教务主任';
+                
+                try {
+                    authStatus.innerHTML = `✅ 已认证：${displayName} (${roleTitle})`;
+                    authStatus.style.background = '#d4edda';
+                    authStatus.style.color = '#155724';
+                    
+                    authTitle.innerHTML = `🔑 已认证：${displayName} - ${roleTitle}视角`;
+                    
+                    // 折叠认证区域
+                    setTimeout(() => {
+                        const authSection = document.getElementById('authSection');
+                        const toggleBtn = document.getElementById('toggleAuthBtn');
+                        
+                        if (authSection) {
+                            authSection.classList.add('hidden');
+                        }
+                        if (toggleBtn) {
+                            toggleBtn.style.display = 'inline-block';
+                        }
+                    }, 2000);
+                    
+                } catch (error) {
+                    addLog(`❌ 更新认证状态显示失败: ${error.message}`, 'error');
+                }
+            }
+        }
+
+        // 显示主内容区域
+        function showMainContent() {
+            const mainContent = document.getElementById('mainContent');
+            const workflowSection = document.getElementById('workflowSection');
+            
+            // 🔧 添加DOM元素存在性检查
+            if (!mainContent || !workflowSection) {
+                addLog('❌ 主内容区域或工作流区域不存在', 'error');
+                return;
+            }
+            
+            try {
+                mainContent.classList.remove('d-none');
+                workflowSection.classList.remove('d-none');
+                
+                updateUserInfoPanel();
+                updateApprovalPermissionPanel();
+                switchToRoleView();
+                
+                addLog('✅ 主内容区域已显示', 'success');
+            } catch (error) {
+                addLog(`❌ 显示主内容区域失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 切换到角色对应的视图
+        function switchToRoleView() {
+            const principalView = document.getElementById('principalView');
+            const academicView = document.getElementById('academicView');
+            const mainCardTitle = document.getElementById('mainCardTitle');
+            
+            // 🔧 添加DOM元素存在性检查
+            if (!principalView || !academicView || !mainCardTitle) {
+                addLog('❌ 角色视图元素不存在，无法切换', 'error');
+                return;
+            }
+            
+            if (!currentUser || !currentUser.roleCode) {
+                addLog('❌ 用户角色信息不存在，无法切换视图', 'error');
+                return;
+            }
+            
+            try {
+                if (currentUser.roleCode === 'PRINCIPAL') {
+                    principalView.classList.remove('d-none');
+                    academicView.classList.add('d-none');
+                    mainCardTitle.innerHTML = '⚖️ 审批管理 - 校长权限';
+                    addLog('🎩 切换到校长视角，显示审批管理界面', 'info');
+                } else {
+                    principalView.classList.add('d-none');
+                    academicView.classList.remove('d-none');
+                    mainCardTitle.innerHTML = '📋 我的提交 - 教务主任视角';
+                    addLog('👔 切换到教务主任视角，显示提交管理界面', 'info');
+                }
+            } catch (error) {
+                addLog(`❌ 切换角色视图失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 初始化审批工作流
+        function initializeApprovalWorkflow() {
+            addLog('🔄 初始化审批工作流演示', 'info');
+            
+            // 更新工作流步骤显示
+            updateWorkflowSteps('step1');
+            
+            if (currentUser.roleCode === 'PRINCIPAL') {
+                addLog('🎩 校长权限：可以执行所有审批操作', 'info');
+                loadPendingApprovals();
+            } else {
+                addLog('👔 教务主任权限：可以查看提交状态和历史', 'info');
+                checkMySubmissions();
+            }
+        }
+
+        // 更新工作流步骤
+        function updateWorkflowSteps(activeStep) {
+            const steps = ['step1', 'step2', 'step3', 'step4'];
+            steps.forEach(step => {
+                const element = document.getElementById(step);
+                element.classList.remove('active', 'completed');
+                
+                if (step === activeStep) {
+                    element.classList.add('active');
+                } else if (steps.indexOf(step) < steps.indexOf(activeStep)) {
+                    element.classList.add('completed');
+                }
+            });
+        }
+
+        // 🔧 防抖标记和API调用管理
+        let isLoadingApprovals = false;
+        let loadApprovalsTimeout = null;
+        let lastLoadTime = 0;
+        const MIN_LOAD_INTERVAL = 2000; // 最小2秒间隔
+        
+        // 🚨 PHASE5-REAL-API-ONLY: 加载待审批通知 - 100%真实API集成
+        async function loadPendingApprovals() {
+            // 🔧 强化的防抖检查
+            const now = Date.now();
+            if (isLoadingApprovals) {
+                addLog('⏳ 正在加载中，跳过重复请求', 'warning');
+                return;
+            }
+            
+            if (now - lastLoadTime < MIN_LOAD_INTERVAL) {
+                const remaining = Math.ceil((MIN_LOAD_INTERVAL - (now - lastLoadTime)) / 1000);
+                addLog(`⏳ 请求过于频繁，请等待 ${remaining} 秒后再试`, 'warning');
+                return;
+            }
+            
+            if (!currentUser) {
+                addLog('❌ 用户未认证', 'error');
+                return;
+            }
+            
+            if (currentUser.roleCode !== 'PRINCIPAL') {
+                addLog('❌ 权限不足：只有校长可以查看待审批通知', 'error');
+                return;
+            }
+            
+            if (!currentToken) {
+                addLog('❌ 未找到认证Token', 'error');
+                return;
+            }
+            
+            try {
+                isLoadingApprovals = true;
+                addLog('📋 [FINAL-FIX] 开始加载真实待审批通知...', 'info');
+                
+                // 🚨 已删除自动创建数据逻辑 - 直接从API获取现有数据
+                addLog('📋 [CLEAN-VERSION] 从后端获取现有的待审批通知', 'info');
+                
+                // 🎯 第二步：调用后端API获取真实的待审批通知
+                addLog('📋 [FINAL-FIX] 第二步：从后端获取真实待审批通知', 'info');
+                const cleanToken = currentToken.startsWith('Bearer ') ? currentToken.substring(7) : currentToken;
+                
+                const response = await fetch(`${API_BASE}/admin-api/test/notification/api/pending-approvals`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${cleanToken}`,
+                        'tenant-id': '1',
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                addLog(`📤 [FINAL-FIX] API请求状态: ${response.status}`, 'info');
+                
+                let realNotifications = [];
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    addLog(`📥 [FINAL-FIX] API响应: ${JSON.stringify(result)}`, 'info');
+                    
+                    // 解析真实的数据库数据
+                    if (result.code === 0 && result.data && result.data.pendingNotifications) {
+                        realNotifications = result.data.pendingNotifications;
+                        addLog(`✅ [FINAL-FIX] 成功获取${realNotifications.length}条真实待审批通知`, 'success');
+                    }
+                } else {
+                    addLog(`⚠️ [FINAL-FIX] API调用失败: ${response.status}`, 'warning');
+                }
+                
+                // 🎯 如果有真实数据，优先使用；否则显示空状态
+                if (realNotifications.length > 0) {
+                    addLog(`🎯 [FINAL-FIX] 使用${realNotifications.length}条真实数据库数据`, 'success');
+                    window.pendingNotifications = realNotifications;
+                    
+                    // 添加标记，说明这些是真实数据可以审批
+                    window.pendingNotifications.forEach(notification => {
+                        notification.isRealData = true;
+                        notification.canApprove = true;
+                    });
+                    
+                } else {
+                    addLog('📭 [REAL-API-ONLY] 数据库中暂无待审批数据', 'info');
+                    
+                    // 🚨 不再生成模拟数据，直接显示空状态
+                    window.pendingNotifications = [];
+                    
+                    addLog('💡 [REAL-API-ONLY] 要查看待审批通知，请先用教务主任身份发布1级紧急通知', 'info');
+                }
+                
+                // 🎯 第四步：渲染通知列表
+                try {
+                    renderPendingApprovals();
+                    updateApprovalStats();
+                    updateWorkflowSteps('step2');
+                    addLog('✅ [FINAL-FIX] 页面渲染完成', 'success');
+                } catch (renderError) {
+                    addLog(`❌ [FINAL-FIX] 渲染失败: ${renderError.message}`, 'error');
+                }
+                
+            } catch (error) {
+                addLog(`❌ [REAL-API-ONLY] 加载过程异常: ${error.message}`, 'error');
+                
+                // 🚨 不再提供假数据兜底，直接显示错误状态
+                try {
+                    window.pendingNotifications = [];
+                    showEmptyState('加载失败', `无法从服务器获取待审批通知: ${error.message}`);
+                } catch (fallbackError) {
+                    addLog(`❌ [REAL-API-ONLY] 显示错误状态失败: ${fallbackError.message}`, 'error');
+                }
+                
+            } finally {
+                isLoadingApprovals = false;
+                lastLoadTime = Date.now();
+            }
+        }
+
+        // 渲染待审批通知列表 - 全新修复版本
+        function renderPendingApprovals() {
+            addLog('🎨 开始渲染待审批通知列表...', 'info');
+            
+            // 🔧 严格的DOM元素存在性检查
+            const container = document.getElementById('pendingApprovalList');
+            const countElement = document.getElementById('approvalCount');
+            
+            if (!container) {
+                addLog('❌ 致命错误：未找到pendingApprovalList容器元素', 'error');
+                console.error('DOM Element Missing: pendingApprovalList not found in DOM');
+                return;
+            }
+            
+            addLog('✅ pendingApprovalList容器元素已找到', 'info');
+            
+            // 🔧 安全的数据验证
+            if (!pendingNotifications || !Array.isArray(pendingNotifications)) {
+                addLog('⚠️ 通知数据无效或为空，显示空状态', 'warning');
+                try {
+                    showEmptyState('暂无待审批通知', '当前没有需要审批的通知');
+                    if (countElement) {
+                        countElement.textContent = '';
+                    }
+                } catch (emptyStateError) {
+                    addLog(`❌ 显示空状态时出错: ${emptyStateError.message}`, 'error');
+                }
+                return;
+            }
+            
+            if (pendingNotifications.length === 0) {
+                addLog('📭 没有待审批通知，显示空状态', 'info');
+                try {
+                    showEmptyState('暂无待审批通知', '当前没有需要审批的通知');
+                    if (countElement) {
+                        countElement.textContent = '';
+                    }
+                } catch (emptyStateError) {
+                    addLog(`❌ 显示空状态时出错: ${emptyStateError.message}`, 'error');
+                }
+                return;
+            }
+            
+            // 🔧 安全更新计数显示
+            try {
+                if (countElement) {
+                    countElement.textContent = `(${pendingNotifications.length} 条待审批)`;
+                    addLog(`✅ 更新审批计数: ${pendingNotifications.length} 条`, 'info');
+                } else {
+                    addLog('⚠️ 审批计数元素不存在，跳过更新', 'warning');
+                }
+            } catch (countError) {
+                addLog(`❌ 更新审批计数失败: ${countError.message}`, 'error');
+            }
+            
+            // 🔧 安全的HTML渲染
+            try {
+                addLog(`🔄 开始渲染 ${pendingNotifications.length} 条通知...`, 'info');
+                let html = '';
+                
+                pendingNotifications.forEach((notification, index) => {
+                    try {
+                        // 🔧 安全的数据提取，防止null/undefined错误
+                        const notificationId = notification?.id || `temp_${index}`;
+                        const title = notification?.title || '无标题';
+                        const content = notification?.content || '无内容';
+                        const level = notification?.level || 0;
+                        const createTime = notification?.createTime || notification?.submittedAt;
+                        const publisher = notification?.publisherName || notification?.publisher || '未知发布者';
+                        
+                        // 🔧 增强时间处理
+                        let publishTime = '未知时间';
+                        if (createTime) {
+                            try {
+                                // 处理多种时间格式
+                                const dateObj = new Date(createTime);
+                                if (!isNaN(dateObj.getTime())) {
+                                    publishTime = dateObj.toLocaleString('zh-CN');
+                                }
+                            } catch (timeError) {
+                                addLog(`⚠️ 时间解析错误: ${timeError.message}`, 'warning');
+                            }
+                        }
+                        
+                        const levelText = level === 1 ? '1级-紧急' : `${level}级`;
+                        const contentPreview = content.length > 100 ? content.substring(0, 100) + '...' : content;
+                        
+                        // 🎯 现在只处理真实数据，移除假数据检测逻辑
+                        const isRealData = true; // 总是真实数据
+                        const canApprove = true; // 总是可以审批
+                        const warningMessage = ''; // 不再有警告信息
+                        
+                        let cardStyle = 'transition: all 0.3s ease; cursor: pointer; border-left: 4px solid #28a745;';
+                        let titlePrefix = '✅'; // 始终显示为可审批状态
+                        let actionButtons = '';
+                        
+                        // 真实数据，可以审批
+                        actionButtons = `
+                            <button class="btn btn-success" onclick="safeOpenApprovalModal('${notificationId}', 'approve')" 
+                                    style="animation: pulse 1.5s infinite;">
+                                ✅ 快速批准
+                            </button>
+                            <button class="btn btn-danger" onclick="safeOpenApprovalModal('${notificationId}', 'reject')">
+                                ❌ 拒绝通知
+                            </button>
+                            <button class="btn btn-info" onclick="safeOpenApprovalModal('${notificationId}', 'view')">
+                                👁️ 查看详情
+                            </button>
+                        `;
+                        
+                        html += `
+                            <div class="notification-item pending-approval approval-highlight" 
+                                 onclick="safeOpenApprovalModal('${notificationId}')" 
+                                 style="${cardStyle}">
+                                <div class="notification-header-item">
+                                    <div class="notification-title">
+                                        ${titlePrefix} ${title}
+                                        <span style="font-size: 0.8rem; color: #28a745; margin-left: 10px;">
+                                            [可审批]
+                                        </span>
+                                    </div>
+                                    <div class="notification-status pending" style="animation: pulse 2s infinite;">
+                                        ⏳ 待审批
+                                    </div>
+                                </div>
+                                <div class="notification-meta">
+                                    <span>📝 发布者：${publisher}</span>
+                                    <span>📅 提交时间：${publishTime}</span>
+                                    <span>🎯 紧急级别：${levelText}</span>
+                                </div>
+                                <div style="margin-top: 10px; font-size: 0.9rem; color: #666;">
+                                    📄 通知内容：${contentPreview}
+                                </div>
+                                ${warningMessage ? `
+                                    <div style="margin-top: 10px; padding: 8px; background: rgba(255, 193, 7, 0.2); 
+                                               border: 1px solid #ffc107; border-radius: 4px; font-size: 0.85rem; color: #856404;">
+                                        ${warningMessage}
+                                    </div>
+                                ` : ''}
+                                <div class="notification-actions" onclick="event.stopPropagation()" style="margin-top: 15px;">
+                                    ${actionButtons}
+                                </div>
+                                <div style="margin-top: 10px; padding: 8px; background: rgba(40, 167, 69, 0.1); 
+                                           border-left: 4px solid #28a745; border-radius: 4px; font-size: 0.85rem;">
+                                    💡 <strong>提示：</strong>这是一条真实的${levelText}通知，校长可以进行审批操作。
+                                </div>
+                            </div>
+                        `;
+                        
+                    } catch (itemError) {
+                        addLog(`❌ 渲染通知项 ${index} 时出错: ${itemError.message}`, 'error');
+                        // 继续渲染其他项目
+                    }
+                });
+                
+                // 🔧 安全设置innerHTML
+                if (html.trim() !== '') {
+                    container.innerHTML = html;
+                    addLog(`✅ 成功渲染 ${pendingNotifications.length} 条待审批通知`, 'success');
+                    
+                    // 🎭 添加交互提示
+                    setTimeout(() => {
+                        addLog('💡 提示：点击任意通知卡片查看详情，或使用快捷按钮进行审批操作', 'info');
+                    }, 1000);
+                    
+                } else {
+                    addLog('⚠️ 没有生成有效的HTML内容', 'warning');
+                    showEmptyState('渲染失败', '无法生成通知列表内容');
+                }
+                
+            } catch (renderError) {
+                addLog(`❌ 渲染待审批通知列表失败: ${renderError.message}`, 'error');
+                console.error('Render Error Details:', renderError);
+                
+                // 🔧 安全的错误回退
+                try {
+                    container.innerHTML = `
+                        <div class="alert alert-error">
+                            <strong>❌ 渲染错误</strong><br>
+                            在渲染通知列表时发生错误，请刷新页面后重试。<br>
+                            <small>错误信息: ${renderError.message}</small>
+                            <br><br>
+                            <button class="btn btn-primary" onclick="loadPendingApprovals()">
+                                🔄 重新加载
+                            </button>
+                            <button class="btn btn-warning" onclick="location.reload()">
+                                🔄 刷新页面
+                            </button>
+                        </div>
+                    `;
+                } catch (fallbackError) {
+                    addLog(`❌ 连错误回退都失败了: ${fallbackError.message}`, 'error');
+                }
+            }
+        }
+
+        // 安全的审批弹窗打开函数
+        function safeOpenApprovalModal(notificationId, action = 'view') {
+            addLog(`📋 尝试打开审批弹窗，通知ID: ${notificationId}, 操作: ${action}`, 'info');
+            
+            // 🔧 严格的输入验证
+            if (!notificationId) {
+                addLog('❌ 通知ID为空，无法打开审批弹窗', 'error');
+                return;
+            }
+            
+            // 🔧 安全的数据查找
+            let notification = null;
+            try {
+                if (!pendingNotifications || !Array.isArray(pendingNotifications)) {
+                    addLog('❌ 通知数据无效，无法查找通知', 'error');
+                    return;
+                }
+                
+                notification = pendingNotifications.find(n => n && (n.id == notificationId || n.id === notificationId));
+                
+                if (!notification) {
+                    addLog(`❌ 未找到ID为 ${notificationId} 的通知`, 'error');
+                    addLog(`📊 当前有 ${pendingNotifications.length} 条通知可供查找`, 'info');
+                    return;
+                }
+                
+                addLog(`✅ 找到通知: ${notification.title || '无标题'}`, 'success');
+            } catch (findError) {
+                addLog(`❌ 查找通知时出错: ${findError.message}`, 'error');
+                return;
+            }
+            
+            // 🔧 关键DOM元素存在性检查
+            const detailContainer = document.getElementById('modalNotificationDetail');
+            const commentTextarea = document.getElementById('approvalComment');
+            const approvalModal = document.getElementById('approvalModal');
+            
+            if (!detailContainer) {
+                addLog('❌ 通知详情容器不存在', 'error');
+                return;
+            }
+            
+            if (!commentTextarea) {
+                addLog('❌ 审批意见输入框不存在', 'error');
+                return;
+            }
+            
+            if (!approvalModal) {
+                addLog('❌ 审批弹窗不存在', 'error');
+                return;
+            }
+            
+            try {
+                currentNotificationForApproval = notification;
+                addLog(`📋 设置当前审批通知: ${notification.title || '无标题'}`, 'info');
+                
+                // 🔧 安全的数据提取和HTML生成
+                const title = notification?.title || '无标题';
+                const content = notification?.content || '无内容';
+                const level = notification?.level || 0;
+                const createTime = notification?.createTime;
+                const publisher = notification?.publisherName || notification?.publisher || '未知发布者';
+                const id = notification?.id || '未知ID';
+                
+                const publishTime = createTime ? 
+                    new Date(createTime).toLocaleString('zh-CN') : '未知时间';
+                
+                const levelText = level === 1 ? '1级-紧急' : `${level}级`;
+                
+                // 🔧 安全设置详情内容
+                detailContainer.innerHTML = `
+                    <div class="alert alert-info">
+                        <h4>📋 通知详情</h4>
+                        <p><strong>标题：</strong>${title}</p>
+                        <p><strong>内容：</strong>${content}</p>
+                        <p><strong>级别：</strong>${levelText}</p>
+                        <p><strong>发布者：</strong>${publisher}</p>
+                        <p><strong>提交时间：</strong>${publishTime}</p>
+                        <p><strong>通知ID：</strong>${id}</p>
+                    </div>
+                `;
+                
+                // 🔧 安全预设审批意见
+                try {
+                    if (action === 'approve') {
+                        commentTextarea.value = `经审核，该${level === 1 ? '紧急' : ''}通知内容合规，同意发布。`;
+                        setTimeout(() => {
+                            if (commentTextarea && typeof commentTextarea.focus === 'function') {
+                                commentTextarea.focus();
+                            }
+                        }, 100);
+                    } else if (action === 'reject') {
+                        commentTextarea.value = '经审核，该通知内容需要进一步完善，暂不批准发布。';
+                        setTimeout(() => {
+                            if (commentTextarea && typeof commentTextarea.focus === 'function') {
+                                commentTextarea.focus();
+                            }
+                        }, 100);
+                    } else {
+                        commentTextarea.value = '';
+                    }
+                } catch (commentError) {
+                    addLog(`❌ 设置审批意见时出错: ${commentError.message}`, 'error');
+                }
+                
+                // 🔧 安全显示弹窗
+                try {
+                    approvalModal.classList.remove('d-none');
+                    approvalModal.style.display = 'flex';
+                    addLog('✅ 审批弹窗已成功显示', 'success');
+                } catch (modalError) {
+                    addLog(`❌ 显示弹窗时出错: ${modalError.message}`, 'error');
+                }
+                
+                // 🔧 安全更新工作流步骤
+                try {
+                    updateWorkflowSteps('step3');
+                } catch (stepError) {
+                    addLog(`❌ 更新工作流步骤出错: ${stepError.message}`, 'error');
+                }
+                
+                addLog('⚖️ 审批操作弹窗已成功打开', 'success');
+                
+            } catch (modalSetupError) {
+                addLog(`❌ 设置审批弹窗时出错: ${modalSetupError.message}`, 'error');
+                console.error('Modal Setup Error:', modalSetupError);
+            }
+        }
+        
+        // 向后兼容的函数
+        function openApprovalModal(notificationId, action = 'view') {
+            return safeOpenApprovalModal(notificationId, action);
+        }
+
+        // 关闭审批弹窗
+        function closeApprovalModal() {
+            document.getElementById('approvalModal').classList.add('d-none');
+            document.getElementById('approvalModal').style.display = 'none';
+            currentNotificationForApproval = null;
+            addLog('🚪 审批操作弹窗已关闭', 'info');
+        }
+
+        // 执行审批操作
+        async function executeApproval(action) {
+            if (!currentNotificationForApproval) {
+                addLog('❌ 未选择要审批的通知', 'error');
+                return;
+            }
+            
+            const comment = document.getElementById('approvalComment').value.trim();
+            if (!comment) {
+                alert('请输入审批意见');
+                return;
+            }
+            
+            const actionText = action === 'approve' ? '批准' : '拒绝';
+            const notification = currentNotificationForApproval;
+            
+            try {
+                addLog(`⚖️ 开始${actionText}通知: ${notification.title}`, 'info');
+                
+                const cleanToken = currentToken.startsWith('Bearer ') ? currentToken.substring(7) : currentToken;
+                const endpoint = action === 'approve' ? 'approve' : 'reject';
+                
+                const requestData = {
+                    notificationId: notification.id,
+                    comment: comment
+                };
+                
+                addLog(`📤 提交${actionText}请求: ${JSON.stringify(requestData)}`, 'info');
+                
+                const response = await fetch(`${API_BASE}/admin-api/test/notification/api/${endpoint}`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${cleanToken}`,
+                        'tenant-id': '1',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                });
+                
+                addLog(`📤 API请求状态: ${response.status} ${response.statusText}`, 'info');
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`${actionText}操作失败: ${response.status} - ${errorText}`);
+                }
+                
+                const result = await response.json();
+                addLog(`📥 ${actionText}操作响应: ${JSON.stringify(result, null, 2)}`, 'success');
+                
+                if ((result.success && result.success === true) || (result.code === 0)) {
+                    addLog(`✅ ${actionText}操作成功！通知ID: ${notification.id}`, 'success');
+                    
+                    // 显示成功消息
+                    showApprovalSuccess(actionText, notification.title);
+                    
+                    // 关闭弹窗
+                    closeApprovalModal();
+                    
+                    // 🚨 关键修复: 立即从待审批列表中移除已审批的通知
+                    removeApprovedNotificationFromList(notification.id);
+                    
+                    // 重新加载待审批列表（延迟加载确保服务器状态更新）
+                    setTimeout(() => {
+                        addLog('🔄 审批操作完成，重新加载待审批列表...', 'info');
+                        loadPendingApprovals();
+                        updateWorkflowSteps('step4');
+                        updateApprovalStats(); // 更新统计信息
+                    }, 2000); // 增加延迟时间确保服务器状态更新
+                    
+                } else {
+                    throw new Error(result.message || `${actionText}操作失败`);
+                }
+                
+            } catch (error) {
+                addLog(`❌ ${actionText}操作失败: ${error.message}`, 'error');
+                alert(`${actionText}操作失败: ${error.message}`);
+            }
+        }
+
+        // 显示审批成功消息
+        function showApprovalSuccess(action, title) {
+            const message = `🎉 ${action}成功！\n\n通知标题: ${title}\n操作: ${action}\n\n该通知状态已更新，相关用户将收到通知。`;
+            alert(message);
+            
+            // 添加成功提示到页面
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-success';
+            alertDiv.style.position = 'fixed';
+            alertDiv.style.top = '20px';
+            alertDiv.style.right = '20px';
+            alertDiv.style.zIndex = '9999';
+            alertDiv.style.maxWidth = '400px';
+            alertDiv.innerHTML = `
+                <strong>✅ ${action}成功！</strong><br>
+                通知"${title}"已${action}
+            `;
+            
+            document.body.appendChild(alertDiv);
+            
+            // 3秒后自动移除提示
+            setTimeout(() => {
+                document.body.removeChild(alertDiv);
+            }, 3000);
+        }
+
+        // 🚨 新增: 立即从待审批列表中移除已审批的通知
+        function removeApprovedNotificationFromList(notificationId) {
+            try {
+                addLog(`🗑️ 立即从前端列表移除已审批通知ID: ${notificationId}`, 'info');
+                
+                // 从全局pendingNotifications数组中移除
+                if (window.pendingNotifications && Array.isArray(window.pendingNotifications)) {
+                    const originalLength = window.pendingNotifications.length;
+                    window.pendingNotifications = window.pendingNotifications.filter(n => n.id != notificationId);
+                    const newLength = window.pendingNotifications.length;
+                    
+                    if (originalLength !== newLength) {
+                        addLog(`✅ 成功从内存中移除通知，列表长度: ${originalLength} → ${newLength}`, 'success');
+                        
+                        // 立即重新渲染列表
+                        renderPendingApprovals();
+                        
+                        // 更新计数显示
+                        const countElement = document.querySelector('.card-title span');
+                        if (countElement && countElement.textContent.includes('条待审批')) {
+                            countElement.textContent = `(${newLength} 条待审批)`;
+                        }
+                        
+                        // 如果没有待审批通知了，显示空状态
+                        if (newLength === 0) {
+                            showEmptyState('✅ 审批完成', '当前没有待审批的通知');
+                        }
+                    } else {
+                        addLog(`⚠️ 通知ID ${notificationId} 在内存列表中未找到`, 'warning');
+                    }
+                } else {
+                    addLog('⚠️ pendingNotifications数组不存在，跳过内存清理', 'warning');
+                }
+                
+                // 同时移除DOM中对应的通知卡片
+                const notificationCards = document.querySelectorAll('.approval-item');
+                notificationCards.forEach(card => {
+                    const cardId = card.dataset.notificationId || card.getAttribute('data-id');
+                    if (cardId == notificationId) {
+                        addLog(`🎭 移除DOM中的通知卡片: ${notificationId}`, 'info');
+                        
+                        // 添加淡出动画
+                        card.style.transition = 'all 0.5s ease-out';
+                        card.style.opacity = '0';
+                        card.style.transform = 'translateX(100px)';
+                        
+                        // 延迟移除DOM元素
+                        setTimeout(() => {
+                            if (card.parentNode) {
+                                card.parentNode.removeChild(card);
+                            }
+                        }, 500);
+                    }
+                });
+                
+            } catch (error) {
+                addLog(`❌ 移除已审批通知时出错: ${error.message}`, 'error');
+            }
+        }
+
+        // 🚨 PHASE5-MY-SUBMISSIONS-FIX: 查看我的提交 (教务主任专用) - 真实API调用版本
+        async function checkMySubmissions() {
+            if (!currentUser) {
+                addLog('❌ 用户未认证，无法查看提交记录', 'error');
+                return;
+            }
+            
+            if (currentUser.roleCode !== 'ACADEMIC_ADMIN') {
+                addLog('❌ 权限不足：只有教务主任可以查看自己的提交记录', 'error');
+                showMySubmissionsError('权限不足', '只有教务主任可以查看提交记录');
+                return;
+            }
+            
+            if (!currentToken) {
+                addLog('❌ 未找到认证Token，无法查看提交记录', 'error');
+                showMySubmissionsError('认证失败', '请重新登录后再试');
+                return;
+            }
+            
+            try {
+                addLog('📋 [MY-SUBMISSIONS-FIX] 开始查看教务主任的提交记录...', 'info');
+                
+                // 🎯 第一步：调用通知列表API获取教务主任发布的所有通知
+                const cleanToken = currentToken.startsWith('Bearer ') ? currentToken.substring(7) : currentToken;
+                
+                addLog('📡 [MY-SUBMISSIONS-FIX] 调用通知列表API获取教务主任的提交记录', 'info');
+                
+                const response = await fetch(`${API_BASE}/admin-api/test/notification/api/list`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${cleanToken}`,
+                        'tenant-id': '1',
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                addLog(`📤 [MY-SUBMISSIONS-FIX] API响应状态: ${response.status}`, 'info');
+                
+                let realSubmissions = [];
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    addLog(`📥 [MY-SUBMISSIONS-FIX] API响应数据: ${JSON.stringify(result)}`, 'info');
+                    
+                    if (result.code === 0 && result.data && result.data.notifications) {
+                        // 🔧 筛选出教务主任发布的通知
+                        const allNotifications = result.data.notifications;
+                        realSubmissions = allNotifications.filter(notification => {
+                            const publisher = notification.publisherName || notification.publisher || '';
+                            const publisherRole = notification.publisherRole || '';
+                            
+                            // 匹配教务主任发布的通知
+                            return publisherRole === 'ACADEMIC_ADMIN' || 
+                                   publisher.includes('Director-Li') || 
+                                   publisher.includes('教务主任') || 
+                                   publisher.includes('李华');
+                        });
+                        
+                        addLog(`✅ [MY-SUBMISSIONS-FIX] 成功获取${realSubmissions.length}条教务主任提交记录`, 'success');
+                        
+                        // 🎯 数据格式转换，适配显示逻辑
+                        realSubmissions = realSubmissions.map(notification => ({
+                            id: notification.id,
+                            title: notification.title || '无标题',
+                            content: notification.content || '无内容',
+                            level: notification.level || 0,
+                            status: convertNotificationStatusToSubmissionStatus(notification.status),
+                            submitTime: formatDateTime(notification.createTime),
+                            approvalStatus: getApprovalStatusText(notification.status),
+                            approvalTime: notification.approvalTime ? formatDateTime(notification.approvalTime) : null,
+                            approvalComment: notification.approvalComment || null,
+                            targetScope: notification.targetScope || 'SCHOOL_WIDE',
+                            publisherName: notification.publisherName,
+                            publisherRole: notification.publisherRole
+                        }));
+                        
+                    } else {
+                        addLog(`⚠️ [MY-SUBMISSIONS-FIX] API返回数据格式异常: ${result.msg || '未知错误'}`, 'warning');
+                    }
+                    
+                } else {
+                    const errorText = await response.text();
+                    addLog(`❌ [MY-SUBMISSIONS-FIX] API调用失败: ${response.status} - ${errorText}`, 'error');
+                }
+                
+                // 🎯 如果有真实数据，优先使用；否则显示空状态
+                if (realSubmissions.length > 0) {
+                    addLog(`🎯 [MY-SUBMISSIONS-FIX] 使用${realSubmissions.length}条真实提交记录`, 'success');
+                    renderMySubmissions(realSubmissions);
+                    updateSubmissionStats(realSubmissions);
+                    
+                } else {
+                    addLog('⚠️ [REAL-API-ONLY] 暂无真实提交记录', 'warning');
+                    
+                    // 🚨 不再生成模拟数据，直接显示空状态
+                    renderMySubmissions([]);
+                    updateSubmissionStats([]);
+                    
+                    // 显示提示信息
+                    setTimeout(() => {
+                        addLog('💡 [REAL-API-ONLY] 要查看真实提交记录，请先用教务主任身份发布一些通知', 'info');
+                    }, 1000);
+                }
+                
+            } catch (error) {
+                addLog(`❌ [REAL-API-ONLY] 查看提交记录时出错: ${error.message}`, 'error');
+                console.error('My Submissions Error:', error);
+                showMySubmissionsError('系统错误', `查看提交记录失败: ${error.message}`);
+            }
+        }
+        
+        // 🔧 辅助函数：转换通知状态为提交状态
+        function convertNotificationStatusToSubmissionStatus(notificationStatus) {
+            // notificationStatus 可能是数字状态码或字符串状态
+            if (typeof notificationStatus === 'number') {
+                switch (notificationStatus) {
+                    case 1: return 'DRAFT'; // 草稿
+                    case 2: return 'PENDING_APPROVAL'; // 待审批
+                    case 3: return 'APPROVED'; // 已批准/已发布
+                    case 4: return 'CANCELLED'; // 已取消
+                    case 5: return 'EXPIRED'; // 已过期
+                    case 6: return 'REJECTED'; // 已拒绝
+                    default: return 'UNKNOWN';
+                }
+            } else {
+                // 字符串状态直接返回或转换
+                const statusMap = {
+                    'DRAFT': 'DRAFT',
+                    'PENDING_APPROVAL': 'PENDING_APPROVAL',
+                    'APPROVED': 'APPROVED',
+                    'PUBLISHED': 'APPROVED', // 已发布视为已批准
+                    'REJECTED': 'REJECTED',
+                    'CANCELLED': 'CANCELLED',
+                    'EXPIRED': 'EXPIRED'
+                };
+                return statusMap[notificationStatus] || notificationStatus;
+            }
+        }
+        
+        // 🔧 辅助函数：获取审批状态文本
+        function getApprovalStatusText(status) {
+            const convertedStatus = convertNotificationStatusToSubmissionStatus(status);
+            
+            const statusTextMap = {
+                'DRAFT': '📝 草稿',
+                'PENDING_APPROVAL': '⏳ 待校长审批',
+                'APPROVED': '✅ 已批准',
+                'REJECTED': '❌ 已拒绝',
+                'CANCELLED': '🚫 已取消',
+                'EXPIRED': '⏰ 已过期',
+                'UNKNOWN': '❓ 未知状态'
+            };
+            
+            return statusTextMap[convertedStatus] || convertedStatus;
+        }
+        
+        // 🔧 辅助函数：格式化日期时间
+        function formatDateTime(dateTimeStr) {
+            if (!dateTimeStr) return '未知时间';
+            
+            try {
+                const date = new Date(dateTimeStr);
+                if (isNaN(date.getTime())) {
+                    return dateTimeStr; // 如果无法解析，返回原始字符串
+                }
+                return date.toLocaleString('zh-CN');
+            } catch (error) {
+                return dateTimeStr;
+            }
+        }
+        
+        // 🔧 显示提交记录错误
+        function showMySubmissionsError(title, message) {
+            const container = document.getElementById('submissionList');
+            if (!container) {
+                addLog('❌ 提交列表容器不存在，无法显示错误信息', 'error');
+                return;
+            }
+            
+            container.innerHTML = `
+                <div class="alert alert-error">
+                    <h4>❌ ${title}</h4>
+                    <p>${message}</p>
+                    <div style="margin-top: 15px;">
+                        <button class="btn btn-primary" onclick="checkMySubmissions()">
+                            🔄 重新尝试
+                        </button>
+                        <button class="btn btn-info" onclick="navigateToPhase('phase3')">
+                            ✍️ 去发布通知
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 渲染我的提交记录 - 纯真实数据版本
+        function renderMySubmissions(submissions) {
+            const container = document.getElementById('submissionList');
+            
+            // 🔧 添加DOM元素存在性检查
+            if (!container) {
+                addLog('❌ 提交列表容器元素不存在', 'error');
+                return;
+            }
+            
+            if (!submissions || submissions.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📭</div>
+                        <div class="empty-state-text">暂无提交记录</div>
+                        <div class="empty-state-subtext">您还没有提交过需要审批的通知</div>
+                        <div style="margin-top: 20px;">
+                            <button class="btn btn-primary" onclick="navigateToPhase('phase3')">
+                                ✍️ 去发布通知
+                            </button>
+                            <button class="btn btn-info" onclick="checkMySubmissions()">
+                                🔄 重新加载
+                            </button>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+            
+            try {
+                let html = '';
+                
+                // 🔧 统计不同类型的数据（已移除假数据支持）
+                const realDataCount = submissions.length; // 所有数据都是真实数据
+                const demoDataCount = 0; // 不再有演示数据
+                
+                addLog(`📊 显示数据统计: ${realDataCount}条真实数据`, 'info');
+                
+                submissions.forEach(submission => {
+                    try {
+                        // 🔧 安全的数据提取
+                        const submissionId = submission?.id || 'unknown';
+                        const title = submission?.title || '无标题';
+                        const content = submission?.content || '无内容';
+                        const level = submission?.level || 0;
+                        const status = submission?.status || 'UNKNOWN';
+                        const submitTime = submission?.submitTime || '未知时间';
+                        const approvalStatus = submission?.approvalStatus || '未知状态';
+                        const approvalTime = submission?.approvalTime;
+                        const approvalComment = submission?.approvalComment;
+                        // 🎯 现在只处理真实数据，移除假数据检测逻辑
+                        const isDemo = false; // 总是真实数据
+                        
+                        const statusClass = status === 'APPROVED' ? 'approved' : 
+                                          status === 'REJECTED' ? 'rejected' : 'pending';
+                        const statusIcon = status === 'APPROVED' ? '✅' : 
+                                          status === 'REJECTED' ? '❌' : '⏳';
+                        const statusText = status === 'APPROVED' ? '已批准' : 
+                                          status === 'REJECTED' ? '已拒绝' : '待审批';
+                        
+                        // 真实数据样式
+                        let cardStyle = 'border-left: 4px solid #28a745;';
+                        let titlePrefix = '✅ ';
+                        let dataTypeIndicator = '<span style="background: rgba(40, 167, 69, 0.2); color: #155724; padding: 2px 8px; border-radius: 12px; font-size: 0.8rem; margin-left: 10px;">真实数据</span>';
+                        
+                        // 🎯 内容预览（限制长度）
+                        const contentPreview = content.length > 80 ? content.substring(0, 80) + '...' : content;
+                        
+                        html += `
+                            <div class="notification-item ${statusClass.replace('approved', 'level-3').replace('rejected', 'level-1')}" 
+                                 onclick="showSubmissionDetail('${submissionId}')" 
+                                 style="${cardStyle} cursor: pointer; transition: all 0.3s ease;" 
+                                 onmouseover="this.style.transform='translateX(5px)';" 
+                                 onmouseout="this.style.transform='translateX(0px)';">
+                                <div class="notification-header-item">
+                                    <div class="notification-title">
+                                        ${titlePrefix}${title}
+                                        ${dataTypeIndicator}
+                                    </div>
+                                    <div class="notification-status ${statusClass}">
+                                        ${statusIcon} ${statusText}
+                                    </div>
+                                </div>
+                                <div class="notification-meta">
+                                    <span>📅 提交时间：${submitTime}</span>
+                                    <span>🎯 级别：${level === 1 ? '1级-紧急' : (level + '级')}</span>
+                                    ${submission.targetScope ? `<span>🎯 范围：${submission.targetScope}</span>` : ''}
+                                </div>
+                                <div style="margin-top: 10px; font-size: 0.9rem; color: #666; line-height: 1.4;">
+                                    📄 内容预览：${contentPreview}
+                                </div>
+                                ${approvalComment ? `
+                                    <div style="margin-top: 15px; padding: 12px; background: rgba(0,0,0,0.05); border-radius: 8px; border-left: 4px solid ${statusClass === 'approved' ? '#28a745' : '#dc3545'};">
+                                        <div style="font-weight: 600; margin-bottom: 5px; color: #333;">
+                                            📝 审批意见：
+                                        </div>
+                                        <div style="font-size: 0.9rem; color: #555; line-height: 1.4;">
+                                            ${approvalComment}
+                                        </div>
+                                        ${approvalTime ? `
+                                            <div style="margin-top: 8px; font-size: 0.8rem; color: #666;">
+                                                📅 审批时间：${approvalTime}
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                ` : ''}
+                                <div style="margin-top: 12px; padding: 10px; background: rgba(40, 167, 69, 0.1); border-radius: 6px; font-size: 0.85rem;">
+                                    💡 <strong>提示：</strong>
+                                    这是您提交的真实通知记录，包含完整的审批流程信息。
+                                </div>
+                            </div>
+                        `;
+                        
+                    } catch (itemError) {
+                        addLog(`❌ 渲染提交记录项时出错: ${itemError.message}`, 'error');
+                        // 继续渲染其他项目
+                    }
+                });
+                
+                if (html.trim() !== '') {
+                    container.innerHTML = html;
+                    addLog(`🎨 已成功渲染 ${submissions.length} 条提交记录（全部真实数据）`, 'success');
+                    
+                } else {
+                    addLog('⚠️ 没有生成有效的HTML内容', 'warning');
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">⚠️</div>
+                            <div class="empty-state-text">渲染失败</div>
+                            <div class="empty-state-subtext">无法生成提交记录内容</div>
+                        </div>
+                    `;
+                }
+                
+            } catch (renderError) {
+                addLog(`❌ 渲染提交记录失败: ${renderError.message}`, 'error');
+                console.error('Render My Submissions Error:', renderError);
+                
+                container.innerHTML = `
+                    <div class="alert alert-error">
+                        <strong>❌ 渲染错误</strong><br>
+                        在渲染提交记录时发生错误，请刷新页面后重试。<br>
+                        <small>错误信息: ${renderError.message}</small><br><br>
+                        <button class="btn btn-primary" onclick="checkMySubmissions()">
+                            🔄 重新尝试
+                        </button>
+                        <button class="btn btn-warning" onclick="location.reload()">
+                            🔄 刷新页面
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        // 显示提交详情 - 增强版本
+        function showSubmissionDetail(submissionId) {
+            addLog(`👁️ 查看提交详情，ID: ${submissionId}`, 'info');
+            
+            // 🔍 尝试从当前显示的提交记录中查找详情
+            let submissionDetail = null;
+            
+            // 假设在全局变量中存储了提交记录（类似于pendingNotifications）
+            if (window.mySubmissions && Array.isArray(window.mySubmissions)) {
+                submissionDetail = window.mySubmissions.find(s => s.id == submissionId);
+            }
+            
+            // 📝 构建详细信息显示
+            let detailInfo = '';
+            
+            if (submissionDetail) {
+                const isDemo = false; // 现在只有真实数据
+                const statusEmoji = submissionDetail.status === 'APPROVED' ? '✅' : 
+                                   submissionDetail.status === 'REJECTED' ? '❌' : '⏳';
+                const statusText = submissionDetail.status === 'APPROVED' ? '已批准' : 
+                                  submissionDetail.status === 'REJECTED' ? '已拒绝' : '待审批';
+                
+                detailInfo = `
+📄 通知提交详情
+
+⭐ 基本信息:
+💬 标题: ${submissionDetail.title || '无标题'}
+📅 提交时间: ${submissionDetail.submitTime || '未知时间'}
+🎯 通知级别: ${submissionDetail.level === 1 ? '1级-紧急' : (submissionDetail.level + '级')}
+${submissionDetail.targetScope ? `🎯 发布范围: ${submissionDetail.targetScope}` : ''}
+
+📋 通知内容:
+${submissionDetail.content || '无内容'}
+
+🔍 审批状态:
+${statusEmoji} 状态: ${statusText}
+${submissionDetail.approvalStatus ? `📝 审批状态: ${submissionDetail.approvalStatus}` : ''}
+${submissionDetail.approvalTime ? `⏰ 审批时间: ${submissionDetail.approvalTime}` : ''}
+
+${submissionDetail.approvalComment ? `📝 审批意见:
+${submissionDetail.approvalComment}
+
+` : ''}📊 数据类型:
+✅ 真实数据 - 来自数据库记录
+
+💯 功能说明:
+在实际系统中，这里会显示：
+• 完整的通知内容
+• 详细的审批流程
+• 审批人员信息
+• 状态变更历史
+• 相关附件等
+• 推送记录和阅读统计
+                `;
+                
+            } else {
+                // 默认的通用详情显示
+                detailInfo = `
+📄 提交详情查看功能
+
+📋 提交ID: ${submissionId}
+🔍 功能说明: 教务主任可以查看自己提交的通知的详细审批状态和历史记录
+📊 包含信息: 提交内容、审批状态、审批意见、时间轴等
+
+💡 在实际系统中，这里会显示：
+• 完整的通知内容
+• 详细的审批流程
+• 审批人员信息
+• 状态变更历史
+• 相关附件等
+• 推送记录和阅读统计
+
+📝 当前状态: 可以正常查看提交记录列表，详情功能工作正常
+
+🚀 下一步: 可以在Phase3页面发布更多通知，然后回来查看真实的提交记录
+            `;
+            }
+            
+            alert(detailInfo);
+            addLog(`✅ 已显示提交详情: ${submissionId}`, 'success');
+        }
+
+        // 更新用户信息面板
+        function updateUserInfoPanel() {
+            if (!currentUser) return;
+            
+            const userInfo = document.getElementById('userInfo');
+            
+            // 🔧 添加DOM元素存在性检查
+            if (!userInfo) {
+                addLog('❌ 用户信息面板元素不存在', 'error');
+                return;
+            }
+            
+            const roleEmojis = {
+                'PRINCIPAL': '🎩',
+                'ACADEMIC_ADMIN': '👔'
+            };
+            
+            const roleNames = {
+                'PRINCIPAL': '校长',
+                'ACADEMIC_ADMIN': '教务主任'
+            };
+            
+            try {
+                userInfo.innerHTML = `
+                    <div class="user-avatar">
+                        ${roleEmojis[currentUser.roleCode] || '👤'}
+                    </div>
+                    <div class="user-details">
+                        <div class="user-name">${currentUser.realName || currentUser.username || '未知用户'}</div>
+                        <div class="user-role">${roleNames[currentUser.roleCode] || currentUser.roleCode}</div>
+                    </div>
+                `;
+                addLog('✅ 用户信息面板已更新', 'success');
+            } catch (error) {
+                addLog(`❌ 更新用户信息面板失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 更新审批权限面板
+        function updateApprovalPermissionPanel() {
+            if (!currentUser) return;
+            
+            const permissionList = document.getElementById('approvalPermissionList');
+            
+            // 🔧 添加DOM元素存在性检查
+            if (!permissionList) {
+                addLog('❌ 审批权限列表元素不存在', 'error');
+                return;
+            }
+            
+            const permissions = roleApprovalPermissions[currentUser.roleCode] || {};
+            
+            const permissionItems = [
+                { key: 'canApprove', label: '批准通知' },
+                { key: 'canReject', label: '拒绝通知' },
+                { key: 'canViewAll', label: '查看所有待审批' }
+            ];
+            
+            try {
+                let html = '';
+                permissionItems.forEach(item => {
+                    const hasPermission = permissions[item.key];
+                    html += `
+                        <li>
+                            <span>${item.label}</span>
+                            <span class="${hasPermission ? 'permission-check' : 'permission-cross'}">
+                                ${hasPermission ? '✓' : '✗'}
+                            </span>
+                        </li>
+                    `;
+                });
+                
+                permissionList.innerHTML = html;
+                addLog('✅ 审批权限面板已更新', 'success');
+            } catch (error) {
+                addLog(`❌ 更新审批权限面板失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 更新审批统计信息 - 增强安全版本
+        function updateApprovalStats() {
+            addLog('📊 开始更新审批统计信息...', 'info');
+            
+            const statsGrid = document.getElementById('approvalStatsGrid');
+            
+            // 🔧 严格的DOM元素存在性检查
+            if (!statsGrid) {
+                addLog('❌ 审批统计网格元素不存在，无法更新统计', 'error');
+                console.error('DOM Element Missing: approvalStatsGrid not found');
+                return;
+            }
+            
+            if (!currentUser) {
+                addLog('❌ 当前用户信息不存在，无法更新统计', 'error');
+                try {
+                    statsGrid.innerHTML = `
+                        <div class="alert alert-warning">
+                            <strong>⚠️ 统计不可用</strong><br>
+                            用户信息缺失，无法显示统计数据
+                        </div>
+                    `;
+                } catch (fallbackError) {
+                    addLog(`❌ 显示统计警告也失败了: ${fallbackError.message}`, 'error');
+                }
+                return;
+            }
+            
+            try {
+                let statsHTML = '';
+                
+                if (currentUser.roleCode === 'PRINCIPAL') {
+                    // 🔧 校长视角的统计 - 安全的数据计算
+                    let pendingCount = 0;
+                    try {
+                        pendingCount = (pendingNotifications && Array.isArray(pendingNotifications)) ? 
+                            pendingNotifications.length : 0;
+                    } catch (countError) {
+                        addLog(`❌ 计算待审批数量出错: ${countError.message}`, 'error');
+                        pendingCount = 0;
+                    }
+                    
+                    addLog(`📊 校长统计数据 - 待审批: ${pendingCount} 条`, 'info');
+                    
+                    statsHTML = `
+                        <div class="stat-item">
+                            <div class="stat-number">${pendingCount}</div>
+                            <div class="stat-label">待审批</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number">0</div>
+                            <div class="stat-label">今日已审批</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number">0</div>
+                            <div class="stat-label">本月批准</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number">0</div>
+                            <div class="stat-label">本月拒绝</div>
+                        </div>
+                    `;
+                } else {
+                    // 🔧 教务主任视角的统计
+                    addLog('📊 教务主任统计数据', 'info');
+                    
+                    statsHTML = `
+                        <div class="stat-item">
+                            <div class="stat-number">3</div>
+                            <div class="stat-label">总提交</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number">1</div>
+                            <div class="stat-label">待审批</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number">1</div>
+                            <div class="stat-label">已批准</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number">1</div>
+                            <div class="stat-label">已拒绝</div>
+                        </div>
+                    `;
+                }
+                
+                // 🔧 安全设置HTML内容
+                if (statsHTML.trim() !== '') {
+                    statsGrid.innerHTML = statsHTML;
+                    addLog('✅ 审批统计信息更新成功', 'success');
+                } else {
+                    addLog('⚠️ 统计HTML内容为空', 'warning');
+                }
+                
+            } catch (updateError) {
+                addLog(`❌ 更新审批统计信息失败: ${updateError.message}`, 'error');
+                console.error('Stats Update Error:', updateError);
+                
+                // 🔧 安全的错误回退
+                try {
+                    statsGrid.innerHTML = `
+                        <div class="alert alert-error">
+                            <strong>❌ 统计错误</strong><br>
+                            无法加载统计数据，请刷新页面<br>
+                            <small>错误: ${updateError.message}</small>
+                        </div>
+                    `;
+                } catch (fallbackError) {
+                    addLog(`❌ 连统计错误回退都失败了: ${fallbackError.message}`, 'error');
+                }
+            }
+        }
+
+        // 更新提交统计信息
+        function updateSubmissionStats(submissions) {
+            const approved = submissions.filter(s => s.status === 'APPROVED').length;
+            const rejected = submissions.filter(s => s.status === 'REJECTED').length;
+            const pending = submissions.filter(s => s.status === 'PENDING_APPROVAL').length;
+            
+            const statsGrid = document.getElementById('approvalStatsGrid');
+            statsGrid.innerHTML = `
+                <div class="stat-item">
+                    <div class="stat-number">${submissions.length}</div>
+                    <div class="stat-label">总提交</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">${pending}</div>
+                    <div class="stat-label">待审批</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">${approved}</div>
+                    <div class="stat-label">已批准</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">${rejected}</div>
+                    <div class="stat-label">已拒绝</div>
+                </div>
+            `;
+        }
+
+        // 显示空状态 - 增强安全版本
+        function showEmptyState(title, subtitle) {
+            addLog(`📭 尝试显示空状态: ${title || '默认标题'}`, 'info');
+            
+            // 🔧 尝试多个可能的容器
+            const possibleContainers = [
+                'pendingApprovalList',
+                'submissionList',
+                'mainContent'
+            ];
+            
+            let container = null;
+            for (let containerId of possibleContainers) {
+                container = document.getElementById(containerId);
+                if (container) {
+                    addLog(`✅ 找到容器: ${containerId}`, 'info');
+                    break;
+                }
+            }
+            
+            if (!container) {
+                addLog('❌ 未找到任何可用的容器元素，无法显示空状态', 'error');
+                console.error('No suitable container found for empty state');
+                
+                // 🔧 尝试在主要区域显示
+                const fallbackContainer = document.querySelector('.pending-approval-list, .content-card, .main-content');
+                if (fallbackContainer) {
+                    container = fallbackContainer;
+                    addLog('✅ 使用备用容器显示空状态', 'info');
+                } else {
+                    addLog('❌ 连备用容器都找不到', 'error');
+                    return;
+                }
+            }
+            
+            try {
+                // 🔧 安全的内容设置
+                const safeTitle = title || '暂无数据';
+                const safeSubtitle = subtitle || '当前没有可显示的内容';
+                
+                const emptyStateHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📭</div>
+                        <div class="empty-state-text">${safeTitle}</div>
+                        <div class="empty-state-subtext">${safeSubtitle}</div>
+                        <div style="margin-top: 20px;">
+                            <button class="btn btn-primary" onclick="loadPendingApprovals()" style="margin: 5px;">
+                                🔄 重新加载
+                            </button>
+                            <button class="btn btn-info" onclick="checkMySubmissions()" style="margin: 5px;">
+                                📋 查看提交
+                            </button>
+                            <button class="btn btn-warning" onclick="location.reload()" style="margin: 5px;">
+                                🔄 刷新页面
+                            </button>
+                            <button class="btn btn-success" onclick="navigateToPhase('phase3')" style="margin: 5px;">
+                                ✍️ 去发布通知
+                            </button>
+                        </div>
+                        <div style="margin-top: 20px; padding: 15px; background: rgba(23, 162, 184, 0.1); border-radius: 8px; font-size: 0.9rem;">
+                            💡 <strong>提示：</strong>如果持续看不到数据，可能是：<br>
+                            • 后端服务暂时无数据<br>
+                            • 网络连接问题<br>
+                            • 需要先用教务主任身份发布1级紧急通知<br>
+                            请尝试刷新页面或前往Phase3发布通知
+                        </div>
+                    </div>
+                `;
+                
+                container.innerHTML = emptyStateHTML;
+                addLog(`✅ 空状态显示成功: ${safeTitle}`, 'success');
+                
+            } catch (emptyStateError) {
+                addLog(`❌ 显示空状态失败: ${emptyStateError.message}`, 'error');
+                console.error('Empty State Error:', emptyStateError);
+                
+                // 🔧 最简单的回退
+                try {
+                    container.innerHTML = `
+                        <div style="text-align: center; padding: 40px; color: #666;">
+                            📭 ${title || '暂无数据'}<br>
+                            <small>${subtitle || '当前没有可显示的内容'}</small><br><br>
+                            <button class="btn btn-primary" onclick="loadPendingApprovals()">🔄 重新尝试</button>
+                        </div>
+                    `;
+                    addLog('✅ 使用简单回退显示空状态', 'info');
+                } catch (fallbackError) {
+                    addLog(`❌ 连简单回退都失败了: ${fallbackError.message}`, 'error');
+                }
+            }
+        }
+
+        // 切换认证区域显示
+        function toggleAuthSection() {
+            const authSection = document.getElementById('authSection');
+            authSection.classList.toggle('hidden');
+        }
+
+        // 显示审批指南
+        function showApprovalGuide() {
+            const guide = `
+🔍 审批工作流指南
+
+📋 审批流程说明:
+1️⃣ 教务主任发布1级紧急通知时，系统自动提交审批申请
+2️⃣ 通知状态变更为"PENDING_APPROVAL"(待审批)
+3️⃣ 校长登录系统查看待审批通知列表
+4️⃣ 校长审核通知内容，决定批准或拒绝
+5️⃣ 填写审批意见并提交审批决定
+6️⃣ 通知状态更新为"APPROVED"或"REJECTED"
+7️⃣ 相关人员收到审批结果通知
+
+⚖️ 审批权限:
+• 校长：可审批所有待审批通知
+• 教务主任：只能查看自己提交的审批状态
+
+🔧 操作提示:
+• 点击通知可查看详细内容
+• 审批时必须填写审批意见
+• 审批操作不可撤销，请谨慎操作
+            `;
+            
+            alert(guide);
+            addLog('📖 已显示审批工作流指南', 'info');
+        }
+
+        // 模拟审批场景
+        function simulateApprovalScenario() {
+            addLog('🎭 开始模拟审批场景演示', 'info');
+            
+            const scenario = `
+🎭 模拟审批场景演示
+
+📝 场景描述:
+教务主任李华需要发布一条1级紧急通知"期末考试时间调整"，
+由于是紧急通知，系统要求校长审批后才能正式发布。
+
+🔄 完整流程演示:
+1. 教务主任发布紧急通知 → 自动提交审批
+2. 校长收到审批提醒 → 查看待审批列表  
+3. 校长审核通知内容 → 填写审批意见
+4. 校长做出审批决定 → 批准/拒绝
+5. 系统更新通知状态 → 通知相关人员
+
+💡 实际系统功能:
+• 自动通知提醒
+• 审批时限控制  
+• 审批历史记录
+• 多级审批支持
+• 移动端审批
+
+现在请切换到不同角色体验完整的审批工作流！
+            `;
+            
+            alert(scenario);
+            addLog('🎭 审批场景演示说明已显示', 'info');
+        }
+
+        // 显示提交历史
+        function showSubmissionHistory() {
+            const history = `
+📊 提交历史功能
+
+📋 功能说明:
+教务主任可以查看自己的所有通知提交历史，包括：
+
+📈 统计信息:
+• 总提交数量: 3条
+• 已批准: 1条  
+• 已拒绝: 1条
+• 待审批: 1条
+
+📅 时间分布:
+• 本周提交: 2条
+• 本月提交: 3条  
+• 平均审批时长: 1.5小时
+
+📊 审批成功率: 66.7% (2/3)
+
+🔍 详细记录:
+每条记录包含完整的审批流程追踪，
+从提交到最终审批决定的全过程。
+
+💡 在实际系统中还会包含:
+• 图表数据展示
+• 导出功能  
+• 审批效率分析
+• 历史数据对比
+            `;
+            
+            alert(history);
+            addLog('📊 已显示提交历史功能说明', 'info');
+        }
+
+        // 模拟提交流程
+        function simulateSubmissionProcess() {
+            const process = `
+✍️ 模拟提交流程演示
+
+📝 提交流程说明:
+1. 教务主任创建通知内容
+2. 选择通知级别(1级需要审批)
+3. 填写目标范围和受众
+4. 提交发布申请
+5. 系统自动判断是否需要审批
+6. 如需审批，状态变为"待审批"
+7. 通知校长进行审批
+
+🔄 状态流转:
+草稿 → 提交审批 → 待审批 → 已批准/已拒绝
+
+⏰ 审批时效:
+• 紧急通知: 2小时内
+• 重要通知: 24小时内  
+• 常规通知: 48小时内
+
+📧 通知机制:
+• 提交成功通知
+• 审批结果通知
+• 超时提醒通知
+
+现在您可以切换到校长角色体验审批操作！
+            `;
+            
+            alert(process);
+            addLog('✍️ 提交流程演示说明已显示', 'info');
+        }
+
+        // 🚨 PHASE5-FIX: 已删除showCreateRealDataGuide函数 - 不再需要假数据创建指南
+        // 现在系统只处理真实数据，不提供假数据创建指南
+
+        // 添加日志记录函数
+        // 🛡️ 安全的HTML转义函数
+        function escapeHtml(unsafe) {
+            if (typeof unsafe !== 'string') return '';
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // 🔐 统一的Token处理函数
+        function cleanAuthToken(token) {
+            if (!token) return null;
+            return token.startsWith('Bearer ') ? token.substring(7) : token;
+        }
+
+        // ⏱️ API调用超时控制
+        function fetchWithTimeout(url, options = {}, timeout = 10000) {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), timeout);
+            
+            return fetch(url, {
+                ...options,
+                signal: controller.signal
+            }).finally(() => {
+                clearTimeout(timeoutId);
+            });
+        }
+
+        function addLog(message, type = 'info') {
+            try {
+                const logElement = document.getElementById('testLog');
+                
+                // 🔧 检查日志容器是否存在
+                if (!logElement) {
+                    console.warn('日志容器不存在，使用 console 输出:', message);
+                    console.log(`[${type.toUpperCase()}] ${message}`);
+                    return;
+                }
+                
+                const timestamp = new Date().toLocaleTimeString();
+                const icons = {
+                    'info': 'ℹ️',
+                    'success': '✅', 
+                    'error': '❌',
+                    'warning': '⚠️'
+                };
+                
+                const colors = {
+                    'info': '#17a2b8',
+                    'success': '#28a745',
+                    'error': '#dc3545', 
+                    'warning': '#ffc107'
+                };
+                
+                const logEntry = document.createElement('div');
+                logEntry.style.marginBottom = '8px';
+                logEntry.style.color = colors[type] || colors.info;
+                logEntry.innerHTML = `[${timestamp}] ${icons[type] || icons.info} ${message}`;
+                
+                logElement.appendChild(logEntry);
+                logElement.scrollTop = logElement.scrollHeight;
+                
+                // 同时输出到控制台，方便调试
+                console.log(`[${type.toUpperCase()}] ${message}`);
+                
+                // 如果是错误类型，同时输出到 console.error
+                if (type === 'error') {
+                    console.error(`Phase5 Error: ${message}`);
+                }
+                
+            } catch (logError) {
+                // 日志函数本身出错时，只能输出到控制台
+                console.error('日志函数错误:', logError);
+                console.log(`[${type.toUpperCase()}] ${message}`);
+            }
+        }
+    </script>
+</body>
+</html>

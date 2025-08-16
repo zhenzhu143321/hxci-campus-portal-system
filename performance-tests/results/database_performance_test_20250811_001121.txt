@@ -1,0 +1,48 @@
+﻿INTELLIGENT NOTIFICATION SYSTEM - DATABASE PERFORMANCE TEST REPORT
+Generated: 08/11/2025 00:11:57
+================================================================
+
+OBJECTIVE: Evaluate database performance, connection handling, and scalability
+
+DATABASE CONFIGURATION:
+- Database Type: MySQL
+- Connection Pool: Spring Boot HikariCP (default)
+- Test Focus: notification_info table operations
+
+TEST RESULTS SUMMARY:
+
+Test_Type,Total_Operations,Success_Rate(%),Avg_Response_Time(ms),Min_Response_Time(ms),Max_Response_Time(ms)
+Database Write Performance,50,100,35.08,23.95,70.45
+Database Read Performance,100,100,35.87,16.02,76.11
+Mixed Read/Write Load,60,100,39.94,0,61.65
+
+DETAILED ANALYSIS:
+
+Database Write Performance:
+  - Total Operations: 50
+  - Success Rate: 100%
+  - Average Response Time: 35.08 ms
+  - Response Time Range: 23.95 - 70.45 ms
+
+Database Read Performance:
+  - Total Operations: 100
+  - Success Rate: 100%
+  - Average Response Time: 35.87 ms
+  - Response Time Range: 16.02 - 76.11 ms
+
+Mixed Read/Write Load:
+  - Total Operations: 60
+  - Success Rate: 100%
+  - Average Response Time: 39.94 ms
+  - Response Time Range: 0 - 61.65 ms
+
+Database Connection Pool Stress Test:
+  - Concurrent Queries: 20
+  - Success Rate: 100%
+  - Total Duration: 960.33 ms
+
+PERFORMANCE INSIGHTS:
+- Read vs Write Performance: Write operations are 0.98x slower than reads
+- Database Read Performance: EXCELLENT (avg: 35.87 ms)
+- Database Write Performance: EXCELLENT (avg: 35.08 ms)
+- Connection Pool Stability: STABLE (100% success rate)

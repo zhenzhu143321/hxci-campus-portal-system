@@ -1,0 +1,78 @@
+# Phase 8: 范围查看通知验证页面 - 调试日志
+## 生成时间: 2025-08-12T11:52:00.170Z
+## 用户代理: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36 Edg/139.0.0.0
+## 页面URL: file:///D:/ClaudeCode/AI_Web/demo/phases/phase8-scope-notification-view.html
+## 总日志条数: 45
+
+===========================================
+
+[2025-08-12T11:51:33.239Z] [SUCCESS] Phase 8: 范围查看通知验证页面初始化完成
+[2025-08-12T11:51:33.243Z] [INFO] 🎯 页面功能: 验证新的查看权限矩阵是否生效 (前端过滤实现)
+[2025-08-12T11:51:33.243Z] [INFO] 📋 特别关注: 学生是否能看到Level 1紧急通知和Level 2重要通知
+[2025-08-12T11:51:33.243Z] [INFO] 🔧 实现方式: 前端JavaScript权限过滤，无需修改后端代码
+[2025-08-12T11:51:39.599Z] [INFO] 🔐 开始用户认证 - 学生张三 (STUDENT)
+[2025-08-12T11:51:39.600Z] [INFO] 🔍 第一步：Mock School API认证 - STUDENT_001
+[2025-08-12T11:51:39.617Z] [SUCCESS] ✅ Mock School API认证成功
+[2025-08-12T11:51:39.617Z] [INFO] 🔍 第二步：验证用户信息 - Token长度: 421
+[2025-08-12T11:51:39.625Z] [SUCCESS] ✅ 用户信息验证成功: Student-Zhang (STUDENT)
+[2025-08-12T11:51:39.625Z] [SUCCESS] 🎯 认证流程完成，可以开始验证通知查看权限
+[2025-08-12T11:51:42.644Z] [INFO] 📋 开始获取通知列表...
+[2025-08-12T11:51:42.763Z] [INFO] 🔍 通知列表API响应状态: {"code":0,"dataExists":true,"totalNotifications":20}
+[2025-08-12T11:51:42.763Z] [SUCCESS] ✅ 通知列表获取成功: 共 20 条通知
+[2025-08-12T11:51:42.764Z] [INFO] 🔍 开始前端权限过滤 - 原始通知: 20 条
+[2025-08-12T11:51:42.764Z] [INFO] 🎯 执行新查看权限矩阵过滤 - 用户角色: STUDENT
+[2025-08-12T11:51:42.764Z] [SUCCESS] 🔍 前端权限过滤完成 - 过滤后通知: 20 条
+[2025-08-12T11:51:42.765Z] [SUCCESS] 📋 通知列表渲染完成: 20 条
+[2025-08-12T11:51:42.806Z] [INFO] 🔍 开始分析查看权限过滤效果...
+[2025-08-12T11:51:42.807Z] [INFO] 📊 前端过滤统计 - 原始: 20 条 → 过滤后: 20 条
+[2025-08-12T11:51:42.807Z] [INFO] 📊 权限分析 - 用户角色: STUDENT
+[2025-08-12T11:51:42.807Z] [INFO] 📊 级别分布: {"1":4,"2":4,"3":5,"4":7}
+[2025-08-12T11:51:42.807Z] [INFO] 📊 范围分布: {"CLASS":4,"DEPARTMENT":4,"SCHOOL_WIDE":12}
+[2025-08-12T11:51:42.807Z] [INFO] 📊 发布者角色分布: {"TEACHER":3,"ACADEMIC_ADMIN":4,"PRINCIPAL":10,"STUDENT":1,"CLASS_TEACHER":2}
+[2025-08-12T11:51:42.807Z] [INFO] 🎯 验证新查看权限矩阵是否正确应用...
+[2025-08-12T11:51:42.807Z] [SUCCESS] ✅ 学生权限修复验证成功: 可以看到 4 条Level 1紧急通知
+[2025-08-12T11:51:42.807Z] [SUCCESS] ✅ 学生权限修复验证成功: 可以看到 4 条Level 2重要通知
+[2025-08-12T11:51:42.808Z] [INFO] 📋 Level 1 权限检查: ALL 权限，实际显示 4 条
+[2025-08-12T11:51:42.808Z] [INFO] 📋 Level 2 权限检查: SCOPE 权限 (范围相关)，实际显示 4 条
+[2025-08-12T11:51:42.808Z] [INFO] 📋 Level 3 权限检查: SCOPE 权限 (范围相关)，实际显示 5 条
+[2025-08-12T11:51:42.808Z] [INFO] 📋 Level 4 权限检查: ALL 权限，实际显示 7 条
+[2025-08-12T11:51:42.808Z] [INFO] ℹ️ 前端权限过滤无变化: 所有通知都符合新权限矩阵要求
+[2025-08-12T11:51:42.809Z] [INFO] 🔍 开始分析查看权限过滤效果...
+[2025-08-12T11:51:42.809Z] [INFO] 📊 前端过滤统计 - 原始: undefined 条 → 过滤后: 20 条
+[2025-08-12T11:51:42.809Z] [INFO] 📊 权限分析 - 用户角色: STUDENT
+[2025-08-12T11:51:42.809Z] [INFO] 📊 级别分布: {"1":4,"2":4,"3":5,"4":7}
+[2025-08-12T11:51:42.809Z] [INFO] 📊 范围分布: {"CLASS":4,"DEPARTMENT":4,"SCHOOL_WIDE":12}
+[2025-08-12T11:51:42.809Z] [INFO] 📊 发布者角色分布: {"TEACHER":3,"ACADEMIC_ADMIN":4,"PRINCIPAL":10,"STUDENT":1,"CLASS_TEACHER":2}
+[2025-08-12T11:51:42.809Z] [INFO] 🎯 验证新查看权限矩阵是否正确应用...
+[2025-08-12T11:51:42.809Z] [SUCCESS] ✅ 学生权限修复验证成功: 可以看到 4 条Level 1紧急通知
+[2025-08-12T11:51:42.809Z] [SUCCESS] ✅ 学生权限修复验证成功: 可以看到 4 条Level 2重要通知
+[2025-08-12T11:51:42.809Z] [INFO] 📋 Level 1 权限检查: ALL 权限，实际显示 4 条
+[2025-08-12T11:51:42.809Z] [INFO] 📋 Level 2 权限检查: SCOPE 权限 (范围相关)，实际显示 4 条
+[2025-08-12T11:51:42.809Z] [INFO] 📋 Level 3 权限检查: SCOPE 权限 (范围相关)，实际显示 5 条
+[2025-08-12T11:51:42.809Z] [INFO] 📋 Level 4 权限检查: ALL 权限，实际显示 7 条
+[2025-08-12T11:51:42.809Z] [SUCCESS] 🎯 前端权限过滤生效: 隐藏了 NaN 条通知
+
+===========================================
+## 系统信息
+- 浏览器: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36 Edg/139.0.0.0
+- 屏幕分辨率: 1920x1080
+- 当前时间: 2025-08-12T11:52:00.171Z
+- 日志级别统计: {"success":12,"info":33}
+
+## 当前状态
+- 认证状态: 已认证
+- 当前用户: {
+  "userId": "STUDENT_001",
+  "username": "Student-Zhang",
+  "employeeId": "STUDENT_001",
+  "realName": "Student-Zhang",
+  "roleCode": "STUDENT",
+  "roleName": "Student",
+  "departmentId": 5,
+  "departmentName": "Grade 12 Class A",
+  "enabled": true,
+  "accessToken": "eyJ0eXAiOiJKV1QiLCJhbGciOiJNT0NLIn0=.eyJkZXBhcnRtZW50TmFtZSI6IkdyYWRlIDEyIENsYXNzIEEiLCJyZWFsTmFtZSI6IlN0dWRlbnQtWmhhbmciLCJyb2xlQ29kZSI6IlNUVURFTlQiLCJkZXBhcnRtZW50SWQiOjUsInJvbGVOYW1lIjoiU3R1ZGVudCIsImVtcGxveWVlSWQiOiJTVFVERU5UXzAwMSIsInVzZXJUeXBlIjoiU1RVREVOVCIsImV4cCI6MTc1NTA4NTg5OSwidXNlcklkIjoiU1RVREVOVF8wMDEiLCJpYXQiOjE3NTQ5OTk0OTksInVzZXJuYW1lIjoiU3R1ZGVudC1aaGFuZyJ9.TU9DS19TSUdOQVRVUkVfU1RVREVOVF8wMDE=",
+  "tokenExpireTime": "2025-08-13T19:51:39.607978",
+  "userType": "STUDENT"
+}
+- 操作进行中: false

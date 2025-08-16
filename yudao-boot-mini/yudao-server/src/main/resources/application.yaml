@@ -1,0 +1,322 @@
+spring:
+  application:
+    name: yudao-server
+
+  profiles:
+    active: local
+
+  main:
+    allow-circular-references: true # 允许循环依赖，因为项目是三层架构，无法避免这个情况。
+
+  # Servlet 配置
+  servlet:
+    # 文件上传相关配置项
+    multipart:
+      max-file-size: 16MB # 单个文件大小
+      max-request-size: 32MB # 设置总上传的文件大小
+
+  # Jackson 配置项
+  jackson:
+    serialization:
+      write-dates-as-timestamps: true # 设置 Date 的格式，使用时间戳
+      write-date-timestamps-as-nanoseconds: false # 设置不使用 nanoseconds 的格式。例如说 1611460870.401，而是直接 1611460870401
+      write-durations-as-timestamps: true # 设置 Duration 的格式，使用时间戳
+      fail-on-empty-beans: false # 允许序列化无属性的 Bean
+
+  # Cache 配置项
+  cache:
+    type: REDIS
+    redis:
+      time-to-live: 1h # 设置过期时间为 1 小时
+
+server:
+  servlet:
+    encoding:
+      enabled: true
+      charset: UTF-8 # 必须设置 UTF-8，避免 WebFlux 流式返回（AI 场景）会乱码问题
+      force: true
+
+--- #################### 接口文档配置 ####################
+
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui
+  default-flat-param-object: true # 参见 https://doc.xiaominfo.com/docs/faq/v4/knife4j-parameterobject-flat-param 文档
+
+knife4j:
+  enable: false # TODO 芋艿：需要关闭增强，具体原因见：https://github.com/xiaoymin/knife4j/issues/874
+  setting:
+    language: zh_cn
+
+# 工作流 Flowable 配置
+flowable:
+  # 1. false: 默认值，Flowable 启动时，对比数据库表中保存的版本，如果不匹配。将抛出异常
+  # 2. true: 启动时会对数据库中所有表进行更新操作，如果表存在，不做处理，反之，自动创建表
+  # 3. create_drop: 启动时自动创建表，关闭时自动删除表
+  # 4. drop_create: 启动时，删除旧表，再创建新表
+  database-schema-update: true # 设置为 false，可通过 https://github.com/flowable/flowable-sql 初始化
+  db-history-used: true # flowable6 默认 true 生成信息表，无需手动设置
+  check-process-definitions: false # 设置为 false，禁用 /resources/processes 自动部署 BPMN XML 流程
+  history-level: audit # full：保存历史数据的最高级别，可保存全部流程相关细节，包括流程流转各节点参数
+
+# MyBatis Plus 的配置项
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true # 虽然默认为 true ，但是还是显示去指定下。
+  global-config:
+    db-config:
+      id-type: NONE # “智能”模式，基于 IdTypeEnvironmentPostProcessor + 数据源的类型，自动适配成 AUTO、INPUT 模式。
+#      id-type: AUTO # 自增 ID，适合 MySQL 等直接自增的数据库
+#      id-type: INPUT # 用户输入 ID，适合 Oracle、PostgreSQL、Kingbase、DB2、H2 数据库
+#      id-type: ASSIGN_ID # 分配 ID，默认使用雪花算法。注意，Oracle、PostgreSQL、Kingbase、DB2、H2 数据库时，需要去除实体类上的 @KeySequence 注解
+      logic-delete-value: 1 # 逻辑已删除值(默认为 1)
+      logic-not-delete-value: 0 # 逻辑未删除值(默认为 0)
+    banner: false # 关闭控制台的 Banner 打印
+  type-aliases-package: ${yudao.info.base-package}.module.*.dal.dataobject
+  encryptor:
+    password: XDV71a+xqStEA3WH # 加解密的秘钥，可使用 https://www.imaegoo.com/2020/aes-key-generator/ 网站生成
+
+mybatis-plus-join:
+  banner: false # 是否打印 mybatis plus join banner，默认true
+  sub-table-logic: true # 全局启用副表逻辑删除，默认true。关闭后关联查询不会加副表逻辑删除
+  ms-cache: true # 拦截器MappedStatement缓存，默认 true
+  table-alias: t # 表别名(默认 t)
+  logic-del-type: on # 副表逻辑删除条件的位置，支持 WHERE、ON，默认 ON
+
+# Spring Data Redis 配置
+spring:
+  data:
+    redis:
+      repositories:
+        enabled: false # 项目未使用到 Spring Data Redis 的 Repository，所以直接禁用，保证启动速度
+
+# VO 转换（数据翻译）相关
+easy-trans:
+  is-enable-global: false # 【默认禁用，对性能确认压力大】启用全局翻译（拦截所有 SpringMVC ResponseBody 进行自动翻译 )。如果对于性能要求很高可关闭此配置，或通过 @IgnoreTrans 忽略某个接口
+
+--- #################### 验证码相关配置 ####################
+
+aj:
+  captcha:
+    jigsaw: classpath:images/jigsaw # 滑动验证，底图路径，不配置将使用默认图片；以 classpath: 开头，取 resource 目录下路径
+    pic-click: classpath:images/pic-click # 滑动验证，底图路径，不配置将使用默认图片；以 classpath: 开头，取 resource 目录下路径
+    cache-type: redis # 缓存 local/redis...
+    cache-number: 1000 # local 缓存的阈值,达到这个值，清除缓存
+    timing-clear: 180 # local定时清除过期缓存(单位秒),设置为0代表不执行
+    type: blockPuzzle # 验证码类型 default两种都实例化。 blockPuzzle 滑块拼图 clickWord 文字点选
+    water-mark: 芋道源码 # 右下角水印文字(我的水印)，可使用 https://tool.chinaz.com/tools/unicode.aspx 中文转 Unicode，Linux 可能需要转 unicode
+    interference-options: 0 # 滑动干扰项(0/1/2)
+    req-frequency-limit-enable: false # 接口请求次数一分钟限制是否开启 true|false
+    req-get-lock-limit: 5 # 验证失败 5 次，get接口锁定
+    req-get-lock-seconds: 10 # 验证失败后，锁定时间间隔
+    req-get-minute-limit: 30 # get 接口一分钟内请求数限制
+    req-check-minute-limit: 60 # check 接口一分钟内请求数限制
+    req-verify-minute-limit: 60 # verify 接口一分钟内请求数限制
+
+--- #################### 消息队列相关 ####################
+
+# rocketmq 配置项，对应 RocketMQProperties 配置类
+rocketmq:
+  # Producer 配置项
+  producer:
+    group: ${spring.application.name}_PRODUCER # 生产者分组
+
+spring:
+  # Kafka 配置项，对应 KafkaProperties 配置类
+  kafka:
+    # Kafka Producer 配置项
+    producer:
+      acks: 1 # 0-不应答。1-leader 应答。all-所有 leader 和 follower 应答。
+      retries: 3 # 发送失败时，重试发送的次数
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer # 消息的 value 的序列化
+    # Kafka Consumer 配置项
+    consumer:
+      auto-offset-reset: earliest # 设置消费者分组最初的消费进度为 earliest 。可参考博客 https://blog.csdn.net/lishuangzhe7047/article/details/74530417 理解
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: '*'
+    # Kafka Consumer Listener 监听器配置
+    listener:
+      missing-topics-fatal: false # 消费监听接口监听的主题不存在时，默认会报错。所以通过设置为 false ，解决报错
+
+--- #################### AI 相关配置 ####################
+
+spring:
+  ai:
+    vectorstore: # 向量存储
+      redis:
+        initialize-schema: true
+        index-name: knowledge_index # Redis 中向量索引的名称：用于存储和检索向量数据的索引标识符，所有相关的向量搜索操作都会基于这个索引进行
+        prefix: "knowledge_segment:" # Redis 中存储向量数据的键名前缀：这个前缀会添加到每个存储在 Redis 中的向量数据键名前，每个 document 都是一个 hash 结构
+      qdrant:
+        initialize-schema: true
+        collection-name: knowledge_segment # Qdrant 中向量集合的名称：用于存储向量数据的集合标识符，所有相关的向量操作都会在这个集合中进行
+        host: 127.0.0.1
+        port: 6334
+      milvus:
+        initialize-schema: true
+        database-name: default # Milvus 中数据库的名称
+        collection-name: knowledge_segment # Milvus 中集合的名称：用于存储向量数据的集合标识符，所有相关的向量操作都会在这个集合中进行
+        client:
+          host: 127.0.0.1
+          port: 19530
+    qianfan: # 文心一言
+      api-key: x0cuLZ7XsaTCU08vuJWO87Lg
+      secret-key: R9mYF9dl9KASgi5RUq0FQt3wRisSnOcK
+    zhipuai: # 智谱 AI
+      api-key: 32f84543e54eee31f8d56b2bd6020573.3vh9idLJZ2ZhxDEs
+    openai: # OpenAI 官方
+      api-key: sk-aN6nWn3fILjrgLFT0fC4Aa60B72e4253826c77B29dC94f17
+      base-url: https://api.gptsapi.net
+    azure: # OpenAI 微软
+      openai:
+        endpoint: https://eastusprejade.openai.azure.com
+        api-key: xxx
+    ollama:
+      base-url: http://127.0.0.1:11434
+      chat:
+        model: llama3
+    stabilityai:
+      api-key: sk-e53UqbboF8QJCscYvzJscJxJXoFcFg4iJjl1oqgE7baJETmx
+    dashscope: # 通义千问
+      api-key: sk-71800982914041848008480000000000
+    minimax: # Minimax：https://www.minimaxi.com/
+      api-key: xxxx
+    moonshot: # 月之暗灭（KIMI）
+      api-key: sk-abc
+    deepseek: # DeepSeek
+      api-key: sk-e94db327cc7d457d99a8de8810fc6b12
+      chat:
+        options:
+          model: deepseek-chat
+
+yudao:
+  ai:
+    doubao: # 字节豆包
+      enable: true
+      api-key: 5c1b5747-26d2-4ebd-a4e0-dd0e8d8b4272
+      model: doubao-1-5-lite-32k-250115
+    hunyuan: # 腾讯混元
+      enable: true
+      api-key: sk-abc
+      model: hunyuan-turbo
+    siliconflow: # 硅基流动
+      enable: true
+      api-key: sk-epsakfenqnyzoxhmbucsxlhkdqlcbnimslqoivkshalvdozz
+      model: deepseek-ai/DeepSeek-R1-Distill-Qwen-7B
+    xinghuo: # 讯飞星火
+      enable: true
+      appKey: 75b161ed2aef4719b275d6e7f2a4d4cd
+      secretKey: YWYxYWI2MTA4ODI2NGZlYTQyNjAzZTcz
+      model: generalv3.5
+    baichuan: # 百川智能
+      enable: true
+      api-key: sk-abc
+      model: Baichuan4-Turbo
+    midjourney:
+      enable: true
+  #    base-url: https://api.holdai.top/mj-relax/mj
+      base-url: https://api.holdai.top/mj
+      api-key: sk-dZEPiVaNcT3FHhef51996bAa0bC74806BeAb620dA5Da10Bf
+      notify-url: http://java.nat300.top/admin-api/ai/image/midjourney/notify
+    suno:
+      enable: true
+  #    base-url: https://suno-55ishh05u-status2xxs-projects.vercel.app
+      base-url: http://127.0.0.1:3001
+
+--- #################### 芋道相关配置 ####################
+
+yudao:
+  info:
+    version: 1.0.0
+    base-package: cn.iocoder.yudao
+  web:
+    admin-ui:
+      url: http://dashboard.yudao.iocoder.cn # Admin 管理后台 UI 的地址
+  xss:
+    enable: false
+    exclude-urls: # 如下两个 url，仅仅是为了演示，去掉配置也没关系
+      - ${spring.boot.admin.context-path}/** # 不处理 Spring Boot Admin 的请求
+      - ${management.endpoints.web.base-path}/** # 不处理 Actuator 的请求
+  security:
+    permit-all_urls:
+      - /admin-api/mp/open/** # 微信公众号开放平台，微信回调接口，不需要登录
+  websocket:
+    enable: true # websocket的开关
+    path: /infra/ws # 路径
+    sender-type: local # 消息发送的类型，可选值为 local、redis、rocketmq、kafka、rabbitmq
+    sender-rocketmq:
+      topic: ${spring.application.name}-websocket # 消息发送的 RocketMQ Topic
+      consumer-group: ${spring.application.name}-websocket-consumer # 消息发送的 RocketMQ Consumer Group
+    sender-rabbitmq:
+      exchange: ${spring.application.name}-websocket-exchange # 消息发送的 RabbitMQ Exchange
+      queue: ${spring.application.name}-websocket-queue # 消息发送的 RabbitMQ Queue
+    sender-kafka:
+      topic: ${spring.application.name}-websocket # 消息发送的 Kafka Topic
+      consumer-group: ${spring.application.name}-websocket-consumer # 消息发送的 Kafka Consumer Group
+  swagger:
+    title: 芋道快速开发平台
+    description: 提供管理后台、用户 App 的所有功能
+    version: ${yudao.info.version}
+    url: ${yudao.web.admin-ui.url}
+    email: xingyu4j@vip.qq.com
+    license: MIT
+    license-url: https://gitee.com/zhijiantianya/ruoyi-vue-pro/blob/master/LICENSE
+  codegen:
+    base-package: ${yudao.info.base-package}
+    db-schemas: ${spring.datasource.dynamic.datasource.master.name}
+    front-type: 20 # 前端模版的类型，参见 CodegenFrontTypeEnum 枚举类
+    vo-type: 10 # VO 的类型，参见 CodegenVOTypeEnum 枚举类
+    delete-batch-enable: true # 是否生成批量删除接口
+    unit-test-enable: false # 是否生成单元测试
+  tenant: # 多租户相关配置项
+    enable: true
+    ignore-urls:
+      - /jmreport/* # 积木报表，无法携带租户编号
+      - /admin-api/test/notification/** # 🔧 临时通知系统测试路径
+      - /admin-api/infra/notification/** # 🔧 通知系统接口，跳过租户验证
+      - /admin-api/infra/messages/** # 🔧 测试Controller，跳过租户验证
+    ignore-visit-urls:
+      - /admin-api/system/user/profile/**
+      - /admin-api/system/auth/**
+    ignore-tables:
+    ignore-caches:
+      - user_role_ids
+      - permission_menu_ids
+      - oauth_client
+      - notify_template
+      - mail_account
+      - mail_template
+      - sms_template
+      - iot:device
+      - iot:thing_model_list
+  sms-code: # 短信验证码相关的配置项
+    expire-times: 10m
+    send-frequency: 1m
+    send-maximum-quantity-per-day: 10
+    begin-code: 9999 # 这里配置 9999 的原因是，测试方便。
+    end-code: 9999 # 这里配置 9999 的原因是，测试方便。
+  trade:
+    order:
+      pay-expire-time: 2h # 支付的过期时间
+      receive-expire-time: 14d # 收货的过期时间
+      comment-expire-time: 7d # 评论的过期时间
+      status-sync-to-wxa-enable: true # 是否同步订单状态到微信小程序
+    express:
+      client: kd_100
+      kd-niao:
+        api-key: cb022f1e-48f1-4c4a-a723-9001ac9676b8
+        business-id: 1809751
+        request-type: 1002 # 免费版 1002；付费版 8001
+      kd100:
+        key: pLXUGAwK5305
+        customer: E77DF18BE109F454A5CD319E44BF5177
+
+debug: false
+# 插件配置 TODO 芋艿：【IOT】需要处理下
+pf4j:
+  pluginsDir: /Users/anhaohao/code/gitee/ruoyi-vue-pro/plugins # 插件目录

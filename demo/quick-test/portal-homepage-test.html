@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏠 校园门户首页测试 - 用户状态验证</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            padding: 30px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #eee;
+        }
+        
+        .test-section {
+            margin-bottom: 25px;
+            padding: 20px;
+            border: 2px solid #e3e3e3;
+            border-radius: 8px;
+            background: #f8f9fa;
+        }
+        
+        .test-section h3 {
+            margin: 0 0 15px 0;
+            color: #495057;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .status-item:last-child {
+            border-bottom: none;
+        }
+        
+        .status-label {
+            font-weight: 500;
+            color: #495057;
+        }
+        
+        .status-value {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: #007bff;
+            max-width: 60%;
+            text-align: right;
+            word-break: break-all;
+        }
+        
+        .status-success {
+            color: #28a745;
+            font-weight: 600;
+        }
+        
+        .status-error {
+            color: #dc3545;
+            font-weight: 600;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            margin: 5px;
+        }
+        
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #0056b3;
+            transform: translateY(-1px);
+        }
+        
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #1e7e34;
+            transform: translateY(-1px);
+        }
+        
+        .iframe-container {
+            margin-top: 30px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            overflow: hidden;
+            height: 600px;
+        }
+        
+        .iframe-container iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        
+        .log-area {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.4;
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="header">
+            <h1>🏠 校园门户首页测试</h1>
+            <p>用户状态验证 + API连通性测试 + 三区布局检查</p>
+        </div>
+
+        <!-- 当前系统状态检查 -->
+        <div class="test-section">
+            <h3>🔍 系统状态检查</h3>
+            <div id="systemStatus">
+                <div class="status-item">
+                    <span class="status-label">Vue开发服务器</span>
+                    <span class="status-value" id="vueServerStatus">检查中...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Mock School API</span>
+                    <span class="status-value" id="mockApiStatus">检查中...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">主通知服务</span>
+                    <span class="status-value" id="mainApiStatus">检查中...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">用户认证状态</span>
+                    <span class="status-value" id="authStatus">检查中...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 用户登录测试 -->
+        <div class="test-section">
+            <h3>🔐 用户认证测试</h3>
+            <p>测试校长账号登录和Token验证</p>
+            
+            <button class="btn btn-primary" onclick="testUserLogin()">
+                测试校长账号登录
+            </button>
+            
+            <button class="btn btn-success" onclick="openPortalHomepage()">
+                打开校园门户首页
+            </button>
+            
+            <div id="loginTestResult" style="margin-top: 15px;"></div>
+        </div>
+
+        <!-- 测试日志 -->
+        <div class="test-section">
+            <h3>📋 测试日志</h3>
+            <div class="log-area" id="logArea">
+[INFO] 门户首页测试页面已加载
+[INFO] 开始系统状态检查...
+            </div>
+        </div>
+
+        <!-- Vue门户首页预览 -->
+        <div class="test-section">
+            <h3>🖼️ Vue门户首页预览</h3>
+            <p>直接在当前页面中预览Vue门户首页（如果服务器正常运行）</p>
+            <div class="iframe-container">
+                <iframe src="http://localhost:5173/home" id="portalFrame"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 测试配置
+        const TEST_CONFIG = {
+            VUE_SERVER: 'http://localhost:5173',
+            MOCK_API: 'http://localhost:48082',
+            MAIN_API: 'http://localhost:48081'
+        };
+
+        // 日志记录
+        function addLog(message, type = 'INFO') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] [${type}] ${message}`;
+            
+            const logArea = document.getElementById('logArea');
+            logArea.textContent += '\n' + logEntry;
+            logArea.scrollTop = logArea.scrollHeight;
+            
+            console.log(logEntry);
+        }
+
+        // 更新状态显示
+        function updateStatus(elementId, status, isSuccess = true) {
+            const element = document.getElementById(elementId);
+            element.textContent = status;
+            element.className = isSuccess ? 'status-value status-success' : 'status-value status-error';
+        }
+
+        // 检查Vue开发服务器状态
+        async function checkVueServer() {
+            addLog('检查Vue开发服务器状态...');
+            try {
+                const response = await fetch(TEST_CONFIG.VUE_SERVER);
+                if (response.ok) {
+                    updateStatus('vueServerStatus', '✅ 正常运行', true);
+                    addLog('Vue开发服务器状态正常');
+                    return true;
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                updateStatus('vueServerStatus', '❌ 连接失败', false);
+                addLog('Vue开发服务器连接失败: ' + error.message, 'ERROR');
+                return false;
+            }
+        }
+
+        // 检查Mock School API状态
+        async function checkMockAPI() {
+            addLog('检查Mock School API状态...');
+            try {
+                const response = await fetch(`${TEST_CONFIG.MOCK_API}/mock-school-api/auth/health`);
+                if (response.ok) {
+                    const data = await response.json();
+                    updateStatus('mockApiStatus', '✅ ' + (data.message || '正常运行'), true);
+                    addLog('Mock School API状态正常');
+                    return true;
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                updateStatus('mockApiStatus', '❌ 连接失败', false);
+                addLog('Mock School API连接失败: ' + error.message, 'ERROR');
+                return false;
+            }
+        }
+
+        // 检查主通知服务状态
+        async function checkMainAPI() {
+            addLog('检查主通知服务状态...');
+            try {
+                const response = await fetch(`${TEST_CONFIG.MAIN_API}/admin-api/test/notification/api/ping`);
+                if (response.ok) {
+                    const data = await response.text();
+                    updateStatus('mainApiStatus', '✅ 服务响应正常', true);
+                    addLog('主通知服务状态正常');
+                    return true;
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                updateStatus('mainApiStatus', '❌ 连接失败', false);
+                addLog('主通知服务连接失败: ' + error.message, 'ERROR');
+                return false;
+            }
+        }
+
+        // 检查用户认证状态
+        function checkAuthStatus() {
+            addLog('检查localStorage中的用户认证状态...');
+            
+            const token = localStorage.getItem('campus_token');
+            const userInfo = localStorage.getItem('campus_user_info');
+            
+            if (token && userInfo) {
+                try {
+                    const user = JSON.parse(userInfo);
+                    updateStatus('authStatus', `✅ 已登录: ${user.username}`, true);
+                    addLog(`用户已登录: ${user.username} (${user.roleCode})`);
+                    return true;
+                } catch (error) {
+                    updateStatus('authStatus', '❌ 用户信息损坏', false);
+                    addLog('用户信息解析失败', 'ERROR');
+                    return false;
+                }
+            } else {
+                updateStatus('authStatus', '⭕ 未登录', false);
+                addLog('用户未登录');
+                return false;
+            }
+        }
+
+        // 测试用户登录
+        async function testUserLogin() {
+            addLog('=== 开始用户登录测试 ===');
+            
+            const loginData = {
+                employeeId: 'PRINCIPAL_001',
+                name: 'Principal-Zhang',
+                password: 'admin123'
+            };
+            
+            addLog(`测试登录: ${loginData.name} (${loginData.employeeId})`);
+            
+            try {
+                const response = await fetch(`${TEST_CONFIG.MOCK_API}/mock-school-api/auth/authenticate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json; charset=UTF-8'
+                    },
+                    body: JSON.stringify(loginData)
+                });
+                
+                addLog(`登录响应状态: ${response.status}`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    if (data.success && data.data.accessToken) {
+                        // 保存认证信息到localStorage
+                        localStorage.setItem('campus_token', data.data.accessToken);
+                        localStorage.setItem('campus_user_info', JSON.stringify(data.data));
+                        
+                        addLog(`✅ 登录成功: ${data.data.username}`, 'SUCCESS');
+                        
+                        // 更新登录测试结果显示
+                        document.getElementById('loginTestResult').innerHTML = `
+                            <div style="padding: 15px; background: #d4edda; color: #155724; border-radius: 6px;">
+                                <strong>✅ 登录测试成功</strong><br>
+                                用户: ${data.data.username}<br>
+                                角色: ${data.data.roleName} (${data.data.roleCode})<br>
+                                Token长度: ${data.data.accessToken.length} 字符
+                            </div>
+                        `;
+                        
+                        // 重新检查认证状态
+                        checkAuthStatus();
+                        
+                        return true;
+                    } else {
+                        throw new Error(data.message || '登录失败');
+                    }
+                } else {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+            } catch (error) {
+                addLog(`❌ 登录失败: ${error.message}`, 'ERROR');
+                
+                document.getElementById('loginTestResult').innerHTML = `
+                    <div style="padding: 15px; background: #f8d7da; color: #721c24; border-radius: 6px;">
+                        <strong>❌ 登录测试失败</strong><br>
+                        错误信息: ${error.message}
+                    </div>
+                `;
+                
+                return false;
+            } finally {
+                addLog('=== 用户登录测试完成 ===');
+            }
+        }
+
+        // 打开校园门户首页
+        function openPortalHomepage() {
+            addLog('打开校园门户首页...');
+            
+            // 在新窗口中打开
+            const newWindow = window.open('http://localhost:5173/home', '_blank');
+            
+            if (newWindow) {
+                addLog('✅ 门户首页已在新窗口中打开');
+            } else {
+                addLog('❌ 无法打开门户首页，请检查弹窗阻止设置', 'ERROR');
+                // 备用方案：更新iframe
+                document.getElementById('portalFrame').src = 'http://localhost:5173/home';
+                addLog('已更新页面内预览iframe');
+            }
+        }
+
+        // 页面初始化
+        async function initPage() {
+            addLog('页面初始化开始...');
+            
+            // 并行检查所有服务状态
+            await Promise.all([
+                checkVueServer(),
+                checkMockAPI(), 
+                checkMainAPI()
+            ]);
+            
+            // 检查用户认证状态
+            checkAuthStatus();
+            
+            addLog('页面初始化完成 ✅');
+            
+            // 如果用户已经登录，自动刷新iframe
+            const token = localStorage.getItem('campus_token');
+            if (token) {
+                addLog('用户已登录，刷新门户首页预览...');
+                setTimeout(() => {
+                    document.getElementById('portalFrame').src = 'http://localhost:5173/home';
+                }, 2000);
+            }
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', initPage);
+    </script>
+</body>
+</html>

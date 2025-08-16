@@ -1,0 +1,78 @@
+# 构建产物和编译输出
+**/target/
+**/dist/
+**/build/
+**/.next/
+**/.nuxt/
+
+# 依赖包
+**/node_modules/
+**/bower_components/
+
+# IDE和编辑器配置
+**/.idea/
+**/.vscode/
+**/*.iml
+**/*.swp
+**/*.swo
+**/nbproject/
+**/.settings/
+**/.project
+**/.classpath
+
+# 操作系统生成的文件
+**/.DS_Store
+**/Thumbs.db
+**/Desktop.ini
+
+# 日志文件
+**/*.log
+**/logs/
+**/LOG_FILE_IS_UNDEFINED
+**/debug.log
+
+# 临时文件
+**/tmp/
+**/temp/
+**/.tmp/
+**/*.tmp
+**/*.temp
+
+# Java编译文件
+**/*.class
+**/*.jar
+**/*.war
+**/*.ear
+
+# Maven
+**/.mvn/wrapper/maven-wrapper.jar
+**/.mvn/wrapper/maven-wrapper.properties
+
+# 环境变量文件
+**/.env
+**/.env.local
+**/.env.development.local
+**/.env.test.local
+**/.env.production.local
+
+# 测试覆盖率报告
+**/coverage/
+**/.nyc_output/
+
+# 缓存文件
+**/.cache/
+**/cache/
+**/.parcel-cache/
+
+# 运行时文件
+**/*.pid
+**/*.seed
+**/*.pid.lock
+
+# Windows系统文件
+**/nul
+
+# 项目特定排除
+# 注意：密钥文件保留上传到私有仓库
+# ed25519-private.pem
+# ed25519-public.pem

@@ -1,0 +1,59 @@
+﻿INTELLIGENT NOTIFICATION SYSTEM - BUSINESS SCENARIO PERFORMANCE REPORT
+Generated: 08/11/2025 00:00:34
+======================================================================
+
+OBJECTIVE: Test system performance under realistic business scenarios
+
+TEST SCENARIOS:
+1. Authentication Storm - 50 concurrent authentication requests
+2. Notification Query Storm - 100 concurrent notification list queries  
+3. Notification Publishing Pressure - 25 concurrent notification publications
+4. Mixed Workload Simulation - Realistic traffic pattern simulation
+
+SCENARIO RESULTS SUMMARY:
+
+Scenario,Total_Requests,Success_Rate(%),Avg_Response_Time(ms),Max_Response_Time(ms),RPS
+Authentication Storm,50,100,19.91,34.06,7.81
+Notification Query Storm,100,100,35.8,60.12,10.16
+Notification Publishing Pressure,25,100,42.7,68.63,3.99
+Mixed Workload Simulation,75,100,34.99,72.69,2.85
+
+DETAILED ANALYSIS:
+
+Authentication Storm:
+  - Total Requests: 50
+  - Success Rate: 100%
+  - Average Response Time: 19.91 ms
+  - Maximum Response Time: 34.06 ms
+  - Requests per Second: 7.81
+  - Test Duration: 6.4 seconds
+
+Notification Query Storm:
+  - Total Requests: 100
+  - Success Rate: 100%
+  - Average Response Time: 35.8 ms
+  - Maximum Response Time: 60.12 ms
+  - Requests per Second: 10.16
+  - Test Duration: 9.84 seconds
+
+Notification Publishing Pressure:
+  - Total Requests: 25
+  - Success Rate: 100%
+  - Average Response Time: 42.7 ms
+  - Maximum Response Time: 68.63 ms
+  - Requests per Second: 3.99
+  - Test Duration: 6.26 seconds
+
+Mixed Workload Simulation:
+  - Total Requests: 75
+  - Success Rate: 100%
+  - Average Response Time: 34.99 ms
+  - Maximum Response Time: 72.69 ms
+  - Requests per Second: 2.85
+  - Test Duration: 26.31 seconds
+
+KEY FINDINGS:
+- Best Performance Scenario: Notification Publishing Pressure (3.99 RPS)
+- Lowest Success Rate: Notification Publishing Pressure (100%)
+- Average Success Rate Across All Scenarios: 0%
+- Average Response Time Across All Scenarios: 0 ms

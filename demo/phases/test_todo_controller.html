@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📋 T13待办通知系统测试页面</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .title {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+        }
+        .api-section {
+            margin-bottom: 40px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #fafafa;
+        }
+        .api-title {
+            color: #e67e22;
+            font-size: 18px;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        button.success {
+            background-color: #27ae60;
+        }
+        button.danger {
+            background-color: #e74c3c;
+        }
+        textarea, input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin: 5px 0;
+            font-family: inherit;
+        }
+        textarea {
+            height: 100px;
+            resize: vertical;
+        }
+        .result {
+            background-color: #ecf0f1;
+            border: 1px solid #bdc3c7;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 15px;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+        .status {
+            padding: 8px 16px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .status.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .form-row {
+            display: flex;
+            gap: 15px;
+            margin: 10px 0;
+        }
+        .form-row > * {
+            flex: 1;
+        }
+        .todo-item {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            background-color: white;
+        }
+        .todo-title {
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+        .todo-meta {
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-bottom: 10px;
+        }
+        .priority-high { border-left: 4px solid #e74c3c; }
+        .priority-medium { border-left: 4px solid #f39c12; }
+        .priority-low { border-left: 4px solid #27ae60; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="title">📋 T13待办通知系统 - API测试页面</h1>
+        <p><strong>说明：</strong>本页面用于测试T13待办通知系统的4个核心API功能</p>
+        
+        <!-- 基础配置 -->
+        <div class="api-section">
+            <div class="api-title">🔧 基础配置</div>
+            <div class="form-row">
+                <input type="text" id="baseUrl" value="http://localhost:48081/admin-api/test/todo" placeholder="API基础URL">
+                <input type="text" id="authToken" value="Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbXBsb3llZUlkIjoiU1lTVEVNX0FETUlOXzAwMSIsInVzZXJuYW1lIjoi57O757uf566h55CG5ZGYIiwicm9sZUNvZGUiOiJTWVNURU1fQURNSU4iLCJyb2xlTmFtZSI6Iue7n-e7n-euoeeQhuWRmCIsImV4cCI6MTczNDI2MTExMH0.kw9jb6z8Y7z9X5XQE6sW8Y3DnAJzLbC4Z6b4cZqQkwY" placeholder="认证Token">
+            </div>
+            <button onclick="testPing()">🧪 Ping测试</button>
+        </div>
+
+        <!-- 1. 发布待办通知 -->
+        <div class="api-section">
+            <div class="api-title">📝 1. 发布待办通知</div>
+            <input type="text" id="todoTitle" value="📚 完成课程作业" placeholder="待办标题">
+            <textarea id="todoContent" placeholder="待办内容">请在本周内完成以下任务：
+
+1. 阅读指定章节（第5-7章）
+2. 完成课后练习题
+3. 提交实验报告
+4. 参加小组讨论
+
+注意事项：
+- 请按时提交，避免影响成绩
+- 有问题及时联系老师</textarea>
+            <div class="form-row">
+                <select id="todoPriority">
+                    <option value="high">高优先级</option>
+                    <option value="medium" selected>中优先级</option>
+                    <option value="low">低优先级</option>
+                </select>
+                <input type="date" id="todoDueDate" value="2025-08-25">
+                <select id="todoScope">
+                    <option value="CLASS" selected>班级范围</option>
+                    <option value="GRADE">年级范围</option>
+                    <option value="DEPARTMENT">部门范围</option>
+                    <option value="SCHOOL_WIDE">全校范围</option>
+                </select>
+            </div>
+            <button onclick="publishTodo()">📝 发布待办通知</button>
+            <div id="publishResult" class="result" style="display:none;"></div>
+        </div>
+
+        <!-- 2. 获取我的待办列表 -->
+        <div class="api-section">
+            <div class="api-title">📋 2. 获取我的待办列表</div>
+            <div class="form-row">
+                <input type="number" id="pageNum" value="1" min="1" placeholder="页码">
+                <input type="number" id="pageSize" value="10" min="1" max="50" placeholder="每页数量">
+                <select id="filterStatus">
+                    <option value="">全部状态</option>
+                    <option value="pending">待完成</option>
+                    <option value="completed">已完成</option>
+                    <option value="overdue">已过期</option>
+                </select>
+                <select id="filterPriority">
+                    <option value="">全部优先级</option>
+                    <option value="high">高优先级</option>
+                    <option value="medium">中优先级</option>
+                    <option value="low">低优先级</option>
+                </select>
+            </div>
+            <button onclick="getTodoList()">📋 获取待办列表</button>
+            <button onclick="refreshTodoList()">🔄 刷新列表</button>
+            <div id="todoListResult" class="result" style="display:none;"></div>
+            <div id="todoListDisplay"></div>
+        </div>
+
+        <!-- 3. 标记待办完成 -->
+        <div class="api-section">
+            <div class="api-title">✅ 3. 标记待办完成</div>
+            <input type="number" id="completeId" placeholder="待办ID (从上面列表中获取)">
+            <button onclick="completeTodo()">✅ 标记完成</button>
+            <div id="completeResult" class="result" style="display:none;"></div>
+        </div>
+
+        <!-- 4. 获取待办统计 -->
+        <div class="api-section">
+            <div class="api-title">📊 4. 获取待办统计</div>
+            <input type="number" id="statsId" placeholder="待办ID (从上面列表中获取)">
+            <button onclick="getTodoStats()">📊 获取统计</button>
+            <div id="statsResult" class="result" style="display:none;"></div>
+        </div>
+
+        <!-- 状态显示 -->
+        <div id="status"></div>
+    </div>
+
+    <script>
+        // 通用API调用函数
+        async function callAPI(method, url, data = null) {
+            const baseUrl = document.getElementById('baseUrl').value;
+            const authToken = document.getElementById('authToken').value;
+            
+            const options = {
+                method: method,
+                headers: {
+                    'Authorization': authToken,
+                    'Content-Type': 'application/json',
+                    'tenant-id': '1'
+                }
+            };
+            
+            if (data) {
+                options.body = JSON.stringify(data);
+            }
+            
+            try {
+                showStatus(`🔄 正在调用API: ${method} ${url}`, 'info');
+                const response = await fetch(url, options);
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showStatus(`✅ API调用成功`, 'success');
+                    return { success: true, data: result };
+                } else {
+                    showStatus(`❌ API调用失败: ${response.status}`, 'error');
+                    return { success: false, error: result, status: response.status };
+                }
+            } catch (error) {
+                showStatus(`❌ 网络错误: ${error.message}`, 'error');
+                return { success: false, error: error.message };
+            }
+        }
+
+        // Ping测试
+        async function testPing() {
+            const baseUrl = document.getElementById('baseUrl').value;
+            const result = await callAPI('GET', `${baseUrl}/api/ping`);
+            
+            if (result.success) {
+                showStatus('🏓 Ping测试成功', 'success');
+            } else {
+                showStatus('❌ Ping测试失败', 'error');
+            }
+        }
+
+        // 发布待办通知
+        async function publishTodo() {
+            const baseUrl = document.getElementById('baseUrl').value;
+            const data = {
+                title: document.getElementById('todoTitle').value,
+                content: document.getElementById('todoContent').value,
+                priority: document.getElementById('todoPriority').value,
+                dueDate: document.getElementById('todoDueDate').value,
+                targetScope: document.getElementById('todoScope').value
+            };
+            
+            const result = await callAPI('POST', `${baseUrl}/api/publish`, data);
+            displayResult('publishResult', result);
+            
+            if (result.success) {
+                showStatus('📝 待办通知发布成功', 'success');
+                // 自动刷新待办列表
+                setTimeout(() => getTodoList(), 1000);
+            }
+        }
+
+        // 获取待办列表
+        async function getTodoList() {
+            const baseUrl = document.getElementById('baseUrl').value;
+            const page = document.getElementById('pageNum').value;
+            const pageSize = document.getElementById('pageSize').value;
+            const status = document.getElementById('filterStatus').value;
+            const priority = document.getElementById('filterPriority').value;
+            
+            let url = `${baseUrl}/api/my-list?page=${page}&pageSize=${pageSize}`;
+            if (status) url += `&status=${status}`;
+            if (priority) url += `&priority=${priority}`;
+            
+            const result = await callAPI('GET', url);
+            displayResult('todoListResult', result);
+            
+            if (result.success && result.data.data) {
+                displayTodoList(result.data.data.todos);
+                showStatus(`📋 成功获取${result.data.data.todos.length}条待办`, 'success');
+            }
+        }
+
+        // 刷新待办列表
+        function refreshTodoList() {
+            getTodoList();
+        }
+
+        // 标记待办完成
+        async function completeTodo() {
+            const baseUrl = document.getElementById('baseUrl').value;
+            const id = document.getElementById('completeId').value;
+            
+            if (!id) {
+                showStatus('❌ 请输入待办ID', 'error');
+                return;
+            }
+            
+            const result = await callAPI('POST', `${baseUrl}/api/${id}/complete`, {});
+            displayResult('completeResult', result);
+            
+            if (result.success) {
+                showStatus('✅ 待办标记完成成功', 'success');
+                // 自动刷新待办列表
+                setTimeout(() => getTodoList(), 1000);
+            }
+        }
+
+        // 获取待办统计
+        async function getTodoStats() {
+            const baseUrl = document.getElementById('baseUrl').value;
+            const id = document.getElementById('statsId').value;
+            
+            if (!id) {
+                showStatus('❌ 请输入待办ID', 'error');
+                return;
+            }
+            
+            const result = await callAPI('GET', `${baseUrl}/api/${id}/stats`);
+            displayResult('statsResult', result);
+            
+            if (result.success) {
+                showStatus('📊 获取统计信息成功', 'success');
+            }
+        }
+
+        // 显示API结果
+        function displayResult(elementId, result) {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.textContent = JSON.stringify(result, null, 2);
+        }
+
+        // 显示待办列表
+        function displayTodoList(todos) {
+            const container = document.getElementById('todoListDisplay');
+            
+            if (!todos || todos.length === 0) {
+                container.innerHTML = '<p>暂无待办事项</p>';
+                return;
+            }
+            
+            let html = '<h4>📋 待办列表:</h4>';
+            todos.forEach(todo => {
+                html += `
+                    <div class="todo-item priority-${todo.priority}">
+                        <div class="todo-title">${todo.title}</div>
+                        <div class="todo-meta">
+                            ID: ${todo.id} | 优先级: ${todo.priority} | 状态: ${todo.status} | 
+                            截止: ${todo.dueDate} | 分配者: ${todo.assignerName}
+                        </div>
+                        <div style="font-size: 14px; color: #555; margin-top: 8px;">
+                            ${todo.content.substring(0, 100)}${todo.content.length > 100 ? '...' : ''}
+                        </div>
+                        <div style="margin-top: 10px;">
+                            ${todo.isCompleted ? 
+                                '<span style="color: #27ae60; font-weight: bold;">✅ 已完成</span>' : 
+                                `<button onclick="document.getElementById('completeId').value='${todo.id}'; completeTodo();">标记完成</button>
+                                 <button onclick="document.getElementById('statsId').value='${todo.id}'; getTodoStats();">查看统计</button>`
+                            }
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        // 显示状态消息
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
+            
+            // 3秒后自动清除
+            setTimeout(() => {
+                statusDiv.innerHTML = '';
+            }, 3000);
+        }
+
+        // 页面加载时设置默认日期
+        window.onload = function() {
+            const today = new Date();
+            today.setDate(today.getDate() + 7); // 默认一周后截止
+            document.getElementById('todoDueDate').value = today.toISOString().split('T')[0];
+            
+            showStatus('📋 T13待办通知系统测试页面已加载', 'success');
+        };
+    </script>
+</body>
+</html>

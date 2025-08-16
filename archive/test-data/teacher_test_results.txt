@@ -1,0 +1,12 @@
+Quick Teacher Account Test Results
+===================================
+Found 8 teacher accounts:
+
+10013 / 888888 (teacher role)
+10019 / 888888 (teacher role)
+10031 / 888888 (teacher role)
+10032 / 888888 (teacher role)
+10047 / 888888 (teacher role)
+10120 / 888888 (teacher role)
+10138 / 888888 (teacher role)
+10145 / 888888 (teacher role)

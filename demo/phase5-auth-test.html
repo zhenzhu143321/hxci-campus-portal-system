@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phase5认证功能测试</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .btn { padding: 10px 20px; margin: 10px; border: none; border-radius: 5px; cursor: pointer; }
+        .btn-primary { background: #007bff; color: white; }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        #testLog { background: #f8f9fa; padding: 15px; border-radius: 5px; max-height: 400px; overflow-y: auto; font-family: monospace; }
+        #authStatus { padding: 10px; border-radius: 5px; margin: 10px 0; }
+        .form-control { width: 200px; padding: 8px; margin: 5px; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Phase5一键认证功能测试</h1>
+    
+    <div>
+        <h3>认证测试</h3>
+        <label>角色选择:</label>
+        <select id="roleSelect" class="form-control">
+            <option value="PRINCIPAL">🎩 校长 (可审批所有通知)</option>
+            <option value="ACADEMIC_ADMIN" selected>👔 教务主任 (可查看审批状态)</option>
+        </select>
+        
+        <div>
+            <label>认证状态:</label>
+            <div id="authStatus" style="background: #f8f9fa; color: #6c757d;">
+                未认证
+            </div>
+        </div>
+        
+        <button class="btn btn-primary" id="authenticateBtn" onclick="authenticateInPage()">
+            🚀 一键认证
+        </button>
+        
+        <button class="btn btn-primary" onclick="testMockAPI()">
+            🔍 测试Mock API连接
+        </button>
+    </div>
+    
+    <div>
+        <h3>📋 测试日志</h3>
+        <div id="testLog">
+            <div style="color: #666;">等待测试开始...</div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        const API_BASE = 'http://localhost:48081';
+        const MOCK_API_BASE = 'http://localhost:48082';
+        let currentUser = null;
+        let currentToken = null;
+
+        // 角色对应的测试账号
+        const roleAccounts = {
+            'PRINCIPAL': {
+                employeeId: 'PRINCIPAL_001',
+                name: 'Principal-Zhang',
+                password: 'admin123',
+                displayName: '校长张明'
+            },
+            'ACADEMIC_ADMIN': {
+                employeeId: 'ACADEMIC_ADMIN_001', 
+                name: 'Director-Li',
+                password: 'admin123',
+                displayName: '教务主任李华'
+            }
+        };
+
+        // 添加日志记录函数 - 修复后的版本
+        function addLog(message, type = 'info') {
+            try {
+                const logElement = document.getElementById('testLog');
+                
+                // 检查日志容器是否存在
+                if (!logElement) {
+                    console.warn('日志容器不存在，使用 console 输出:', message);
+                    console.log(`[${type.toUpperCase()}] ${message}`);
+                    return;
+                }
+                
+                const timestamp = new Date().toLocaleTimeString();
+                const icons = {
+                    'info': 'ℹ️',
+                    'success': '✅', 
+                    'error': '❌',
+                    'warning': '⚠️'
+                };
+                
+                const colors = {
+                    'info': '#17a2b8',
+                    'success': '#28a745',
+                    'error': '#dc3545', 
+                    'warning': '#ffc107'
+                };
+                
+                const logEntry = document.createElement('div');
+                logEntry.style.marginBottom = '8px';
+                logEntry.style.color = colors[type] || colors.info;
+                logEntry.innerHTML = `[${timestamp}] ${icons[type] || icons.info} ${message}`;
+                
+                logElement.appendChild(logEntry);
+                logElement.scrollTop = logElement.scrollHeight;
+                
+                // 同时输出到控制台，方便调试
+                console.log(`[${type.toUpperCase()}] ${message}`);
+                
+                // 如果是错误类型，同时输出到 console.error
+                if (type === 'error') {
+                    console.error(`Phase5 Error: ${message}`);
+                }
+                
+            } catch (logError) {
+                // 日志函数本身出错时，只能输出到控制台
+                console.error('日志函数错误:', logError);
+                console.log(`[${type.toUpperCase()}] ${message}`);
+            }
+        }
+
+        // 测试Mock API连接
+        async function testMockAPI() {
+            addLog('🔍 开始测试Mock API连接...', 'info');
+            
+            try {
+                const response = await fetch(`${MOCK_API_BASE}/mock-school-api/auth/health`);
+                if (response.ok) {
+                    const result = await response.json();
+                    addLog(`✅ Mock API连接成功: ${result.message}`, 'success');
+                } else {
+                    addLog(`❌ Mock API连接失败: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                addLog(`❌ Mock API连接异常: ${error.message}`, 'error');
+            }
+        }
+
+        // 页面内认证函数 - 完全基于Phase5的实现
+        async function authenticateInPage() {
+            const selectedRole = document.getElementById('roleSelect').value;
+            const authBtn = document.getElementById('authenticateBtn');
+            const authStatus = document.getElementById('authStatus');
+            
+            try {
+                authBtn.disabled = true;
+                authBtn.innerHTML = '🔄 认证中...';
+                authStatus.innerHTML = '正在认证...';
+                authStatus.style.background = '#fff3cd';
+                authStatus.style.color = '#856404';
+                
+                addLog('🚀 开始审批流程认证', 'info');
+                addLog(`👤 选择角色: ${selectedRole}`, 'info');
+                
+                const account = roleAccounts[selectedRole];
+                if (!account) {
+                    throw new Error('未找到对应角色的测试账号');
+                }
+                
+                addLog(`🔑 使用账号: ${account.displayName} (${account.employeeId})`, 'info');
+                
+                // 调用认证API
+                const authResponse = await fetch(`${MOCK_API_BASE}/mock-school-api/auth/authenticate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(account)
+                });
+                
+                if (!authResponse.ok) {
+                    throw new Error(`认证请求失败: ${authResponse.status}`);
+                }
+                
+                const authResult = await authResponse.json();
+                addLog(`✅ 认证API响应成功`, 'success');
+                addLog(`📥 API响应详情: ${JSON.stringify(authResult, null, 2)}`, 'info');
+                
+                if (authResult.success && authResult.data) {
+                    currentUser = authResult.data;
+                    currentToken = authResult.data.accessToken;
+                    
+                    addLog(`🎉 认证成功！用户: ${currentUser.realName || currentUser.username}`, 'success');
+                    addLog(`🔑 Token: ${currentToken.substring(0, 30)}...`, 'info');
+                    
+                    // 更新认证状态
+                    const displayName = currentUser.realName || currentUser.username || '未知用户';
+                    const roleTitle = currentUser.roleCode === 'PRINCIPAL' ? '校长' : '教务主任';
+                    
+                    authStatus.innerHTML = `✅ 已认证：${displayName} (${roleTitle})`;
+                    authStatus.style.background = '#d4edda';
+                    authStatus.style.color = '#155724';
+                    
+                    addLog('✅ Phase5一键认证功能修复成功！', 'success');
+                    
+                } else {
+                    throw new Error(authResult.message || '认证失败');
+                }
+                
+            } catch (error) {
+                addLog(`❌ 认证失败: ${error.message}`, 'error');
+                authStatus.innerHTML = `❌ 认证失败: ${error.message}`;
+                authStatus.style.background = '#f8d7da';
+                authStatus.style.color = '#721c24';
+            } finally {
+                authBtn.disabled = false;
+                authBtn.innerHTML = '🚀 一键认证';
+            }
+        }
+
+        // 页面加载完成
+        document.addEventListener('DOMContentLoaded', function() {
+            addLog('🔧 Phase5认证功能测试页面加载完成', 'info');
+            addLog('💡 请先测试Mock API连接，然后尝试一键认证', 'info');
+        });
+    </script>
+</body>
+</html>

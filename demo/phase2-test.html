@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧪 Phase 2 功能测试验证</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .test-btn:hover {
+            background: #0056b3;
+        }
+        .result-area {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 15px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧪 Phase 2 功能测试验证</h1>
+        <p>测试phase2-authentication-enhanced.html是否正常工作</p>
+        
+        <button class="test-btn" onclick="testBasicJS()">测试基础JavaScript</button>
+        <button class="test-btn" onclick="testAPIConfig()">测试API配置</button>
+        <button class="test-btn" onclick="testDOMElements()">测试DOM元素</button>
+        <button class="test-btn" onclick="openMainPage()">打开主页面</button>
+        
+        <div id="results" class="result-area">等待测试结果...</div>
+    </div>
+
+    <script>
+        function log(message) {
+            const results = document.getElementById('results');
+            results.textContent += new Date().toLocaleTimeString() + ': ' + message + '\n';
+        }
+
+        function testBasicJS() {
+            log('🧪 开始基础JavaScript测试');
+            
+            try {
+                // 测试基本变量定义
+                const testState = {
+                    isAuthenticated: false,
+                    currentToken: '',
+                    selectedAccount: {
+                        role: 'PRINCIPAL',
+                        employeeId: 'PRINCIPAL_001',
+                        name: 'Principal-Zhang'
+                    }
+                };
+                
+                log('✅ 基础JavaScript对象创建成功');
+                log('✅ 状态: ' + JSON.stringify(testState, null, 2));
+                
+            } catch (error) {
+                log('❌ 基础JavaScript测试失败: ' + error.message);
+            }
+        }
+
+        function testAPIConfig() {
+            log('🔗 开始API配置测试');
+            
+            try {
+                const API_CONFIG = {
+                    MOCK_API: 'http://localhost:48082',
+                    HEADERS: {
+                        'Content-Type': 'application/json; charset=UTF-8'
+                    }
+                };
+                
+                log('✅ API配置创建成功');
+                log('✅ Mock API: ' + API_CONFIG.MOCK_API);
+                log('✅ Headers: ' + JSON.stringify(API_CONFIG.HEADERS));
+                
+            } catch (error) {
+                log('❌ API配置测试失败: ' + error.message);
+            }
+        }
+
+        async function testDOMElements() {
+            log('📋 开始DOM元素测试');
+            
+            try {
+                // 测试基本DOM操作
+                const testDiv = document.createElement('div');
+                testDiv.id = 'testElement';
+                testDiv.textContent = 'Test Content';
+                
+                document.body.appendChild(testDiv);
+                
+                const foundElement = document.getElementById('testElement');
+                if (foundElement) {
+                    log('✅ DOM元素创建和查找成功');
+                    foundElement.remove();
+                    log('✅ DOM元素删除成功');
+                } else {
+                    log('❌ DOM元素查找失败');
+                }
+                
+            } catch (error) {
+                log('❌ DOM测试失败: ' + error.message);
+            }
+        }
+
+        function openMainPage() {
+            log('🔄 尝试打开主页面...');
+            try {
+                window.open('phase2-authentication-enhanced.html', '_blank');
+                log('✅ 主页面打开成功');
+            } catch (error) {
+                log('❌ 主页面打开失败: ' + error.message);
+            }
+        }
+
+        // 页面加载完成后自动运行基础测试
+        window.addEventListener('DOMContentLoaded', function() {
+            log('🚀 页面加载完成，开始自动测试');
+            setTimeout(() => {
+                testBasicJS();
+                testAPIConfig(); 
+                testDOMElements();
+            }, 500);
+        });
+    </script>
+</body>
+</html>

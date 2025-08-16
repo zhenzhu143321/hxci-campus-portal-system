@@ -1,0 +1,3664 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phase 4: 通知列表 - 智能通知系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            margin-bottom: 20px;
+        }
+
+        /* 阶段导航 */
+        .phase-navigation {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+        }
+
+        .phase-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .phase-item.completed {
+            background: rgba(76, 175, 80, 0.2);
+            color: #4CAF50;
+            border: 2px solid #4CAF50;
+        }
+
+        .phase-item.active {
+            background: rgba(255, 193, 7, 0.2);
+            color: #FFC107;
+            border: 2px solid #FFC107;
+            animation: pulse 2s infinite;
+        }
+
+        .phase-item.pending {
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.6);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .phase-arrow {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 1.2rem;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(255, 193, 7, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0); }
+        }
+
+        /* 认证区域 */
+        .auth-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            transition: all 0.5s ease;
+        }
+
+        .auth-section.hidden {
+            max-height: 80px;
+            overflow: hidden;
+            padding: 15px 30px;
+        }
+
+        .auth-toggle {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .auth-form {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            align-items: end;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: #555;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #6c757d;
+            border: 2px solid #e9ecef;
+        }
+
+        .btn-secondary:hover {
+            background: #e9ecef;
+            border-color: #dee2e6;
+        }
+
+        .btn-warning {
+            background: #ffc107;
+            color: #212529;
+            border: 2px solid #ffc107;
+        }
+
+        .btn-warning:hover {
+            background: #ffb300;
+            border-color: #ffb300;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+            border: 2px solid #dc3545;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+            border-color: #c82333;
+        }
+
+        .btn-info {
+            background: #17a2b8;
+            color: white;
+            border: 2px solid #17a2b8;
+        }
+
+        .btn-info:hover {
+            background: #138496;
+            border-color: #138496;
+        }
+
+        /* 🗑️ 删除按钮样式 */
+        .btn-delete {
+            background: #dc3545;
+            color: white;
+            border: 1px solid #dc3545;
+            padding: 4px 8px;
+            font-size: 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-left: 8px;
+        }
+
+        .btn-delete:hover {
+            background: #c82333;
+            border-color: #c82333;
+            transform: translateY(-1px);
+        }
+
+        .btn-delete:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* 主内容区域 */
+        .main-content {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .content-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* 通知列表样式 */
+        .notification-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .filter-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .notification-list {
+            min-height: 400px;
+        }
+
+        .notification-item {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-left: 4px solid #667eea;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .notification-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .notification-item.level-1 {
+            border-left-color: #e74c3c;
+            background: linear-gradient(135deg, #ffeaa7 0%, #fab1a0 100%);
+        }
+
+        .notification-item.level-2 {
+            border-left-color: #f39c12;
+            background: linear-gradient(135deg, #fdcb6e 0%, #e17055 100%);
+        }
+
+        .notification-item.level-3 {
+            border-left-color: #3498db;
+            background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+        }
+
+        .notification-item.level-4 {
+            border-left-color: #27ae60;
+            background: linear-gradient(135deg, #55efc4 0%, #00b894 100%);
+        }
+
+        .notification-header-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+
+        .notification-title {
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: #2d3436;
+            margin-bottom: 8px;
+            flex: 1;
+            margin-right: 10px;
+        }
+
+        .notification-level {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: white;
+        }
+
+        .notification-level.level-1 { background: #e74c3c; }
+        .notification-level.level-2 { background: #f39c12; }
+        .notification-level.level-3 { background: #3498db; }
+        .notification-level.level-4 { background: #27ae60; }
+
+        .notification-meta {
+            font-size: 0.9rem;
+            color: #636e72;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .notification-status {
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .notification-status.published {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .notification-status.pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .notification-status.rejected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        /* 分页控制 */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 12px;
+        }
+
+        .pagination button {
+            padding: 8px 12px;
+            border: 1px solid #dee2e6;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .pagination button:hover:not(:disabled) {
+            background: #667eea;
+            color: white;
+        }
+
+        .pagination button.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* 用户信息面板 */
+        .user-info {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .user-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin: 0 auto 15px;
+        }
+
+        .user-details {
+            text-align: center;
+        }
+
+        .user-name {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .user-role {
+            opacity: 0.8;
+            font-size: 0.9rem;
+        }
+
+        /* 权限说明 */
+        .permission-info {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .permission-title {
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .permission-list {
+            list-style: none;
+        }
+
+        .permission-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .permission-list li:last-child {
+            border-bottom: none;
+        }
+
+        .permission-check {
+            color: #27ae60;
+            font-size: 1.1rem;
+        }
+
+        .permission-cross {
+            color: #e74c3c;
+            font-size: 1.1rem;
+        }
+
+        /* 统计信息 */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .stat-item {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        /* API展示区域 */
+        .api-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .api-tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .api-tab {
+            padding: 12px 24px;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .api-tab.active {
+            border-bottom-color: #667eea;
+            color: #667eea;
+        }
+
+        .api-content {
+            display: none;
+        }
+
+        .api-content.active {
+            display: block;
+        }
+
+        .code-block {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+
+        .code-block .keyword {
+            color: #ed8936;
+        }
+
+        .code-block .string {
+            color: #68d391;
+        }
+
+        .code-block .comment {
+            color: #a0aec0;
+            font-style: italic;
+        }
+
+        /* 🚀 模板区域样式 */
+        .template-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 32px;
+            color: white;
+            box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
+        }
+
+        .template-toggle {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .template-toggle h3 {
+            margin: 0;
+            font-size: 1.4rem;
+            color: white;
+        }
+
+        .template-intro {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            backdrop-filter: blur(10px);
+        }
+
+        .template-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .template-card {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            border: 2px solid transparent;
+        }
+
+        .template-card:hover {
+            transform: translateY(-4px);
+            background: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .template-card.selected {
+            border-color: #ffd700;
+            background: rgba(255, 215, 0, 0.2);
+            transform: scale(1.02);
+        }
+
+        .template-header {
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+            color: #fff;
+        }
+
+        .template-preview {
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 12px;
+        }
+
+        .template-level {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.7);
+            background: rgba(0, 0, 0, 0.2);
+            padding: 4px 8px;
+            border-radius: 6px;
+            display: inline-block;
+        }
+
+        .template-action {
+            text-align: center;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+        }
+
+        #quickPublishBtn {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            border: none;
+            padding: 12px 32px;
+            font-size: 1.1rem;
+            border-radius: 8px;
+            color: white;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        #quickPublishBtn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+        }
+
+        #quickPublishBtn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .template-status {
+            display: inline-block;
+            margin-left: 16px;
+            font-weight: 500;
+        }
+
+        /* 加载状态 */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            font-size: 1.1rem;
+            color: #666;
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f0f0f0;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 错误和成功消息 */
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        /* 空状态 */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+
+        .empty-state-text {
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+        }
+
+        .empty-state-subtext {
+            font-size: 0.9rem;
+            opacity: 0.7;
+        }
+
+        /* 下一阶段按钮 */
+        .next-phase {
+            text-align: center;
+            margin-top: 40px;
+        }
+
+        .btn-next {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 30px;
+            font-size: 1.1rem;
+            border-radius: 50px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .btn-next:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(102, 126, 234, 0.4);
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 1200px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+
+            .auth-form {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .phase-navigation {
+                gap: 10px;
+            }
+
+            .phase-item {
+                padding: 6px 12px;
+                font-size: 0.9rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* 🗑️ 删除确认弹窗样式 */
+        .delete-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 3000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .delete-modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            text-align: center;
+            position: relative;
+        }
+
+        .delete-modal-icon {
+            font-size: 4rem;
+            color: #dc3545;
+            margin-bottom: 20px;
+        }
+
+        .delete-modal-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .delete-modal-text {
+            color: #666;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .delete-modal-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 25px;
+        }
+
+        .btn-delete-confirm {
+            background: #dc3545;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-delete-confirm:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+        }
+
+        .btn-delete-cancel {
+            background: #6c757d;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-delete-cancel:hover {
+            background: #545b62;
+            transform: translateY(-2px);
+        }
+
+        .d-block {
+            display: block !important;
+        }
+
+        /* 隐藏类 */
+        .d-none {
+            display: none !important;
+        }
+
+        /* 🚨 新增：通知高亮动画样式 */
+        .notification-highlight {
+            position: relative;
+            overflow: visible;
+        }
+
+        @keyframes highlightPulse {
+            0% {
+                background: #fff3cd;
+                transform: scale(1);
+                box-shadow: 0 0 0 rgba(255, 193, 7, 0);
+            }
+            25% {
+                background: #fff3cd;
+                transform: scale(1.02);
+                box-shadow: 0 0 20px rgba(255, 193, 7, 0.3);
+            }
+            50% {
+                background: #ffeaa7;
+                transform: scale(1.03);
+                box-shadow: 0 0 25px rgba(255, 193, 7, 0.5);
+            }
+            75% {
+                background: #fff3cd;
+                transform: scale(1.02);
+                box-shadow: 0 0 20px rgba(255, 193, 7, 0.3);
+            }
+            100% {
+                background: #f8f9fa;
+                transform: scale(1);
+                box-shadow: 0 0 0 rgba(255, 193, 7, 0);
+            }
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {
+                transform: translateY(0);
+            }
+            40% {
+                transform: translateY(-8px);
+            }
+            60% {
+                transform: translateY(-4px);
+            }
+        }
+
+        /* 🚨 新增：跳转上下文提示样式 */
+        .jump-context-banner {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: 12px 20px;
+            margin: -20px -30px 20px -30px;
+            border-radius: 0;
+            text-align: center;
+            font-weight: 500;
+            box-shadow: 0 2px 8px rgba(40, 167, 69, 0.2);
+        }
+
+        .jump-context-banner.partial {
+            background: linear-gradient(135deg, #ffc107 0%, #ffb300 100%);
+            color: #333;
+        }
+
+        /* Phase间跳转的过渡效果 */
+        .auth-section.smooth-transition {
+            transition: all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .auth-section.fade-out {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+
+        .main-content.fade-in {
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 页面头部 -->
+        <div class="header">
+            <h1>📋 智能通知系统</h1>
+            <div class="subtitle">Phase 4: 通知列表查询与权限过滤</div>
+            
+            <!-- 阶段导航 - 增强版 -->
+            <div class="phase-navigation">
+                <div class="phase-item completed">
+                    <span>✅</span>
+                    <span>Phase 1: 连接测试</span>
+                </div>
+                <span class="phase-arrow">→</span>
+                <div class="phase-item completed">
+                    <span>✅</span>
+                    <span>Phase 2: 身份认证</span>
+                </div>
+                <span class="phase-arrow">→</span>
+                <div class="phase-item completed" onclick="returnToPhase3()" style="cursor: pointer; transition: all 0.3s ease;" 
+                     onmouseover="this.style.background='rgba(76, 175, 80, 0.3)'; this.style.transform='scale(1.05)'" 
+                     onmouseout="this.style.background='rgba(76, 175, 80, 0.2)'; this.style.transform='scale(1)'">
+                    <span>📝</span>
+                    <span>Phase 3: 通知发布</span>
+                    <span style="font-size: 12px; opacity: 0.8; margin-left: 5px;">(点击返回)</span>
+                </div>
+                <span class="phase-arrow">→</span>
+                <div class="phase-item active">
+                    <span>🔄</span>
+                    <span>Phase 4: 通知列表</span>
+                </div>
+                <span class="phase-arrow">→</span>
+                <div class="phase-item pending">
+                    <span>⭕</span>
+                    <span>Phase 5: 审批功能</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 🚀 快速发布模板区域 -->
+        <div class="template-section">
+            <div class="template-toggle">
+                <h3>🚀 快速发布通知模板</h3>
+                <button class="btn btn-secondary" onclick="toggleTemplateSection()">
+                    收起/展开
+                </button>
+            </div>
+            
+            <div id="templateContent" class="template-content" style="display: block;">
+                <div class="template-intro">
+                    <p>🎯 <strong>使用说明</strong>: 选择预设模板快速填充通知内容，一键发布测试通知，便于体验完整的发布→查看→删除工作流</p>
+                </div>
+                
+                <div class="template-grid">
+                    <div class="template-card" onclick="useTemplate('emergency', event)">
+                        <div class="template-header">🚨 紧急通知</div>
+                        <div class="template-preview">校园安全紧急通知</div>
+                        <div class="template-level">级别: 1级 (紧急)</div>
+                    </div>
+                    
+                    <div class="template-card" onclick="useTemplate('academic', event)">
+                        <div class="template-header">📚 教务通知</div>
+                        <div class="template-preview">期末考试安排通知</div>
+                        <div class="template-level">级别: 2级 (重要)</div>
+                    </div>
+                    
+                    <div class="template-card" onclick="useTemplate('activity', event)">
+                        <div class="template-header">🎉 活动通知</div>
+                        <div class="template-preview">校园文化节活动</div>
+                        <div class="template-level">级别: 3级 (常规)</div>
+                    </div>
+                    
+                    <div class="template-card" onclick="useTemplate('reminder', event)">
+                        <div class="template-header">⏰ 提醒通知</div>
+                        <div class="template-preview">课程时间调整提醒</div>
+                        <div class="template-level">级别: 4级 (提醒)</div>
+                    </div>
+                </div>
+                
+                <div class="template-action">
+                    <button class="btn btn-primary" id="quickPublishBtn" onclick="quickPublishTemplate()" disabled>
+                        📤 一键发布选中模板
+                    </button>
+                    <button class="btn btn-info" onclick="startWorkflowDemo()" style="margin-left: 12px;">
+                        🎬 演示完整工作流
+                    </button>
+                    <span class="template-status" id="templateStatus"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 认证区域 -->
+        <div class="auth-section" id="authSection">
+            <div class="auth-toggle">
+                <h3 id="authTitle">🔑 身份认证</h3>
+                <button class="btn btn-secondary" id="toggleAuthBtn" onclick="toggleAuthSection()" style="display: none;">
+                    收起/展开
+                </button>
+            </div>
+            
+            <div id="authForm">
+                <div class="auth-form">
+                    <div class="form-group">
+                        <label for="roleSelect">选择角色 <span class="required">*</span></label>
+                        <select class="form-control" id="roleSelect">
+                            <option value="PRINCIPAL">🎩 校长</option>
+                            <option value="ACADEMIC_ADMIN">👔 教务主任</option>
+                            <option value="TEACHER">👨‍🏫 教师</option>
+                            <option value="CLASS_TEACHER">👩‍🏫 班主任</option>
+                            <option value="STUDENT">🎓 学生</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>认证状态</label>
+                        <div id="authStatus" style="padding: 12px; border-radius: 8px; background: #f8f9fa; color: #6c757d;">
+                            未认证
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <button class="btn btn-primary" id="authenticateBtn" onclick="authenticateInPage()">
+                            🚀 一键认证
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 主内容区域 -->
+        <div class="main-content d-none" id="mainContent">
+            <!-- 左侧：通知列表 -->
+            <div class="content-card">
+                <div class="card-title">
+                    📋 通知列表
+                    <span id="listCount" style="font-size: 0.9rem; color: #666; font-weight: normal;"></span>
+                </div>
+                
+                <div class="notification-header">
+                    <div class="filter-controls">
+                        <select class="form-control" id="levelFilter" style="width: auto;" onchange="filterNotifications()">
+                            <option value="">全部级别</option>
+                            <option value="1">1级-紧急</option>
+                            <option value="2">2级-重要</option>
+                            <option value="3">3级-常规</option>
+                            <option value="4">4级-提醒</option>
+                        </select>
+                        <select class="form-control" id="statusFilter" style="width: auto;" onchange="filterNotifications()">
+                            <option value="">全部状态</option>
+                            <option value="PUBLISHED">已发布</option>
+                            <option value="PENDING_APPROVAL">待审批</option>
+                            <option value="REJECTED">已拒绝</option>
+                        </select>
+                        <!-- 🚨 Phase4-FIX: 添加发布通知功能 -->
+                        <button class="btn btn-primary" onclick="showPublishModal()" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); margin-right: 10px;">
+                            ✍️ 发布通知
+                        </button>
+                        <button class="btn btn-secondary" onclick="loadNotificationList()">
+                            🔄 重新加载
+                        </button>
+                        <button class="btn btn-primary" onclick="showAPIDebugInfo()" style="font-size: 0.9rem;">
+                            🔧 API调试
+                        </button>
+                        <button class="btn btn-info" onclick="showRawAPIResponse()" style="font-size: 0.9rem;">
+                            📋 原始响应
+                        </button>
+                        <button class="btn btn-warning" onclick="showPermissionDiagnostic()" style="font-size: 0.9rem;">
+                            🔧 权限诊断
+                        </button>
+                        <button class="btn btn-danger" onclick="showAllNotificationsForDebug()" style="font-size: 0.9rem;">
+                            🚨 显示全部
+                        </button>
+                        <button class="btn btn-warning" onclick="testDeletePermissions()" style="font-size: 0.9rem;">
+                            🗑️ 测试删除权限
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="notification-list" id="notificationList">
+                    <!-- 通知列表将在这里动态生成 -->
+                </div>
+                
+                <div class="pagination" id="pagination">
+                    <!-- 分页控制将在这里动态生成 -->
+                </div>
+            </div>
+            
+            <!-- 右侧：信息面板 -->
+            <div>
+                <!-- 用户信息 -->
+                <div class="content-card">
+                    <div class="card-title">👤 当前用户</div>
+                    <div class="user-info" id="userInfo">
+                        <!-- 用户信息将在这里动态生成 -->
+                    </div>
+                </div>
+                
+                <!-- 权限说明 -->
+                <div class="content-card">
+                    <div class="card-title">🔐 查看权限</div>
+                    <div class="permission-info">
+                        <div class="permission-title">当前角色可查看的通知级别：</div>
+                        <ul class="permission-list" id="permissionList">
+                            <!-- 权限列表将在这里动态生成 -->
+                        </ul>
+                    </div>
+                </div>
+                
+                <!-- 统计信息 -->
+                <div class="content-card">
+                    <div class="card-title">📊 统计信息</div>
+                    <div class="stats-grid" id="statsGrid">
+                        <!-- 统计信息将在这里动态生成 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- API展示区域 -->
+        <div class="api-section d-none" id="apiSection">
+            <div class="card-title">🔧 API 调用展示</div>
+            
+            <div class="api-tabs">
+                <div class="api-tab active" onclick="switchApiTab('request')">请求信息</div>
+                <div class="api-tab" onclick="switchApiTab('response')">响应数据</div>
+                <div class="api-tab" onclick="switchApiTab('publish')">发布通知API</div>
+                <div class="api-tab" onclick="switchApiTab('delete')">删除通知API</div>
+                <div class="api-tab" onclick="switchApiTab('vue')">Vue 3 代码</div>
+            </div>
+            
+            <div class="api-content active" id="requestTab">
+                <h4>📤 API 请求</h4>
+                <div class="code-block" id="requestInfo">
+                    <span class="comment">// 等待API调用...</span>
+                </div>
+            </div>
+            
+            <div class="api-content" id="responseTab">
+                <h4>📥 API 响应</h4>
+                <div class="code-block" id="responseInfo">
+                    <span class="comment">// 等待API响应...</span>
+                </div>
+            </div>
+            
+            <div class="api-content" id="publishTab">
+                <h4>✍️ 发布通知 API 文档</h4>
+                <div class="code-block" id="publishApiCode">
+<span class="comment">// 📋 发布通知接口说明</span><br>
+<span class="keyword">POST</span> <span class="string">http://localhost:48081/admin-api/test/notification/api/publish-database</span><br><br>
+
+<span class="comment">// 🔑 请求头 (必需)</span><br>
+{<br>
+&nbsp;&nbsp;<span class="string">"Authorization"</span>: <span class="string">"Bearer {JWT_TOKEN}"</span>,<br>
+&nbsp;&nbsp;<span class="string">"Content-Type"</span>: <span class="string">"application/json"</span>,<br>
+&nbsp;&nbsp;<span class="string">"tenant-id"</span>: <span class="string">"1"</span><br>
+}<br><br>
+
+<span class="comment">// 📤 请求参数</span><br>
+{<br>
+&nbsp;&nbsp;<span class="string">"title"</span>: <span class="string">"通知标题"</span>,           <span class="comment">// 必需，最长200字符</span><br>
+&nbsp;&nbsp;<span class="string">"content"</span>: <span class="string">"通知内容详情"</span>,      <span class="comment">// 必需，支持文本内容</span><br>
+&nbsp;&nbsp;<span class="string">"level"</span>: <span class="keyword">2</span>,                    <span class="comment">// 必需，1=紧急 2=重要 3=常规 4=提醒</span><br>
+&nbsp;&nbsp;<span class="string">"summary"</span>: <span class="string">"可选的通知摘要"</span>,     <span class="comment">// 可选，最长500字符</span><br>
+&nbsp;&nbsp;<span class="string">"targetScope"</span>: <span class="string">"SCHOOL_WIDE"</span>   <span class="comment">// 可选，SCHOOL_WIDE|DEPARTMENT|CLASS|GRADE</span><br>
+}<br><br>
+
+<span class="comment">// 📥 成功响应 (HTTP 200)</span><br>
+{<br>
+&nbsp;&nbsp;<span class="string">"code"</span>: <span class="keyword">0</span>,                     <span class="comment">// 0=成功</span><br>
+&nbsp;&nbsp;<span class="string">"data"</span>: {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="string">"notificationId"</span>: <span class="keyword">123</span>,       <span class="comment">// 新创建的通知ID</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="string">"title"</span>: <span class="string">"通知标题"</span>,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="string">"level"</span>: <span class="keyword">2</span>,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="string">"status"</span>: <span class="string">"PUBLISHED"</span>,     <span class="comment">// PUBLISHED|PENDING_APPROVAL</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="string">"publisherName"</span>: <span class="string">"发布者姓名"</span>,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="string">"publisherRole"</span>: <span class="string">"PRINCIPAL"</span>,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="string">"approvalRequired"</span>: <span class="keyword">false</span>,  <span class="comment">// 是否需要审批</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="string">"securityValidated"</span>: <span class="keyword">true</span>,  <span class="comment">// 安全验证状态</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="string">"timestamp"</span>: <span class="keyword">1723456789123</span>   <span class="comment">// 发布时间戳</span><br>
+&nbsp;&nbsp;},<br>
+&nbsp;&nbsp;<span class="string">"msg"</span>: <span class="string">""</span><br>
+}<br><br>
+
+<span class="comment">// 🚨 权限规则</span><br>
+<span class="comment">// PRINCIPAL(校长):     1-4级通知直接发布</span><br>
+<span class="comment">// ACADEMIC_ADMIN(教务): 2-4级直接发布，1级需审批</span><br>
+<span class="comment">// TEACHER(教师):       3-4级直接发布</span><br>
+<span class="comment">// STUDENT(学生):       4级直接发布</span><br><br>
+
+<span class="comment">// 📋 JavaScript 调用示例</span><br>
+<span class="keyword">const</span> response = <span class="keyword">await</span> fetch(<span class="string">'http://localhost:48081/admin-api/test/notification/api/publish-database'</span>, {<br>
+&nbsp;&nbsp;method: <span class="string">'POST'</span>,<br>
+&nbsp;&nbsp;headers: {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="string">'Authorization'</span>: <span class="string">`Bearer ${token}`</span>,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="string">'Content-Type'</span>: <span class="string">'application/json'</span>,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="string">'tenant-id'</span>: <span class="string">'1'</span><br>
+&nbsp;&nbsp;},<br>
+&nbsp;&nbsp;body: JSON.stringify({<br>
+&nbsp;&nbsp;&nbsp;&nbsp;title: <span class="string">'新学期开学通知'</span>,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;content: <span class="string">'请全体师生做好开学准备工作'</span>,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;level: <span class="keyword">2</span>,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;targetScope: <span class="string">'SCHOOL_WIDE'</span><br>
+&nbsp;&nbsp;})<br>
+});
+                </div>
+            </div>
+            
+            <div class="api-content" id="deleteTab">
+                <h4>🗑️ 删除通知 API 文档</h4>
+                <div class="code-block" id="deleteApiCode">
+<span class="comment">// 📋 删除通知接口说明 (⚠️ 后端待实现)</span><br>
+<span class="keyword">DELETE</span> <span class="string">http://localhost:48081/admin-api/test/notification/api/delete/{id}</span><br><br>
+
+<span class="comment">// 🔑 请求头 (必需)</span><br>
+{<br>
+&nbsp;&nbsp;<span class="string">"Authorization"</span>: <span class="string">"Bearer {JWT_TOKEN}"</span>,<br>
+&nbsp;&nbsp;<span class="string">"Content-Type"</span>: <span class="string">"application/json"</span>,<br>
+&nbsp;&nbsp;<span class="string">"tenant-id"</span>: <span class="string">"1"</span><br>
+}<br><br>
+
+<span class="comment">// 📤 路径参数</span><br>
+<span class="comment">// {id} - 要删除的通知ID，例如: /delete/123</span><br><br>
+
+<span class="comment">// 📥 成功响应 (HTTP 200)</span><br>
+{<br>
+&nbsp;&nbsp;<span class="string">"code"</span>: <span class="keyword">0</span>,                     <span class="comment">// 0=成功</span><br>
+&nbsp;&nbsp;<span class="string">"data"</span>: {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="string">"deletedId"</span>: <span class="keyword">123</span>,           <span class="comment">// 已删除的通知ID</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="string">"success"</span>: <span class="keyword">true</span>,           <span class="comment">// 删除是否成功</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="string">"timestamp"</span>: <span class="keyword">1723456789123</span>   <span class="comment">// 删除时间戳</span><br>
+&nbsp;&nbsp;},<br>
+&nbsp;&nbsp;<span class="string">"msg"</span>: <span class="string">"通知删除成功"</span><br>
+}<br><br>
+
+<span class="comment">// 🚨 删除权限规则（简化版）</span><br>
+<span class="comment">// 谁发布谁删除 + 校长全权限</span><br>
+<span class="comment">// PRINCIPAL(校长):     可删除任何通知</span><br>
+<span class="comment">// 其他角色:            只能删除自己发布的通知</span><br><br>
+
+<span class="comment">// 📋 JavaScript 调用示例</span><br>
+<span class="keyword">const</span> response = <span class="keyword">await</span> fetch(<span class="string">`http://localhost:48081/admin-api/test/notification/api/delete/${notificationId}`</span>, {<br>
+&nbsp;&nbsp;method: <span class="string">'DELETE'</span>,<br>
+&nbsp;&nbsp;headers: {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="string">'Authorization'</span>: <span class="string">`Bearer ${token}`</span>,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="string">'Content-Type'</span>: <span class="string">'application/json'</span>,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="string">'tenant-id'</span>: <span class="string">'1'</span><br>
+&nbsp;&nbsp;}<br>
+});<br><br>
+
+<span class="comment">// ⚠️ 注意: 此API目前为前端模拟实现，后端接口待开发</span><br>
+<span class="comment">// 前端已预留标准化调用代码，后端实现后即可直接对接</span>
+                </div>
+            </div>
+            
+            <div class="api-content" id="vueTab">
+                <h4>🏗️ Vue 3 实现代码</h4>
+                <div class="code-block" id="vueCode">
+                    <span class="comment">// Vue 3 + TypeScript + Element Plus 实现</span><br>
+                    <span class="keyword">const</span> notificationList = <span class="keyword">ref</span>([]);<br>
+                    <span class="keyword">const</span> currentUser = <span class="keyword">ref</span>(<span class="keyword">null</span>);<br>
+                    <span class="keyword">const</span> loading = <span class="keyword">ref</span>(<span class="keyword">false</span>);<br><br>
+                    
+                    <span class="comment">// 获取通知列表</span><br>
+                    <span class="keyword">const</span> fetchNotifications = <span class="keyword">async</span> () => {<br>
+                    &nbsp;&nbsp;<span class="keyword">try</span> {<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;loading.value = <span class="keyword">true</span>;<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">const</span> response = <span class="keyword">await</span> axios.get(<span class="string">'/admin-api/test/notification/api/list'</span>, {<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;headers: {<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="string">'Authorization'</span>: <span class="string">`Bearer ${token.value}`</span>,<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="string">'tenant-id'</span>: <span class="string">'1'</span><br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;});<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;notificationList.value = response.data.data.notifications;<br>
+                    &nbsp;&nbsp;} <span class="keyword">catch</span> (error) {<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;ElMessage.error(<span class="string">'加载通知列表失败'</span>);<br>
+                    &nbsp;&nbsp;} <span class="keyword">finally</span> {<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;loading.value = <span class="keyword">false</span>;<br>
+                    &nbsp;&nbsp;}<br>
+                    };<br><br>
+                    
+                    <span class="comment">// 发布通知</span><br>
+                    <span class="keyword">const</span> publishNotification = <span class="keyword">async</span> (data) => {<br>
+                    &nbsp;&nbsp;<span class="keyword">try</span> {<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">const</span> response = <span class="keyword">await</span> axios.post(<span class="string">'/admin-api/test/notification/api/publish-database'</span>, data, {<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;headers: {<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="string">'Authorization'</span>: <span class="string">`Bearer ${token.value}`</span>,<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="string">'tenant-id'</span>: <span class="string">'1'</span><br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;});<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">if</span> (response.data.code === <span class="keyword">0</span>) {<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ElMessage.success(<span class="string">'通知发布成功'</span>);<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">await</span> fetchNotifications();<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;}<br>
+                    &nbsp;&nbsp;} <span class="keyword">catch</span> (error) {<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;ElMessage.error(<span class="string">'发布通知失败'</span>);<br>
+                    &nbsp;&nbsp;}<br>
+                    };<br><br>
+                    
+                    <span class="comment">// 删除通知</span><br>
+                    <span class="keyword">const</span> deleteNotification = <span class="keyword">async</span> (id) => {<br>
+                    &nbsp;&nbsp;<span class="keyword">try</span> {<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">const</span> response = <span class="keyword">await</span> axios.delete(<span class="string">`/admin-api/test/notification/api/delete/${id}`</span>, {<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;headers: {<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="string">'Authorization'</span>: <span class="string">`Bearer ${token.value}`</span>,<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="string">'tenant-id'</span>: <span class="string">'1'</span><br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;});<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">if</span> (response.data.code === <span class="keyword">0</span>) {<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ElMessage.success(<span class="string">'通知删除成功'</span>);<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">await</span> fetchNotifications();<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;}<br>
+                    &nbsp;&nbsp;} <span class="keyword">catch</span> (error) {<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;ElMessage.error(<span class="string">'删除通知失败'</span>);<br>
+                    &nbsp;&nbsp;}<br>
+                    };
+                </div>
+            </div>
+        </div>
+
+        <!-- 测试日志 -->
+        <div class="api-section">
+            <div class="card-title">📋 测试日志</div>
+            <div id="testLog" style="max-height: 300px; overflow-y: auto; background: #f8f9fa; padding: 20px; border-radius: 12px; font-family: monospace; font-size: 14px;">
+                <div style="color: #666;">等待测试操作...</div>
+            </div>
+        </div>
+
+        <!-- 🚨 Phase4-FIX: 发布通知弹窗 -->
+        <div id="publishModal" class="d-none" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 2000; display: flex; align-items: center; justify-content: center;">
+            <div class="content-card" style="max-width: 600px; max-height: 90vh; overflow-y: auto; margin: 20px;">
+                <div class="card-title">✍️ 发布新通知</div>
+                
+                <form id="quickPublishForm">
+                    <div class="form-group">
+                        <label for="quickTitle">通知标题 <span style="color: red;">*</span></label>
+                        <input type="text" class="form-control" id="quickTitle" placeholder="请输入通知标题..." required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="quickContent">通知内容 <span style="color: red;">*</span></label>
+                        <textarea class="form-control" id="quickContent" rows="4" placeholder="请输入通知内容..." required></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>通知级别 <span style="color: red;">*</span></label>
+                        <div class="level-options" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+                            <div class="level-option" data-level="1" style="border: 2px solid #e74c3c; border-radius: 8px; padding: 12px; cursor: pointer; transition: all 0.3s;">
+                                <input type="radio" name="quickLevel" value="1" style="margin-right: 8px;">
+                                <strong>1级-紧急</strong><br>
+                                <small>校园安全警报</small>
+                                <div class="approval-warning" style="color: #f39c12; font-size: 0.8rem; margin-top: 5px; display: none;">
+                                    ⚠️ 需要校长审批
+                                </div>
+                            </div>
+                            <div class="level-option" data-level="2" style="border: 2px solid #f39c12; border-radius: 8px; padding: 12px; cursor: pointer; transition: all 0.3s;">
+                                <input type="radio" name="quickLevel" value="2" style="margin-right: 8px;">
+                                <strong>2级-重要</strong><br>
+                                <small>考试安排变更</small>
+                            </div>
+                            <div class="level-option" data-level="3" style="border: 2px solid #3498db; border-radius: 8px; padding: 12px; cursor: pointer; transition: all 0.3s;">
+                                <input type="radio" name="quickLevel" value="3" style="margin-right: 8px;">
+                                <strong>3级-常规</strong><br>
+                                <small>课程调整</small>
+                            </div>
+                            <div class="level-option" data-level="4" style="border: 2px solid #27ae60; border-radius: 8px; padding: 12px; cursor: pointer; transition: all 0.3s;">
+                                <input type="radio" name="quickLevel" value="4" style="margin-right: 8px;" checked>
+                                <strong>4级-提醒</strong><br>
+                                <small>作业提醒</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="quickSummary">通知摘要</label>
+                        <input type="text" class="form-control" id="quickSummary" placeholder="简短摘要（可选）">
+                    </div>
+                    
+                    <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                        <button type="button" class="btn btn-secondary" onclick="closePublishModal()">
+                            ❌ 取消
+                        </button>
+                        <button type="submit" class="btn btn-primary" id="quickPublishBtn">
+                            🚀 立即发布
+                        </button>
+                    </div>
+                </form>
+                
+                <div id="publishStatus" class="d-none" style="margin-top: 20px; padding: 15px; border-radius: 8px;">
+                    <!-- 发布状态将在这里显示 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 🗑️ 删除确认弹窗 -->
+        <div id="deleteModal" class="delete-modal">
+            <div class="delete-modal-content">
+                <div class="delete-modal-icon">🗑️</div>
+                <div class="delete-modal-title">确认删除通知</div>
+                <div class="delete-modal-text">
+                    <div id="deleteNotificationTitle" style="font-weight: 600; margin-bottom: 10px;"></div>
+                    <div>此操作不可恢复，确定要删除这条通知吗？</div>
+                </div>
+                <div class="delete-modal-buttons">
+                    <button class="btn-delete-cancel" onclick="closeDeleteModal()">
+                        ❌ 取消
+                    </button>
+                    <button class="btn-delete-confirm" id="confirmDeleteBtn" onclick="executeDeleteNotification()">
+                        🗑️ 确认删除
+                    </button>
+                </div>
+                <div id="deleteStatus" style="margin-top: 20px; padding: 15px; border-radius: 8px; display: none;">
+                    <!-- 删除状态信息将在这里显示 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 下一阶段 -->
+        <div class="next-phase">
+            <a href="phase5-notification-approval.html" class="btn-next" id="nextPhaseBtn" style="display: none;">
+                进入 Phase 5: 审批功能 →
+            </a>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        const API_BASE = 'http://localhost:48081';
+        const MOCK_API_BASE = 'http://localhost:48082';
+        let currentUser = null;
+        let currentToken = null;
+        let allNotifications = [];
+        let filteredNotifications = [];
+        let currentPage = 1;
+        let pageSize = 10;
+
+        // 角色对应的测试账号
+        const roleAccounts = {
+            'PRINCIPAL': {
+                employeeId: 'PRINCIPAL_001',
+                name: 'Principal-Zhang',
+                password: 'admin123'
+            },
+            'ACADEMIC_ADMIN': {
+                employeeId: 'ACADEMIC_ADMIN_001', 
+                name: 'Director-Li',
+                password: 'admin123'
+            },
+            'TEACHER': {
+                employeeId: 'TEACHER_001',
+                name: 'Teacher-Wang', 
+                password: 'admin123'
+            },
+            'CLASS_TEACHER': {
+                employeeId: 'TEACHER_002',
+                name: 'Teacher-Liu',
+                password: 'admin123'
+            },
+            'STUDENT': {
+                employeeId: 'STUDENT_001',
+                name: 'Student-Zhang',
+                password: 'admin123'
+            }
+        };
+
+        // 角色权限配置
+        const rolePermissions = {
+            'PRINCIPAL': [1, 2, 3, 4],        // 校长：可查看所有级别通知
+            'ACADEMIC_ADMIN': [1, 2, 3, 4],   // 🚨 修复：教务主任应该能看到紧急通知
+            'TEACHER': [1, 2, 3, 4],          // 🚨 修复：教师应该能看到紧急和重要通知
+            'CLASS_TEACHER': [1, 2, 3, 4],    // 🚨 修复：班主任应该能看到紧急和重要通知
+            'STUDENT': [1, 2, 3, 4]           // 🚨 关键修复：学生应该能看到所有级别通知！
+        };
+
+        // 级别名称映射
+        const levelNames = {
+            1: '1级-紧急',
+            2: '2级-重要', 
+            3: '3级-常规',
+            4: '4级-提醒'
+        };
+
+        // 状态名称映射
+        const statusNames = {
+            'PUBLISHED': '✅ 已发布',
+            'PENDING_APPROVAL': '⏳ 待审批',
+            'REJECTED': '❌ 已拒绝',
+            'UNKNOWN': '❓ 未知状态'
+        };
+
+        // 🚨 新增：返回Phase3功能
+        function returnToPhase3() {
+            console.log('🔄 用户请求返回Phase3，准备传递认证状态...');
+            
+            if (!currentUser || !currentToken) {
+                console.warn('⚠️ 当前未认证，将返回Phase3但需要重新认证');
+                window.location.href = 'phase3-notification-publish.html?from=phase4&reason=unauthenticated';
+                return;
+            }
+            
+            // 保存当前认证状态供Phase3使用
+            const returnContext = {
+                fromPhase: 'phase4',
+                returnTime: new Date().toISOString(),
+                user: currentUser,
+                token: currentToken,
+                reason: 'user_navigation'
+            };
+            
+            // 多重存储确保可靠性
+            localStorage.setItem('phase3ReturnContext', JSON.stringify(returnContext));
+            sessionStorage.setItem('phase3ReturnContext', JSON.stringify(returnContext));
+            
+            console.log('✅ 返回上下文已保存:', returnContext);
+            
+            // 构建带参数的返回URL
+            const phase3Url = new URL('phase3-notification-publish.html', window.location.href);
+            phase3Url.searchParams.set('from', 'phase4');
+            phase3Url.searchParams.set('user', currentUser.roleCode);
+            phase3Url.searchParams.set('return', 'true');
+            phase3Url.searchParams.set('timestamp', Date.now());
+            
+            console.log('🎯 即将返回到:', phase3Url.toString());
+            
+            // 显示返回提示
+            if (confirm(`🔄 确定要返回Phase3发布通知吗？\n\n当前认证状态将自动传递，您无需重新登录。\n\n用户: ${currentUser.name || currentUser.username}\n角色: ${currentUser.roleCode}`)) {
+                window.location.href = phase3Url.toString();
+            }
+        }
+
+        // 🚨 新增：智能检测Phase3传递的认证状态和上下文
+        function detectJumpContext() {
+            console.log('🔍 正在检测Phase3传递的跳转上下文...');
+            
+            // 检查多个可能的数据来源
+            const urlParams = new URLSearchParams(window.location.search);
+            const jumpContextStorage = localStorage.getItem('phase4JumpContext');
+            const jumpContextSession = sessionStorage.getItem('phase4JumpContext');
+            const lastPublished = localStorage.getItem('lastPublishedNotification');
+            
+            console.log('🔧 检测结果:', {
+                urlFrom: urlParams.get('from'),
+                urlUser: urlParams.get('user'),
+                urlHighlight: urlParams.get('highlight'),
+                urlPublished: urlParams.get('published'),
+                hasJumpContext: !!jumpContextStorage,
+                hasSessionContext: !!jumpContextSession,
+                hasLastPublished: !!lastPublished
+            });
+            
+            // 如果来自Phase3，尝试自动继承认证
+            if (urlParams.get('from') === 'phase3') {
+                return handlePhase3Jump(urlParams, jumpContextStorage, jumpContextSession, lastPublished);
+            }
+            
+            return null;
+        }
+
+        // 🚨 新增：处理从Phase3的跳转
+        function handlePhase3Jump(urlParams, jumpContextStorage, jumpContextSession, lastPublished) {
+            console.log('🚀 检测到从Phase3跳转，开始处理上下文继承...');
+            
+            let jumpContext = null;
+            
+            // 尝试解析跳转上下文
+            try {
+                if (jumpContextStorage) {
+                    jumpContext = JSON.parse(jumpContextStorage);
+                    console.log('✅ 从localStorage获取跳转上下文:', jumpContext);
+                } else if (jumpContextSession) {
+                    jumpContext = JSON.parse(jumpContextSession);
+                    console.log('✅ 从sessionStorage获取跳转上下文:', jumpContext);
+                }
+            } catch (error) {
+                console.warn('⚠️ 解析跳转上下文失败:', error);
+            }
+            
+            // 如果有有效的跳转上下文且包含认证信息
+            if (jumpContext && jumpContext.user && jumpContext.token) {
+                console.log('🎯 发现有效的认证信息，准备自动继承...');
+                
+                // 继承认证状态
+                currentUser = jumpContext.user;
+                currentToken = jumpContext.token;
+                
+                // 显示继承成功的提示
+                showJumpWelcome(jumpContext, urlParams);
+                
+                // 如果有刚发布的通知，准备高亮显示
+                if (jumpContext.justPublished && jumpContext.publishedNotification) {
+                    sessionStorage.setItem('highlightNotificationId', jumpContext.publishedNotification.id);
+                    console.log(`📍 将高亮显示刚发布的通知ID: ${jumpContext.publishedNotification.id}`);
+                }
+                
+                // 自动显示主内容并加载通知列表
+                setTimeout(() => {
+                    console.log('⚡ 自动认证继承成功，显示主内容...');
+                    showMainContent();
+                    loadNotificationList();
+                }, 500);
+                
+                return jumpContext;
+            } else {
+                console.log('⚠️ 跳转上下文不完整，将显示友好的认证提示');
+                showPartialJumpWelcome(urlParams);
+                return null;
+            }
+        }
+
+        // 🚨 新增：显示完整跳转欢迎信息
+        function showJumpWelcome(jumpContext, urlParams) {
+            const authTitle = document.getElementById('authTitle');
+            const authStatus = document.getElementById('authStatus');
+            
+            // 更新认证区域标题
+            authTitle.innerHTML = `🎉 欢迎来到Phase 4 - 从Phase 3无缝跳转`;
+            
+            // 显示跳转成功信息
+            const welcomeMessage = jumpContext.justPublished ? 
+                `✅ 认证继承成功！您刚刚发布了"${jumpContext.publishedNotification.title}"，将为您自动加载并高亮显示` :
+                `✅ 认证继承成功！欢迎 ${jumpContext.user.name || jumpContext.user.username} (${jumpContext.user.roleCode})`;
+                
+            authStatus.innerHTML = welcomeMessage;
+            authStatus.style.background = '#d4edda';
+            authStatus.style.color = '#155724';
+            
+            // 折叠认证区域
+            setTimeout(() => {
+                document.getElementById('authSection').classList.add('hidden');
+                document.getElementById('toggleAuthBtn').style.display = 'inline-block';
+            }, 2000);
+            
+            console.log('🎊 跳转欢迎信息已显示');
+        }
+
+        // 🚨 新增：显示部分跳转欢迎信息（认证不完整时）
+        function showPartialJumpWelcome(urlParams) {
+            const authTitle = document.getElementById('authTitle');
+            const authStatus = document.getElementById('authStatus');
+            
+            authTitle.innerHTML = `🔄 从Phase 3跳转 - 需要认证确认`;
+            authStatus.innerHTML = `⚠️ 检测到从Phase3跳转，但认证信息不完整。请重新选择角色完成认证，我们会为您简化流程。`;
+            authStatus.style.background = '#fff3cd';
+            authStatus.style.color = '#856404';
+            
+            // 如果URL中有用户角色信息，预选角色
+            const userRole = urlParams.get('user');
+            if (userRole && roleAccounts[userRole]) {
+                const roleSelect = document.getElementById('roleSelect');
+                roleSelect.value = userRole;
+                console.log(`💡 根据URL参数预选角色: ${userRole}`);
+            }
+            
+            console.log('🔄 显示部分跳转欢迎，需要用户重新认证');
+        }
+
+        // 页面内认证函数
+        async function authenticateInPage() {
+            const selectedRole = document.getElementById('roleSelect').value;
+            const authBtn = document.getElementById('authenticateBtn');
+            const authStatus = document.getElementById('authStatus');
+            
+            try {
+                authBtn.disabled = true;
+                authBtn.innerHTML = '🔄 认证中...';
+                authStatus.innerHTML = '正在认证...';
+                authStatus.style.background = '#fff3cd';
+                authStatus.style.color = '#856404';
+                
+                addLog('🚀 开始页面内认证流程', 'info');
+                addLog(`👤 选择角色: ${selectedRole}`, 'info');
+                
+                const account = roleAccounts[selectedRole];
+                if (!account) {
+                    throw new Error('未找到对应角色的测试账号');
+                }
+                
+                addLog(`🔑 使用账号: ${account.name} (${account.employeeId})`, 'info');
+                
+                // 调用认证API
+                const authResponse = await fetch(`${MOCK_API_BASE}/mock-school-api/auth/authenticate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(account)
+                });
+                
+                if (!authResponse.ok) {
+                    throw new Error(`认证请求失败: ${authResponse.status}`);
+                }
+                
+                const authResult = await authResponse.json();
+                addLog(`✅ 认证API响应: ${JSON.stringify(authResult, null, 2)}`, 'success');
+                
+                if (authResult.success && authResult.data) {
+                    currentUser = authResult.data;
+                    currentToken = authResult.data.accessToken;
+                    
+                    addLog(`🎉 认证成功！Token: ${currentToken.substring(0, 20)}...`, 'success');
+                    
+                    // 🚨 修复：使用正确的字段映射显示用户信息
+                    const displayName = currentUser.realName || currentUser.username || currentUser.name || '未知用户';
+                    const displayRole = currentUser.roleName || currentUser.roleCode || '未知角色';
+                    
+                    // 更新认证状态
+                    authStatus.innerHTML = `✅ 已认证：${displayName} (${displayRole})`;
+                    authStatus.style.background = '#d4edda';
+                    authStatus.style.color = '#155724';
+                    
+                    // 折叠认证区域，显示主内容
+                    document.getElementById('authSection').classList.add('hidden');
+                    document.getElementById('toggleAuthBtn').style.display = 'inline-block';
+                    document.getElementById('authTitle').innerHTML = `🔑 已认证：${displayName} (${currentUser.roleCode})`;
+                    
+                    showMainContent();
+                    await loadNotificationList();
+                    
+                } else {
+                    throw new Error(authResult.message || '认证失败');
+                }
+                
+            } catch (error) {
+                addLog(`❌ 认证失败: ${error.message}`, 'error');
+                authStatus.innerHTML = `❌ 认证失败: ${error.message}`;
+                authStatus.style.background = '#f8d7da';
+                authStatus.style.color = '#721c24';
+            } finally {
+                authBtn.disabled = false;
+                authBtn.innerHTML = '🚀 一键认证';
+            }
+        }
+
+        // 显示主内容区域
+        function showMainContent() {
+            document.getElementById('mainContent').classList.remove('d-none');
+            document.getElementById('apiSection').classList.remove('d-none');
+            document.getElementById('nextPhaseBtn').style.display = 'inline-flex';
+            
+            // 更新用户信息面板
+            updateUserInfoPanel();
+            updatePermissionPanel();
+        }
+
+        // 更新用户信息面板
+        function updateUserInfoPanel() {
+            if (!currentUser) return;
+            
+            const userInfo = document.getElementById('userInfo');
+            const roleEmojis = {
+                'PRINCIPAL': '🎩',
+                'ACADEMIC_ADMIN': '👔',
+                'TEACHER': '👨‍🏫',
+                'CLASS_TEACHER': '👩‍🏫',
+                'STUDENT': '🎓'
+            };
+            
+            userInfo.innerHTML = `
+                <div class="user-avatar">
+                    ${roleEmojis[currentUser.roleCode] || '👤'}
+                </div>
+                <div class="user-details">
+                    <div class="user-name">${currentUser.realName || currentUser.username || '未知用户'}</div>
+                    <div class="user-role">${currentUser.roleCode}</div>
+                </div>
+            `;
+        }
+
+        // 更新权限面板
+        function updatePermissionPanel() {
+            if (!currentUser) return;
+            
+            const permissionList = document.getElementById('permissionList');
+            const allowedLevels = rolePermissions[currentUser.roleCode] || [];
+            
+            let html = '';
+            for (let level = 1; level <= 4; level++) {
+                const isAllowed = allowedLevels.includes(level);
+                html += `
+                    <li>
+                        <span>${levelNames[level]}</span>
+                        <span class="${isAllowed ? 'permission-check' : 'permission-cross'}">
+                            ${isAllowed ? '✓' : '✗'}
+                        </span>
+                    </li>
+                `;
+            }
+            
+            permissionList.innerHTML = html;
+        }
+
+        // 加载通知列表
+        async function loadNotificationList() {
+            if (!currentToken) {
+                addLog('❌ 未找到认证Token，无法加载通知列表', 'error');
+                return;
+            }
+            
+            // 移除Bearer前缀，确保Token格式正确
+            let cleanToken = currentToken;
+            if (cleanToken && cleanToken.startsWith('Bearer ')) {
+                cleanToken = cleanToken.substring(7);
+            }
+            
+            try {
+                addLog('📋 开始加载通知列表...', 'info');
+                addLog(`🔑 使用Token: ${cleanToken.substring(0, 20)}...`, 'info');
+                
+                const listResponse = await fetch(`${API_BASE}/admin-api/test/notification/api/list`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${cleanToken}`,
+                        'tenant-id': '1',
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                updateApiDisplay('request', {
+                    method: 'GET',
+                    url: `${API_BASE}/admin-api/test/notification/api/list`,
+                    headers: {
+                        'Authorization': `Bearer ${cleanToken.substring(0, 20)}...`,
+                        'tenant-id': '1',
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                addLog(`📤 API请求状态: ${listResponse.status} ${listResponse.statusText}`, 'info');
+                
+                if (!listResponse.ok) {
+                    // 获取详细错误信息
+                    const errorText = await listResponse.text();
+                    addLog(`📥 错误响应内容: ${errorText}`, 'error');
+                    throw new Error(`请求失败: ${listResponse.status} ${listResponse.statusText} - ${errorText}`);
+                }
+                
+                const listResult = await listResponse.json();
+                addLog(`📥 API原始响应: ${JSON.stringify(listResult, null, 2)}`, 'info');
+                updateApiDisplay('response', listResult);
+                
+                // 智能数据解析逻辑 - 支持多种可能的响应格式
+                let notificationData = null;
+                let recordCount = 0;
+                
+                // 添加调试信息显示完整响应结构
+                addLog(`📋 响应数据类型: ${typeof listResult}`, 'info');
+                addLog(`📋 响应数据结构: ${JSON.stringify(Object.keys(listResult || {}), null, 2)}`, 'info');
+                
+                // 尝试多种解析策略
+                if (listResult.success === true && listResult.data) {
+                    // 格式A: {success: true, data: [...]}  
+                    if (Array.isArray(listResult.data)) {
+                        notificationData = listResult.data;
+                        addLog(`✅ 解析格式A: success=true, data为数组`, 'success');
+                    } else if (listResult.data.list && Array.isArray(listResult.data.list)) {
+                        // 格式A-1: {success: true, data: {list: [...], total: ...}}
+                        notificationData = listResult.data.list;
+                        addLog(`✅ 解析格式A-1: success=true, data.list为数组`, 'success');
+                    } else if (listResult.data.records && Array.isArray(listResult.data.records)) {
+                        // 格式A-2: {success: true, data: {records: [...], total: ...}}
+                        notificationData = listResult.data.records;
+                        addLog(`✅ 解析格式A-2: success=true, data.records为数组`, 'success');
+                    } else {
+                        // 格式A-3: data是对象但不是数组，转换为数组
+                        notificationData = [listResult.data];
+                        addLog(`⚠️ 解析格式A-3: success=true, data对象转数组`, 'warning');
+                    }
+                } else if (listResult.code === 0 && listResult.data !== undefined) {
+                    // 格式B: {code: 0, data: [...]} - yudao框架标准格式
+                    if (Array.isArray(listResult.data)) {
+                        notificationData = listResult.data;
+                        addLog(`✅ 解析格式B: code=0, data为数组`, 'success');
+                    } else if (listResult.data && listResult.data.notifications && Array.isArray(listResult.data.notifications)) {
+                        // 🚨 关键修复: {code: 0, data: {notifications: [...], total: ...}} - 实际API响应格式
+                        notificationData = listResult.data.notifications;
+                        addLog(`✅ 解析格式B-NOTIFICATIONS: code=0, data.notifications为数组，共${listResult.data.notifications.length}条`, 'success');
+                    } else if (listResult.data && listResult.data.list && Array.isArray(listResult.data.list)) {
+                        // 格式B-1: {code: 0, data: {list: [...], total: ...}}
+                        notificationData = listResult.data.list;
+                        addLog(`✅ 解析格式B-1: code=0, data.list为数组`, 'success');
+                    } else if (listResult.data && listResult.data.records && Array.isArray(listResult.data.records)) {
+                        // 格式B-2: {code: 0, data: {records: [...], total: ...}}
+                        notificationData = listResult.data.records;
+                        addLog(`✅ 解析格式B-2: code=0, data.records为数组`, 'success');
+                    } else if (listResult.data === null || listResult.data === undefined) {
+                        // 格式B-3: {code: 0, data: null} - 空结果
+                        notificationData = [];
+                        addLog(`✅ 解析格式B-3: code=0, data为null，设为空数组`, 'success');
+                    } else {
+                        // 格式B-4: data是对象但不是数组，转换为数组
+                        notificationData = [listResult.data];
+                        addLog(`⚠️ 解析格式B-4: code=0, data对象转数组`, 'warning');
+                    }
+                } else if (Array.isArray(listResult)) {
+                    // 格式C: 直接返回数组
+                    notificationData = listResult;
+                    addLog(`✅ 解析格式C: 直接数组格式`, 'success');
+                } else if (listResult.data && Array.isArray(listResult.data.list)) {
+                    // 格式D: 分页格式 {data: {list: [...], total: ...}}
+                    notificationData = listResult.data.list;
+                    addLog(`✅ 解析格式D: 分页格式`, 'success');
+                } else if (listResult.data && Array.isArray(listResult.data.records)) {
+                    // 格式E: MyBatis Plus分页格式 {data: {records: [...], total: ...}}
+                    notificationData = listResult.data.records;
+                    addLog(`✅ 解析格式E: MyBatis Plus分页格式`, 'success');
+                } else {
+                    // 最后的兜底策略 - 尝试多种可能性
+                    addLog(`⚠️ 未识别的响应格式，尝试兜底解析`, 'warning');
+                    
+                    if (listResult.data) {
+                        if (Array.isArray(listResult.data)) {
+                            notificationData = listResult.data;
+                        } else if (typeof listResult.data === 'object' && listResult.data !== null) {
+                            // 如果data是对象，尝试找到其中的数组字段
+                            const possibleArrayKeys = ['list', 'records', 'items', 'notifications', 'content'];
+                            let found = false;
+                            for (const key of possibleArrayKeys) {
+                                if (listResult.data[key] && Array.isArray(listResult.data[key])) {
+                                    notificationData = listResult.data[key];
+                                    addLog(`✅ 兜底解析: 找到data.${key}数组`, 'success');
+                                    found = true;
+                                    break;
+                                }
+                            }
+                            if (!found) {
+                                // 如果找不到数组字段，将data对象转为数组
+                                notificationData = [listResult.data];
+                                addLog(`⚠️ 兜底解析: data对象转数组`, 'warning');
+                            }
+                        } else {
+                            notificationData = [];
+                            addLog(`⚠️ 兜底解析: data不是对象或数组，设为空数组`, 'warning');
+                        }
+                    } else {
+                        notificationData = [];
+                        addLog(`⚠️ 兜底解析: 无data字段，设为空数组`, 'warning');
+                    }
+                }
+                
+                // 确保最终数据是数组
+                if (!Array.isArray(notificationData)) {
+                    if (notificationData === null || notificationData === undefined) {
+                        notificationData = [];
+                        addLog(`⚠️ 数据修正: null/undefined转为空数组`, 'warning');
+                    } else if (typeof notificationData === 'object') {
+                        notificationData = [notificationData];
+                        addLog(`⚠️ 数据修正: 对象转为单元素数组`, 'warning');
+                    } else {
+                        notificationData = [];
+                        addLog(`⚠️ 数据修正: 未知类型转为空数组`, 'warning');
+                    }
+                }
+                
+                recordCount = notificationData.length;
+                addLog(`✅ 数据解析完成，共 ${recordCount} 条原始记录`, 'success');
+                
+                // 现在notificationData保证是数组，可以安全处理
+                // 🚨 重要修复：规范化level字段数据类型
+                allNotifications = notificationData.map(notification => {
+                    // 创建通知对象副本并规范化level字段
+                    const normalizedNotification = { ...notification };
+                    
+                    if (typeof normalizedNotification.level === 'string') {
+                        normalizedNotification.level = parseInt(normalizedNotification.level, 10);
+                        addLog(`🔄 数据修复: 通知"${normalizedNotification.title}"的level从字符串"${notification.level}"转换为数字${normalizedNotification.level}`, 'info');
+                    } else if (typeof normalizedNotification.level === 'undefined' || normalizedNotification.level === null) {
+                        normalizedNotification.level = 4; // 默认设为4级
+                        addLog(`⚠️ 数据修复: 通知"${normalizedNotification.title}"缺少level字段，默认设为4级`, 'warning');
+                    } else if (typeof normalizedNotification.level !== 'number') {
+                        normalizedNotification.level = 4; // 如果不是数字也默认设为4级
+                        addLog(`⚠️ 数据修复: 通知"${normalizedNotification.title}"的level字段类型异常(${typeof notification.level})，默认设为4级`, 'warning');
+                    }
+                    
+                    // 同样规范化其他可能的字段
+                    if (!normalizedNotification.publisher && normalizedNotification.publisherName) {
+                        normalizedNotification.publisher = normalizedNotification.publisherName;
+                    }
+                    
+                    if (!normalizedNotification.status) {
+                        normalizedNotification.status = 'PUBLISHED'; // 默认已发布
+                    }
+                    
+                    return normalizedNotification;
+                });
+                
+                addLog(`✅ 数据规范化完成，共 ${allNotifications.length} 条通知`, 'success');
+                addLog(`🔍 开始权限过滤，原始通知数: ${allNotifications.length}`, 'info');
+                filterNotifications();
+                updateStats();
+                addLog(`✅ 通知列表加载完成`, 'success');
+                
+            } catch (error) {
+                addLog(`❌ 加载通知列表失败: ${error.message}`, 'error');
+                addLog(`🔍 错误详情: ${error.stack || '无堆栈信息'}`, 'error');
+                showEmptyState('加载失败', `错误: ${error.message}`);
+            }
+        }
+
+        // 权限诊断工具
+        function showPermissionDiagnostic() {
+            addLog('🔧 开始权限诊断...', 'info');
+            
+            const diagnostic = {
+                currentUser: currentUser,
+                userRole: currentUser?.roleCode,
+                rolePermissions: rolePermissions,
+                allowedLevels: rolePermissions[currentUser?.roleCode] || [],
+                allNotifications: allNotifications?.map(n => ({
+                    id: n.id,
+                    title: n.title,
+                    level: n.level,
+                    levelType: typeof n.level,
+                    publisherName: n.publisherName || n.publisher,
+                    status: n.status
+                })),
+                filterResult: filteredNotifications.length
+            };
+            
+            // 显示在API展示区域
+            const vueCodeElement = document.getElementById('vueCodeDisplay') || document.getElementById('vueCode');
+            if (vueCodeElement) {
+                vueCodeElement.textContent = JSON.stringify(diagnostic, null, 2);
+            }
+            
+            addLog('🔧 权限诊断信息已显示在API区域', 'info');
+            addLog(`📊 诊断结果: 用户角色=${currentUser?.roleCode}, 允许级别=[${diagnostic.allowedLevels.join(',')}]`, 'info');
+            
+            // 也通过alert显示关键信息
+            alert(`🔧 权限诊断\n\n用户: ${currentUser?.name}\n角色: ${currentUser?.roleCode}\n允许查看级别: [${diagnostic.allowedLevels.join(',')}]\n\n通知数据:\n${diagnostic.allNotifications?.map(n => `- ID:${n.id} 标题:"${n.title}" 级别:${n.level}(${n.levelType})`).join('\n') || '无通知数据'}\n\n详细信息已显示在API区域`);
+            
+            return diagnostic;
+        }
+
+        // 显示所有通知（绕过权限过滤，用于调试）
+        function showAllNotificationsForDebug() {
+            addLog('🚨 调试模式: 显示所有通知 (绕过权限过滤)', 'warning');
+            filteredNotifications = [...allNotifications];
+            renderNotificationList();
+            renderPagination();
+            updateStats();
+            addLog(`📊 调试显示: ${filteredNotifications.length} 条通知 (绕过权限过滤)`, 'info');
+        }
+
+        // 过滤通知 - 增强调试版本
+        function filterNotifications() {
+            if (!allNotifications || !currentUser) {
+                addLog('⚠️ 数据未就绪：allNotifications或currentUser为空', 'warning');
+                return;
+            }
+            
+            addLog(`🔍 开始权限过滤调试`, 'info');
+            addLog(`👤 当前用户: ${JSON.stringify(currentUser)}`, 'info');
+            addLog(`🎭 用户角色: ${currentUser?.roleCode}`, 'info');
+            
+            const levelFilter = document.getElementById('levelFilter').value;
+            const statusFilter = document.getElementById('statusFilter').value;
+            const allowedLevels = rolePermissions[currentUser.roleCode] || [];
+            
+            addLog(`🛡️ ${currentUser.roleCode} 角色可查看级别: [${allowedLevels.join(',')}]`, 'info');
+            addLog(`📋 开始过滤 ${allNotifications.length} 条通知`, 'info');
+            
+            // 逐个检查每条通知的权限过滤过程
+            allNotifications.forEach((notification, index) => {
+                addLog(`📄 通知 ${index + 1}: 标题="${notification.title}", 级别=${notification.level} (类型: ${typeof notification.level})`, 'info');
+                
+                // 检查level字段
+                if (typeof notification.level === 'undefined' || notification.level === null) {
+                    addLog(`   ⚠️ 警告: level字段为空或未定义`, 'warning');
+                    return;
+                }
+                
+                // 确保level是数字类型进行比较
+                const levelNum = Number(notification.level);
+                const isAllowed = allowedLevels.includes(levelNum);
+                addLog(`   判断: level=${levelNum}, 允许级别=[${allowedLevels.join(',')}], 结果=${isAllowed ? '✅ 允许查看' : '❌ 不允许查看'}`, isAllowed ? 'success' : 'error');
+            });
+            
+            // 首先根据角色权限过滤
+            let filtered = allNotifications.filter(notification => {
+                // 确保notification对象有level属性
+                if (typeof notification.level === 'undefined' || notification.level === null) {
+                    addLog(`⚠️ 通知对象缺少level属性: ${JSON.stringify(notification)}`, 'warning');
+                    return false;
+                }
+                
+                // 将level转换为数字进行比较
+                const levelNum = Number(notification.level);
+                return allowedLevels.includes(levelNum);
+            });
+            
+            addLog(`🛡️ 权限过滤后: ${filtered.length} 条通知`, filtered.length > 0 ? 'success' : 'warning');
+            
+            // 然后根据用户选择的过滤条件
+            if (levelFilter) {
+                const originalCount = filtered.length;
+                filtered = filtered.filter(notification => 
+                    Number(notification.level) === parseInt(levelFilter)
+                );
+                addLog(`📊 级别过滤 (${levelFilter}级): ${filtered.length} 条 (从 ${originalCount} 条)`, 'info');
+            }
+            
+            if (statusFilter) {
+                const originalCount = filtered.length;
+                filtered = filtered.filter(notification => 
+                    notification.status === statusFilter
+                );
+                addLog(`🔄 状态过滤 (${statusFilter}): ${filtered.length} 条 (从 ${originalCount} 条)`, 'info');
+            }
+            
+            filteredNotifications = filtered;
+            currentPage = 1; // 重置到第一页
+            renderNotificationList();
+            renderPagination();
+            
+            addLog(`🎯 过滤结果: ${filteredNotifications.length} 条可查看通知`, filteredNotifications.length > 0 ? 'success' : 'warning');
+            addLog(`✅ 过滤完成: 显示 ${filtered.length} 条通知 (总共 ${allNotifications.length} 条)`, 'success');
+        }
+
+        // 渲染通知列表 - 增强版支持高亮
+        function renderNotificationList() {
+            const listContainer = document.getElementById('notificationList');
+            const countElement = document.getElementById('listCount');
+            
+            if (!filteredNotifications || filteredNotifications.length === 0) {
+                showEmptyState('暂无通知', currentUser ? 
+                    `当前角色 ${currentUser.roleCode} 暂无可查看的通知` : 
+                    '请先进行身份认证');
+                countElement.textContent = '';
+                return;
+            }
+            
+            const startIndex = (currentPage - 1) * pageSize;
+            const endIndex = startIndex + pageSize;
+            const pageNotifications = filteredNotifications.slice(startIndex, endIndex);
+            
+            countElement.textContent = `(${filteredNotifications.length} 条)`;
+            
+            addLog(`🎨 开始渲染第 ${currentPage} 页，显示 ${pageNotifications.length} 条通知`, 'info');
+            
+            // 🚨 新增：检查是否需要高亮显示特定通知
+            const highlightId = sessionStorage.getItem('highlightNotificationId');
+            let highlightFound = false;
+            
+            if (highlightId) {
+                console.log(`📍 检查高亮通知ID: ${highlightId}`);
+                // 检查要高亮的通知是否在当前页
+                highlightFound = pageNotifications.some(n => n.id == highlightId);
+                if (!highlightFound) {
+                    // 如果不在当前页，尝试找到它在哪一页
+                    const highlightIndex = filteredNotifications.findIndex(n => n.id == highlightId);
+                    if (highlightIndex !== -1) {
+                        const targetPage = Math.ceil((highlightIndex + 1) / pageSize);
+                        console.log(`📍 高亮通知在第${targetPage}页，当前第${currentPage}页`);
+                        if (targetPage !== currentPage) {
+                            console.log(`🔄 自动跳转到第${targetPage}页显示高亮通知`);
+                            currentPage = targetPage;
+                            renderNotificationList();
+                            renderPagination();
+                            return;
+                        }
+                    }
+                }
+            }
+            
+            let html = '';
+            pageNotifications.forEach((notification, index) => {
+                try {
+                    // 数据验证
+                    if (!notification.id || !notification.title) {
+                        addLog(`⚠️ 通知数据不完整: ${JSON.stringify(notification)}`, 'warning');
+                        return;
+                    }
+                    
+                    // 🚨 关键修复: 使用正确的时间字段映射
+                    const publishTime = notification.createTime ? 
+                        new Date(notification.createTime).toLocaleString('zh-CN') : 
+                        (notification.publishTime ? new Date(notification.publishTime).toLocaleString('zh-CN') : '未知时间');
+                    
+                    const level = notification.level || 4; // 默认4级
+                    // 🚨 关键修复: 状态映射 (API返回数字状态码)
+                    const statusCode = notification.status;
+                    const status = statusCode === 2 ? 'PENDING_APPROVAL' : (statusCode === 3 ? 'PUBLISHED' : (statusCode === 6 ? 'REJECTED' : 'UNKNOWN'));
+                    // 🚨 关键修复: 使用正确的发布者字段映射
+                    const publisher = notification.publisherName || notification.publisher || '未知发布者';
+                    
+                    // 🚨 新增：检查是否需要高亮此通知
+                    const isHighlight = highlightId && notification.id == highlightId;
+                    const highlightClass = isHighlight ? ' notification-highlight' : '';
+                    const highlightStyle = isHighlight ? ' style="animation: highlightPulse 3s ease-in-out; border: 3px solid #ffc107; box-shadow: 0 0 20px rgba(255, 193, 7, 0.5);"' : '';
+                    
+                    // 🗑️ 新增：删除权限检查 - 简化版
+                    const canDelete = checkDeletePermission(notification, currentUser);
+                    const deleteButtonHtml = canDelete ? 
+                        `<button class="btn-delete" onclick="confirmDeleteNotification(${notification.id}, event)" title="删除此通知">
+                            🗑️ 删除
+                        </button>` : '';
+                    
+                    html += `
+                        <div class="notification-item level-${level}${highlightClass}" onclick="showNotificationDetail(${notification.id})"${highlightStyle}>
+                            ${isHighlight ? '<div style="position: absolute; top: -5px; right: -5px; background: #ffc107; color: #333; padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; animation: bounce 2s infinite;">🆕 刚发布</div>' : ''}
+                            <div class="notification-header-item" style="position: relative;">
+                                <div class="notification-title" style="flex: 1;">${isHighlight ? '🌟 ' : ''}${notification.title}</div>
+                                <div style="display: flex; align-items: center;">
+                                    <div class="notification-level level-${level}">
+                                        ${levelNames[level] || `${level}级`}
+                                    </div>
+                                    ${deleteButtonHtml}
+                                </div>
+                            </div>
+                            <div class="notification-meta">
+                                <span>📝 发布者：${publisher}</span>
+                                <span>📅 ${publishTime}</span>
+                                <span class="notification-status ${status.toLowerCase()}">
+                                    ${statusNames[status] || status}
+                                </span>
+                            </div>
+                            ${isHighlight ? '<div style="margin-top: 8px; font-size: 12px; color: #ffc107; font-weight: 600;">💡 这是您刚刚发布的通知</div>' : ''}
+                        </div>
+                    `;
+                    
+                    if (isHighlight) {
+                        console.log(`✨ 高亮通知已渲染: ${notification.title}`);
+                        // 高亮显示后清除标记，避免重复高亮
+                        setTimeout(() => {
+                            sessionStorage.removeItem('highlightNotificationId');
+                        }, 10000); // 10秒后自动清除高亮
+                    }
+                } catch (error) {
+                    addLog(`❌ 渲染通知 ${index} 时出错: ${error.message}`, 'error');
+                }
+            });
+            
+            listContainer.innerHTML = html;
+            addLog(`✅ 列表渲染完成，显示 ${pageNotifications.length} 条通知`, 'success');
+            
+            // 如果有高亮通知，滚动到视图中
+            if (highlightFound) {
+                setTimeout(() => {
+                    const highlightElement = listContainer.querySelector('.notification-highlight');
+                    if (highlightElement) {
+                        highlightElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        console.log('📍 已滚动到高亮通知位置');
+                    }
+                }, 500);
+            }
+        }
+
+        // 渲染分页控制
+        function renderPagination() {
+            const paginationContainer = document.getElementById('pagination');
+            const totalPages = Math.ceil(filteredNotifications.length / pageSize);
+            
+            if (totalPages <= 1) {
+                paginationContainer.innerHTML = '';
+                return;
+            }
+            
+            let html = `
+                <button ${currentPage <= 1 ? 'disabled' : ''} onclick="changePage(${currentPage - 1})">
+                    ← 上一页
+                </button>
+            `;
+            
+            const startPage = Math.max(1, currentPage - 2);
+            const endPage = Math.min(totalPages, currentPage + 2);
+            
+            for (let i = startPage; i <= endPage; i++) {
+                html += `
+                    <button class="${i === currentPage ? 'active' : ''}" onclick="changePage(${i})">
+                        ${i}
+                    </button>
+                `;
+            }
+            
+            html += `
+                <button ${currentPage >= totalPages ? 'disabled' : ''} onclick="changePage(${currentPage + 1})">
+                    下一页 →
+                </button>
+            `;
+            
+            paginationContainer.innerHTML = html;
+        }
+
+        // 切换页码
+        function changePage(page) {
+            const totalPages = Math.ceil(filteredNotifications.length / pageSize);
+            if (page < 1 || page > totalPages) return;
+            
+            currentPage = page;
+            renderNotificationList();
+            renderPagination();
+        }
+
+        // 显示通知详情
+        function showNotificationDetail(notificationId) {
+            const notification = allNotifications.find(n => n.id === notificationId);
+            if (!notification) return;
+            
+            // 🚨 关键修复: 使用正确的字段映射显示通知详情
+            const publishTime = notification.createTime ? 
+                new Date(notification.createTime).toLocaleString('zh-CN') : 
+                (notification.publishTime ? new Date(notification.publishTime).toLocaleString('zh-CN') : '未知时间');
+            const publisher = notification.publisherName || notification.publisher || '未知发布者';
+            const statusCode = notification.status;
+            const status = statusCode === 2 ? 'PENDING_APPROVAL' : (statusCode === 3 ? 'PUBLISHED' : (statusCode === 6 ? 'REJECTED' : 'UNKNOWN'));
+            
+            alert(`通知详情：\n\n标题：${notification.title}\n内容：${notification.content}\n级别：${levelNames[notification.level]}\n发布者：${publisher}\n状态：${statusNames[status] || status}\n发布时间：${publishTime}`);
+        }
+
+        // 更新统计信息
+        function updateStats() {
+            const statsGrid = document.getElementById('statsGrid');
+            const allowedLevels = rolePermissions[currentUser.roleCode] || [];
+            
+            // 计算各种统计数据
+            const totalVisible = allNotifications.filter(n => allowedLevels.includes(n.level)).length;
+            const publishedCount = allNotifications.filter(n => 
+                allowedLevels.includes(n.level) && n.status === 3
+            ).length;
+            const pendingCount = allNotifications.filter(n => 
+                allowedLevels.includes(n.level) && n.status === 2
+            ).length;
+            const emergencyCount = allNotifications.filter(n => 
+                allowedLevels.includes(n.level) && n.level === 1
+            ).length;
+            
+            statsGrid.innerHTML = `
+                <div class="stat-item">
+                    <div class="stat-number">${totalVisible}</div>
+                    <div class="stat-label">可查看</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">${publishedCount}</div>
+                    <div class="stat-label">已发布</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">${pendingCount}</div>
+                    <div class="stat-label">待审批</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">${emergencyCount}</div>
+                    <div class="stat-label">紧急通知</div>
+                </div>
+            `;
+        }
+
+        // 显示空状态
+        function showEmptyState(title, subtitle) {
+            const listContainer = document.getElementById('notificationList');
+            listContainer.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">📭</div>
+                    <div class="empty-state-text">${title}</div>
+                    <div class="empty-state-subtext">${subtitle}</div>
+                </div>
+            `;
+        }
+
+        // 切换认证区域显示
+        function toggleAuthSection() {
+            const authSection = document.getElementById('authSection');
+            authSection.classList.toggle('hidden');
+        }
+
+        // API展示相关函数
+        function switchApiTab(tabName) {
+            // 更新标签状态
+            document.querySelectorAll('.api-tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelector(`[onclick="switchApiTab('${tabName}')"]`).classList.add('active');
+            
+            // 更新内容显示
+            document.querySelectorAll('.api-content').forEach(content => content.classList.remove('active'));
+            document.getElementById(tabName + 'Tab').classList.add('active');
+        }
+
+        function updateApiDisplay(type, data) {
+            const element = document.getElementById(type + 'Info');
+            if (type === 'request') {
+                element.innerHTML = `<span class="keyword">GET</span> <span class="string">${data.url}</span><br><br>
+<span class="comment">// Headers:</span><br>
+${Object.entries(data.headers).map(([key, value]) => 
+    `<span class="string">'${key}'</span>: <span class="string">'${value}'</span>`
+).join(',<br>')}<br>`;
+            } else if (type === 'response') {
+                element.innerHTML = `<span class="comment">// API Response:</span><br>
+${JSON.stringify(data, null, 2)
+    .replace(/"/g, '<span class="string">"</span>')
+    .replace(/:/g, '<span class="keyword">:</span>')
+    .replace(/{/g, '<span class="keyword">{</span>')
+    .replace(/}/g, '<span class="keyword">}</span>')}`;
+            }
+        }
+
+        // 添加测试日志
+        function addLog(message, type = 'info') {
+            const logElement = document.getElementById('testLog');
+            const timestamp = new Date().toLocaleTimeString();
+            const icons = {
+                'info': 'ℹ️',
+                'success': '✅', 
+                'error': '❌',
+                'warning': '⚠️'
+            };
+            
+            const colors = {
+                'info': '#17a2b8',
+                'success': '#28a745',
+                'error': '#dc3545', 
+                'warning': '#ffc107'
+            };
+            
+            const logEntry = document.createElement('div');
+            logEntry.style.marginBottom = '8px';
+            logEntry.style.color = colors[type];
+            logEntry.innerHTML = `[${timestamp}] ${icons[type]} ${message}`;
+            
+            logElement.appendChild(logEntry);
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        // 显示API调试信息
+        function showAPIDebugInfo() {
+            const debugInfo = `
+=== API调试信息 ===
+
+🔧 当前状态:
+- 认证Token: ${currentToken ? currentToken.substring(0, 30) + '...' : '未设置'}
+- 当前用户: ${currentUser ? (currentUser.realName || currentUser.username || '未知用户') + ' (' + currentUser.roleCode + ')' : '未认证'}
+- 原始通知数: ${allNotifications ? allNotifications.length : 0}
+- 过滤后通知数: ${filteredNotifications ? filteredNotifications.length : 0}
+
+🌐 API端点:
+- 主服务: ${API_BASE}
+- Mock API: ${MOCK_API_BASE}
+- 通知列表API: ${API_BASE}/admin-api/test/notification/api/list
+
+🛡️ 权限配置:
+- 当前角色权限: [${currentUser && rolePermissions[currentUser.roleCode] ? rolePermissions[currentUser.roleCode].join(',') : '未知'}]
+
+📋 数据样例:
+${allNotifications && allNotifications.length > 0 ? 
+    JSON.stringify(allNotifications[0], null, 2) : 
+    '暂无通知数据'}
+
+🔍 故障排除:
+1. 确认服务器已启动 (端口48081和48082)
+2. 检查认证Token是否有效
+3. 验证请求头是否包含 tenant-id: 1
+4. 查看浏览器网络面板获取详细错误信息
+            `;
+            
+            alert(debugInfo);
+            addLog('🔧 已显示API调试信息', 'info');
+        }
+
+        // 显示原始API响应的调试功能
+        async function showRawAPIResponse() {
+            if (!currentToken) {
+                alert('❌ 请先进行认证获取Token');
+                addLog('❌ 无Token，无法获取原始API响应', 'error');
+                return;
+            }
+            
+            // 移除Bearer前缀，确保Token格式正确
+            let cleanToken = currentToken;
+            if (cleanToken && cleanToken.startsWith('Bearer ')) {
+                cleanToken = cleanToken.substring(7);
+            }
+            
+            try {
+                addLog('📋 正在获取原始API响应...', 'info');
+                
+                const response = await fetch(`${API_BASE}/admin-api/test/notification/api/list`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${cleanToken}`,
+                        'tenant-id': '1',
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const rawText = await response.text();
+                let parsedData;
+                
+                try {
+                    parsedData = JSON.parse(rawText);
+                } catch (e) {
+                    parsedData = rawText;
+                }
+                
+                const debugInfo = `
+=== 原始API响应调试信息 ===
+
+📡 请求信息:
+- URL: ${API_BASE}/admin-api/test/notification/api/list
+- Method: GET
+- Status: ${response.status} ${response.statusText}
+- Headers: Authorization: Bearer ${cleanToken.substring(0, 20)}...
+           tenant-id: 1
+           Content-Type: application/json
+
+📥 响应信息:
+- Response Type: ${typeof parsedData}
+- Response Keys: [${typeof parsedData === 'object' && parsedData !== null ? Object.keys(parsedData).join(', ') : 'N/A'}]
+
+📋 完整响应内容:
+${JSON.stringify(parsedData, null, 2)}
+
+🔍 数据解析分析:
+- 是否有success字段: ${parsedData && typeof parsedData === 'object' && 'success' in parsedData ? '✅ 是' : '❌ 否'}
+- 是否有code字段: ${parsedData && typeof parsedData === 'object' && 'code' in parsedData ? '✅ 是' : '❌ 否'}  
+- 是否有data字段: ${parsedData && typeof parsedData === 'object' && 'data' in parsedData ? '✅ 是' : '❌ 否'}
+- data字段类型: ${parsedData && parsedData.data ? typeof parsedData.data : 'undefined'}
+- data是否为数组: ${parsedData && Array.isArray(parsedData.data) ? '✅ 是' : '❌ 否'}
+
+🛠️ 建议解析策略:
+${generateParsingStrategy(parsedData)}
+                `;
+                
+                alert(debugInfo);
+                addLog('📋 原始API响应已显示', 'info');
+                
+                // 同时在API展示区域显示
+                updateApiDisplay('raw-response', parsedData);
+                
+            } catch (error) {
+                const errorInfo = `
+=== API请求失败 ===
+
+❌ 错误信息: ${error.message}
+🔍 错误类型: ${error.name}
+📍 发生位置: showRawAPIResponse函数
+
+🛠️ 故障排除建议:
+1. 检查服务器是否已启动 (端口48081)
+2. 验证Token是否有效
+3. 确认网络连接正常
+4. 查看浏览器开发者工具的Network面板
+
+🔧 当前配置:
+- API Base: ${API_BASE}
+- Token: ${cleanToken.substring(0, 20)}...
+                `;
+                
+                alert(errorInfo);
+                addLog(`❌ 获取原始API响应失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 生成解析策略建议
+        function generateParsingStrategy(data) {
+            if (!data || typeof data !== 'object') {
+                return '❌ 响应不是对象类型，无法正确解析';
+            }
+            
+            const strategies = [];
+            
+            if (data.success === true && data.data) {
+                if (Array.isArray(data.data)) {
+                    strategies.push('✅ 使用格式A: {success: true, data: [...]}');
+                } else if (data.data.list && Array.isArray(data.data.list)) {
+                    strategies.push('✅ 使用格式A-1: {success: true, data: {list: [...]}}');
+                } else if (data.data.records && Array.isArray(data.data.records)) {
+                    strategies.push('✅ 使用格式A-2: {success: true, data: {records: [...]}}');
+                } else {
+                    strategies.push('⚠️ 使用格式A-3: data对象转数组');
+                }
+            }
+            
+            if (data.code === 0 && data.data !== undefined) {
+                if (Array.isArray(data.data)) {
+                    strategies.push('✅ 使用格式B: {code: 0, data: [...]}');
+                } else if (data.data && data.data.notifications && Array.isArray(data.data.notifications)) {
+                    strategies.push('✅ 使用格式B-NOTIFICATIONS: {code: 0, data: {notifications: [...]}}');
+                } else if (data.data && data.data.list && Array.isArray(data.data.list)) {
+                    strategies.push('✅ 使用格式B-1: {code: 0, data: {list: [...]}}');
+                } else if (data.data && data.data.records && Array.isArray(data.data.records)) {
+                    strategies.push('✅ 使用格式B-2: {code: 0, data: {records: [...]}}');
+                } else if (data.data === null) {
+                    strategies.push('✅ 使用格式B-3: {code: 0, data: null} → 空数组');
+                } else {
+                    strategies.push('⚠️ 使用格式B-4: data对象转数组');
+                }
+            }
+            
+            if (Array.isArray(data)) {
+                strategies.push('✅ 使用格式C: 直接数组');
+            }
+            
+            if (strategies.length === 0) {
+                strategies.push('❌ 无法识别格式，使用兜底策略');
+            }
+            
+            return strategies.join('\n');
+        }
+
+        // 🚨 Phase4-FIX: 发布通知相关功能
+        
+        // 显示发布弹窗
+        function showPublishModal() {
+            addLog('📝 打开发布通知弹窗', 'info');
+            
+            if (!currentUser || !currentToken) {
+                addLog('❌ 用户未认证，无法发布通知', 'error');
+                alert('请先进行身份认证后再发布通知');
+                return;
+            }
+            
+            // 根据角色设置可用级别
+            const publishModal = document.getElementById('publishModal');
+            const levelOptions = publishModal.querySelectorAll('.level-option');
+            const rolePermissions = getRolePublishPermissions(currentUser.roleCode);
+            
+            // 更新级别选项可用性
+            levelOptions.forEach(option => {
+                const level = parseInt(option.dataset.level);
+                const radio = option.querySelector('input[type="radio"]');
+                const approvalWarning = option.querySelector('.approval-warning');
+                
+                if (rolePermissions[level]) {
+                    option.style.opacity = '1';
+                    option.style.pointerEvents = 'auto';
+                    radio.disabled = false;
+                    
+                    // 显示审批提示
+                    if (rolePermissions[level].requiresApproval && approvalWarning) {
+                        approvalWarning.style.display = 'block';
+                    }
+                } else {
+                    option.style.opacity = '0.3';
+                    option.style.pointerEvents = 'none';
+                    radio.disabled = true;
+                    
+                    if (approvalWarning) {
+                        approvalWarning.style.display = 'none';
+                    }
+                }
+            });
+            
+            publishModal.classList.remove('d-none');
+            publishModal.style.display = 'flex';
+            
+            // 设置表单提交处理器
+            const form = document.getElementById('quickPublishForm');
+            form.onsubmit = handleQuickPublish;
+            
+            addLog(`✅ 发布弹窗已打开，当前用户: ${currentUser.realName || currentUser.username} (${currentUser.roleCode})`, 'success');
+        }
+        
+        // 获取角色发布权限
+        function getRolePublishPermissions(roleCode) {
+            const basePermissions = {
+                1: { allowed: false, requiresApproval: false },
+                2: { allowed: false, requiresApproval: false },
+                3: { allowed: false, requiresApproval: false },
+                4: { allowed: false, requiresApproval: false }
+            };
+            
+            switch (roleCode) {
+                case 'PRINCIPAL':
+                    return {
+                        1: { allowed: true, requiresApproval: false },
+                        2: { allowed: true, requiresApproval: false },
+                        3: { allowed: true, requiresApproval: false },
+                        4: { allowed: true, requiresApproval: false }
+                    };
+                case 'ACADEMIC_ADMIN':
+                    return {
+                        1: { allowed: true, requiresApproval: true }, // 🚨 FIX: 教务主任可以发布1级，但需审批
+                        2: { allowed: true, requiresApproval: false },
+                        3: { allowed: true, requiresApproval: false },
+                        4: { allowed: true, requiresApproval: false }
+                    };
+                case 'TEACHER':
+                    return {
+                        1: { allowed: false, requiresApproval: false },
+                        2: { allowed: false, requiresApproval: false },
+                        3: { allowed: true, requiresApproval: false },
+                        4: { allowed: true, requiresApproval: false }
+                    };
+                case 'CLASS_TEACHER':
+                    return {
+                        1: { allowed: false, requiresApproval: false },
+                        2: { allowed: false, requiresApproval: false },
+                        3: { allowed: true, requiresApproval: false },
+                        4: { allowed: true, requiresApproval: false }
+                    };
+                case 'STUDENT':
+                    return {
+                        1: { allowed: false, requiresApproval: false },
+                        2: { allowed: false, requiresApproval: false },
+                        3: { allowed: false, requiresApproval: false },
+                        4: { allowed: true, requiresApproval: false }
+                    };
+                default:
+                    return basePermissions;
+            }
+        }
+        
+        // 关闭发布弹窗
+        function closePublishModal() {
+            const publishModal = document.getElementById('publishModal');
+            publishModal.classList.add('d-none');
+            publishModal.style.display = 'none';
+            
+            // 重置表单
+            document.getElementById('quickPublishForm').reset();
+            document.getElementById('publishStatus').classList.add('d-none');
+            
+            addLog('🚪 发布弹窗已关闭', 'info');
+        }
+        
+        // 级别选择处理
+        function selectLevel(level) {
+            const levelOptions = document.querySelectorAll('#publishModal .level-option');
+            levelOptions.forEach(option => {
+                option.style.background = '';
+                option.style.borderWidth = '2px';
+            });
+            
+            const selectedOption = document.querySelector(`#publishModal .level-option[data-level="${level}"]`);
+            if (selectedOption && !selectedOption.querySelector('input').disabled) {
+                selectedOption.style.background = 'rgba(102, 126, 234, 0.1)';
+                selectedOption.style.borderWidth = '3px';
+                selectedOption.querySelector('input').checked = true;
+                
+                addLog(`📊 选择通知级别: ${level}级`, 'info');
+            }
+        }
+        
+        // 处理快速发布
+        async function handleQuickPublish(event) {
+            event.preventDefault();
+            
+            const publishBtn = document.getElementById('quickPublishBtn');
+            const publishStatus = document.getElementById('publishStatus');
+            
+            try {
+                // 禁用按钮
+                publishBtn.disabled = true;
+                publishBtn.innerHTML = '🔄 发布中...';
+                
+                // 显示发布状态
+                publishStatus.classList.remove('d-none');
+                publishStatus.style.background = '#fff3cd';
+                publishStatus.style.color = '#856404';
+                publishStatus.innerHTML = '📤 正在发布通知，请稍候...';
+                
+                addLog('🚀 开始快速发布通知', 'info');
+                
+                // 收集表单数据
+                const formData = {
+                    title: document.getElementById('quickTitle').value.trim(),
+                    content: document.getElementById('quickContent').value.trim(),
+                    level: parseInt(document.querySelector('input[name="quickLevel"]:checked').value),
+                    summary: document.getElementById('quickSummary').value.trim() || null
+                };
+                
+                addLog(`📝 发布数据: ${JSON.stringify(formData)}`, 'info');
+                
+                // 检查权限
+                const rolePermissions = getRolePublishPermissions(currentUser.roleCode);
+                const levelPermission = rolePermissions[formData.level];
+                
+                if (!levelPermission || !levelPermission.allowed) {
+                    throw new Error(`您没有权限发布${formData.level}级通知`);
+                }
+                
+                // 如果需要审批，提示用户
+                if (levelPermission.requiresApproval) {
+                    const confirmApproval = confirm(`⚠️ 确认发布\n\n这是一条${formData.level}级紧急通知，发布后将进入审批流程，需要等待校长审批。\n\n确定要发布吗？`);
+                    if (!confirmApproval) {
+                        throw new Error('用户取消发布');
+                    }
+                    addLog('⚠️ 用户确认发布需审批的通知', 'warning');
+                }
+                
+                // 准备API请求
+                const cleanToken = currentToken.startsWith('Bearer ') ? currentToken.substring(7) : currentToken;
+                
+                const response = await fetch(`${API_BASE}/admin-api/test/notification/api/publish-database`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${cleanToken}`,
+                        'tenant-id': '1',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                addLog(`📤 API请求状态: ${response.status}`, 'info');
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`发布失败: ${response.status} - ${errorText}`);
+                }
+                
+                const result = await response.json();
+                addLog(`📥 API响应: ${JSON.stringify(result)}`, result.code === 0 ? 'success' : 'error');
+                
+                if (result.code === 0 && result.data) {
+                    // 发布成功
+                    const notificationId = result.data.notificationId;
+                    const isApprovalRequired = levelPermission.requiresApproval;
+                    
+                    publishStatus.style.background = '#d4edda';
+                    publishStatus.style.color = '#155724';
+                    publishStatus.innerHTML = `
+                        ✅ 通知发布成功！<br>
+                        📋 通知ID: ${notificationId}<br>
+                        ${isApprovalRequired ? '⏳ 状态: 已提交审批，等待校长审核' : '🎉 状态: 已发布'}
+                    `;
+                    
+                    addLog(`✅ 通知发布成功! ID: ${notificationId}${isApprovalRequired ? ' (需审批)' : ''}`, 'success');
+                    
+                    // 如果是待审批通知，为Phase5准备数据
+                    if (isApprovalRequired) {
+                        sessionStorage.setItem('lastPendingNotification', JSON.stringify({
+                            id: notificationId,
+                            title: formData.title,
+                            level: formData.level,
+                            status: 'PENDING_APPROVAL',
+                            publishTime: new Date().toISOString()
+                        }));
+                        addLog('💾 已保存待审批通知信息，供Phase5使用', 'info');
+                    }
+                    
+                    // 3秒后自动刷新通知列表并关闭弹窗
+                    setTimeout(() => {
+                        loadNotificationList();
+                        closePublishModal();
+                        addLog('🎉 发布完成，通知列表已刷新', 'success');
+                    }, 3000);
+                    
+                } else {
+                    throw new Error(result.msg || result.message || '发布失败');
+                }
+                
+            } catch (error) {
+                addLog(`❌ 发布失败: ${error.message}`, 'error');
+                
+                publishStatus.style.background = '#f8d7da';
+                publishStatus.style.color = '#721c24';
+                publishStatus.innerHTML = `❌ 发布失败: ${error.message}`;
+                
+                // 重置按钮状态
+                publishBtn.disabled = false;
+                publishBtn.innerHTML = '🚀 立即发布';
+            }
+        }
+        
+        // 🚨 Phase4-FIX: 发布功能相关的级别选择交互
+        document.addEventListener('DOMContentLoaded', function() {
+            // 为发布弹窗中的级别选项添加点击处理器
+            setTimeout(() => {
+                const levelOptions = document.querySelectorAll('#publishModal .level-option');
+                levelOptions.forEach(option => {
+                    option.addEventListener('click', function() {
+                        if (this.querySelector('input').disabled) return;
+                        
+                        const level = parseInt(this.dataset.level);
+                        selectLevel(level);
+                    });
+                });
+            }, 100);
+        });
+
+        // 🗑️ 删除通知功能实现
+
+        // 全局删除变量
+        let notificationToDelete = null;
+
+        // 检查删除权限 - 简化版：谁发布谁删除，校长全权限
+        function checkDeletePermission(notification, user) {
+            if (!user) {
+                return false;
+            }
+
+            const userRole = user.roleCode;
+            const publisher = notification.publisherName || notification.publisher || '';
+            const userName = user.realName || user.username || '';
+            
+            // 校长拥有最高权限 - 可删除任何通知
+            if (userRole === 'PRINCIPAL') {
+                addLog(`🛡️ 删除权限检查: 校长拥有删除全部通知的权限`, 'info');
+                return true;
+            }
+            
+            // 发布者可以删除自己的通知
+            if (publisher === userName) {
+                addLog(`🛡️ 删除权限检查: 发布者可以删除自己的通知`, 'info');
+                return true;
+            }
+            
+            addLog(`🛡️ 删除权限检查: ${userRole}无权限删除此通知 (发布者:${publisher})`, 'warning');
+            return false;
+        }
+
+        // 确认删除通知
+        function confirmDeleteNotification(notificationId, event) {
+            // 阻止事件冒泡，避免触发通知详情
+            if (event) {
+                event.stopPropagation();
+                event.preventDefault();
+            }
+            
+            addLog(`🗑️ 用户点击删除通知: ${notificationId}`, 'info');
+            
+            // 查找通知对象
+            const notification = allNotifications.find(n => n.id === notificationId);
+            if (!notification) {
+                addLog(`❌ 找不到通知ID: ${notificationId}`, 'error');
+                alert('错误：找不到要删除的通知');
+                return;
+            }
+            
+            // 再次检查删除权限
+            if (!checkDeletePermission(notification, currentUser)) {
+                addLog(`❌ 删除权限不足: ${notificationId}`, 'error');
+                alert('您没有权限删除此通知');
+                return;
+            }
+            
+            // 保存要删除的通知
+            notificationToDelete = notification;
+            
+            // 显示删除确认弹窗
+            const deleteModal = document.getElementById('deleteModal');
+            const deleteTitle = document.getElementById('deleteNotificationTitle');
+            
+            deleteTitle.textContent = `"${notification.title}"`;
+            deleteModal.style.display = 'flex';
+            
+            addLog(`🗑️ 显示删除确认弹窗: ${notification.title}`, 'info');
+        }
+
+        // 关闭删除弹窗
+        function closeDeleteModal() {
+            const deleteModal = document.getElementById('deleteModal');
+            const deleteStatus = document.getElementById('deleteStatus');
+            
+            deleteModal.style.display = 'none';
+            deleteStatus.style.display = 'none';
+            notificationToDelete = null;
+            
+            // 重置按钮状态
+            const confirmBtn = document.getElementById('confirmDeleteBtn');
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = '🗑️ 确认删除';
+            
+            addLog('🚪 删除弹窗已关闭', 'info');
+        }
+
+        // 执行删除通知
+        async function executeDeleteNotification() {
+            if (!notificationToDelete) {
+                addLog('❌ 没有要删除的通知', 'error');
+                return;
+            }
+            
+            const confirmBtn = document.getElementById('confirmDeleteBtn');
+            const deleteStatus = document.getElementById('deleteStatus');
+            
+            try {
+                // 禁用按钮
+                confirmBtn.disabled = true;
+                confirmBtn.textContent = '🔄 删除中...';
+                
+                // 显示删除状态
+                deleteStatus.style.display = 'block';
+                deleteStatus.style.background = '#fff3cd';
+                deleteStatus.style.color = '#856404';
+                deleteStatus.innerHTML = '⏳ 正在删除通知，请稍候...';
+                
+                addLog(`🗑️ 开始删除通知: ${notificationToDelete.title} (ID: ${notificationToDelete.id})`, 'info');
+                
+                // ✅ 使用真实删除API
+                const cleanToken = currentToken.startsWith('Bearer ') ? currentToken.substring(7) : currentToken;
+                
+                const response = await fetch(`${API_BASE}/admin-api/test/notification/api/delete/${notificationToDelete.id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${cleanToken}`,
+                        'tenant-id': '1',
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    let errorMsg = `删除失败: ${response.status}`;
+                    try {
+                        const errorData = await response.json();
+                        errorMsg = errorData.msg || errorData.message || errorMsg;
+                    } catch (e) {
+                        errorMsg += ` - ${await response.text()}`;
+                    }
+                    throw new Error(errorMsg);
+                }
+                
+                const result = await response.json();
+                addLog(`📋 删除API响应: ${JSON.stringify(result)}`, 'info');
+                
+                if (result.code !== 0) {
+                    throw new Error(result.msg || result.message || '删除失败');
+                }
+                
+                addLog(`✅ 通知删除成功: ID=${notificationToDelete.id}`, 'success');
+                
+                // 从本地数组中移除删除的通知
+                allNotifications = allNotifications.filter(n => n.id !== notificationToDelete.id);
+                
+                // ✨ 优化删除成功反馈
+                deleteStatus.style.background = '#d4edda';
+                deleteStatus.style.color = '#155724';
+                deleteStatus.innerHTML = `
+                    <div style="display: flex; align-items: center; justify-content: center; text-align: center;">
+                        <div>
+                            <div style="font-size: 1.5rem; margin-bottom: 8px;">🎉</div>
+                            <div style="font-weight: bold; margin-bottom: 4px;">通知删除成功！</div>
+                            <div style="font-size: 0.9rem; color: #28a745;">通知"${notificationToDelete.title}"已被永久删除</div>
+                            <div style="font-size: 0.8rem; color: #6c757d; margin-top: 8px;">正在刷新列表...</div>
+                        </div>
+                    </div>
+                `;
+                
+                addLog(`🎉 本地通知列表已更新，删除了通知ID: ${notificationToDelete.id}`, 'success');
+                
+                // 2秒后关闭弹窗并刷新列表
+                setTimeout(() => {
+                    closeDeleteModal();
+                    // 重新过滤和渲染通知列表
+                    filterNotifications();
+                    updateStats();
+                    addLog('🔄 通知列表已刷新', 'success');
+                    
+                    // 显示全局成功提示
+                    showDeleteSuccessToast(notificationToDelete.title);
+                }, 2000);
+                
+            } catch (error) {
+                addLog(`❌ 删除通知失败: ${error.message}`, 'error');
+                
+                deleteStatus.style.background = '#f8d7da';
+                deleteStatus.style.color = '#721c24';
+                deleteStatus.innerHTML = `❌ 删除失败: ${error.message}`;
+                
+                // 重置按钮状态
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = '🗑️ 确认删除';
+            }
+        }
+
+        // 🗑️ 测试删除权限功能 - 简化版权限规则
+        function testDeletePermissions() {
+            if (!currentUser) {
+                alert('请先进行身份认证');
+                return;
+            }
+            
+            if (!allNotifications || allNotifications.length === 0) {
+                alert('当前没有通知可供测试');
+                return;
+            }
+            
+            addLog('🗑️ 开始测试删除权限...', 'info');
+            
+            let testReport = `🗑️ 删除权限测试报告 - 简化版权限规则\n\n`;
+            testReport += `权限规则: 谁发布谁删除，校长全权限\n`;
+            testReport += `当前用户: ${currentUser.realName || currentUser.username} (${currentUser.roleCode})\n`;
+            testReport += `测试时间: ${new Date().toLocaleString()}\n\n`;
+            
+            let canDeleteCount = 0;
+            let cannotDeleteCount = 0;
+            
+            allNotifications.forEach((notification, index) => {
+                const canDelete = checkDeletePermission(notification, currentUser);
+                const status = canDelete ? '✅ 可删除' : '❌ 无权限';
+                const reason = canDelete ? 
+                    (currentUser.roleCode === 'PRINCIPAL' ? '校长全权限' : '发布者删除自己的通知') :
+                    '非发布者且非校长';
+                
+                testReport += `${index + 1}. "${notification.title}"\n`;
+                testReport += `   发布者: ${notification.publisherName || notification.publisher || '未知'}\n`;
+                testReport += `   级别: ${notification.level}级\n`;
+                testReport += `   权限: ${status} (${reason})\n\n`;
+                
+                if (canDelete) {
+                    canDeleteCount++;
+                } else {
+                    cannotDeleteCount++;
+                }
+            });
+            
+            testReport += `\n📊 测试统计:\n`;
+            testReport += `可删除通知: ${canDeleteCount} 条\n`;
+            testReport += `无权限通知: ${cannotDeleteCount} 条\n`;
+            testReport += `总通知数: ${allNotifications.length} 条\n`;
+            
+            // 显示测试报告
+            alert(testReport);
+            addLog(`🗑️ 删除权限测试完成: 可删除${canDeleteCount}条，无权限${cannotDeleteCount}条`, 'info');
+            
+            // 同时在API展示区域显示
+            const vueCodeElement = document.getElementById('vueCode');
+            if (vueCodeElement) {
+                vueCodeElement.textContent = testReport;
+            }
+            
+            return {
+                canDeleteCount,
+                cannotDeleteCount,
+                totalCount: allNotifications.length,
+                details: testReport
+            };
+        }
+
+        // 🚀 中文通知模板库
+        const notificationTemplates = {
+            emergency: {
+                title: "【紧急通知】校园安全警报",
+                content: "由于极端天气预警，今日下午所有户外活动立即停止，全体师生请留在室内避险。学校已启动应急预案，请各班级清点人数并及时上报。如有紧急情况请立即联系保安室：85206666。",
+                level: 1,
+                targetScope: "SCHOOL_WIDE",
+                emoji: "🚨"
+            },
+            academic: {
+                title: "【重要通知】2025年春季学期期末考试安排",
+                content: "各位同学：春季学期期末考试将于3月15日-20日举行。请登录教务系统查看个人考试安排，携带学生证和身份证参考。考试期间严格遵守考场纪律，违纪行为将按规定严肃处理。祝大家考试顺利！",
+                level: 2,
+                targetScope: "SCHOOL_WIDE", 
+                emoji: "📚"
+            },
+            activity: {
+                title: "【活动通知】第十五届校园文化艺术节即将开幕",
+                content: "为丰富校园文化生活，展现学生才华，学校将于4月1日-7日举办第十五届校园文化艺术节。活动包括歌唱比赛、舞蹈表演、书画展览等。欢迎各班级积极报名参与，截止时间为3月25日。详情请咨询学生会：010-88889999。",
+                level: 3,
+                targetScope: "SCHOOL_WIDE",
+                emoji: "🎉"
+            },
+            reminder: {
+                title: "【课程提醒】明日《高等数学》课程时间调整",
+                content: "各位同学注意：由于教师出差，明天（3月12日）上午10:00的《高等数学》课程调整至下午14:30，地点不变（教学楼A301）。请同学们提前安排时间，不要缺席。如有疑问请联系数学系办公室。",
+                level: 4,
+                targetScope: "CLASS",
+                emoji: "⏰"
+            }
+        };
+
+        let selectedTemplate = null;
+
+        // 切换模板区域显示
+        function toggleTemplateSection() {
+            const content = document.getElementById('templateContent');
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+            } else {
+                content.style.display = 'none';
+            }
+        }
+
+        // 选择模板
+        function useTemplate(templateKey, event) {
+            if (!notificationTemplates[templateKey]) {
+                addLog(`❌ 模板不存在: ${templateKey}`, 'error');
+                return;
+            }
+
+            selectedTemplate = notificationTemplates[templateKey];
+            
+            // 更新UI选中状态
+            document.querySelectorAll('.template-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            if (event && event.target) {
+                event.target.closest('.template-card').classList.add('selected');
+            }
+            
+            // 启用发布按钮
+            const publishBtn = document.getElementById('quickPublishBtn');
+            publishBtn.disabled = false;
+            
+            // 更新状态显示
+            const statusElement = document.getElementById('templateStatus');
+            statusElement.innerHTML = `✅ 已选择: ${selectedTemplate.emoji} ${selectedTemplate.title.substring(0, 20)}...`;
+            statusElement.style.color = '#4CAF50';
+            
+            addLog(`📋 已选择模板: ${selectedTemplate.title}`, 'info');
+        }
+
+        // 一键发布选中的模板
+        async function quickPublishTemplate() {
+            if (!selectedTemplate) {
+                addLog('❌ 请先选择一个通知模板', 'error');
+                return;
+            }
+
+            if (!currentUser) {
+                addLog('❌ 请先进行身份认证', 'error');
+                alert('请先选择角色并完成身份认证！');
+                return;
+            }
+
+            const publishBtn = document.getElementById('quickPublishBtn');
+            const statusElement = document.getElementById('templateStatus');
+            
+            try {
+                // 更新按钮状态
+                publishBtn.disabled = true;
+                publishBtn.innerHTML = '📤 发布中...';
+                statusElement.innerHTML = '⏳ 正在发布通知，请稍候...';
+                statusElement.style.color = '#f39c12';
+                
+                addLog(`🚀 开始发布模板通知: ${selectedTemplate.title}`, 'info');
+                
+                // 准备API请求
+                const cleanToken = currentToken.startsWith('Bearer ') ? currentToken.substring(7) : currentToken;
+                const publishData = {
+                    title: selectedTemplate.title,
+                    content: selectedTemplate.content,
+                    level: selectedTemplate.level,
+                    targetScope: selectedTemplate.targetScope
+                };
+                
+                addLog(`📋 发布数据: ${JSON.stringify(publishData, null, 2)}`, 'info');
+                
+                const response = await fetch(`${API_BASE}/admin-api/test/notification/api/publish-database`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${cleanToken}`,
+                        'tenant-id': '1',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(publishData)
+                });
+                
+                if (!response.ok) {
+                    let errorMsg = `发布失败: ${response.status}`;
+                    try {
+                        const errorData = await response.json();
+                        errorMsg = errorData.msg || errorData.message || errorMsg;
+                    } catch (e) {
+                        errorMsg += ` - ${await response.text()}`;
+                    }
+                    throw new Error(errorMsg);
+                }
+                
+                const result = await response.json();
+                addLog(`📋 发布API响应: ${JSON.stringify(result)}`, 'info');
+                
+                if (result.code !== 0) {
+                    throw new Error(result.msg || result.message || '发布失败');
+                }
+                
+                // 发布成功
+                statusElement.innerHTML = `✅ 发布成功！通知ID: ${result.data.notificationId}`;
+                statusElement.style.color = '#4CAF50';
+                
+                addLog(`🎉 模板通知发布成功: ID=${result.data.notificationId}`, 'success');
+                
+                // 自动刷新通知列表
+                setTimeout(() => {
+                    loadNotificationList();
+                }, 1000);
+                
+                // 重置选择状态
+                setTimeout(() => {
+                    resetTemplateSelection();
+                }, 3000);
+                
+            } catch (error) {
+                addLog(`💥 模板发布失败: ${error.message}`, 'error');
+                statusElement.innerHTML = `❌ 发布失败: ${error.message}`;
+                statusElement.style.color = '#e74c3c';
+                
+                // 重置按钮
+                publishBtn.disabled = false;
+                publishBtn.innerHTML = '📤 一键发布选中模板';
+            }
+        }
+
+        // 重置模板选择状态
+        function resetTemplateSelection() {
+            selectedTemplate = null;
+            
+            // 清除选中状态
+            document.querySelectorAll('.template-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // 重置按钮
+            const publishBtn = document.getElementById('quickPublishBtn');
+            publishBtn.disabled = true;
+            publishBtn.innerHTML = '📤 一键发布选中模板';
+            
+            // 清除状态
+            const statusElement = document.getElementById('templateStatus');
+            statusElement.innerHTML = '';
+            
+            addLog('🔄 模板选择已重置', 'info');
+        }
+
+        // 显示删除成功的Toast提示
+        function showDeleteSuccessToast(notificationTitle) {
+            // 创建Toast元素
+            const toast = document.createElement('div');
+            toast.className = 'delete-success-toast';
+            toast.innerHTML = `
+                <div class="toast-content">
+                    <div class="toast-icon">🗑️✅</div>
+                    <div class="toast-message">
+                        <div class="toast-title">删除成功</div>
+                        <div class="toast-subtitle">"${notificationTitle.substring(0, 30)}..." 已删除</div>
+                    </div>
+                </div>
+            `;
+            
+            // 添加Toast样式
+            toast.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: linear-gradient(135deg, #28a745, #20c997);
+                color: white;
+                padding: 16px 20px;
+                border-radius: 12px;
+                box-shadow: 0 8px 32px rgba(40, 167, 69, 0.3);
+                z-index: 10000;
+                transform: translateX(100%);
+                transition: transform 0.3s ease-out;
+                max-width: 350px;
+                backdrop-filter: blur(10px);
+            `;
+            
+            // 添加到页面
+            document.body.appendChild(toast);
+            
+            // 显示动画
+            setTimeout(() => {
+                toast.style.transform = 'translateX(0)';
+            }, 100);
+            
+            // 3秒后自动消失
+            setTimeout(() => {
+                toast.style.transform = 'translateX(100%)';
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        toast.parentNode.removeChild(toast);
+                    }
+                }, 300);
+            }, 3000);
+            
+            addLog('📱 删除成功Toast提示已显示', 'info');
+        }
+
+        // 🎬 完整工作流演示功能
+        async function startWorkflowDemo() {
+            if (!currentUser) {
+                alert('请先进行身份认证后再开始演示！');
+                return;
+            }
+            
+            const result = confirm(`
+🎬 完整工作流演示
+
+这将演示完整的发布→查看→删除通知工作流程：
+1. 自动发布一条中文测试通知
+2. 显示在通知列表中
+3. 等待5秒后自动删除该通知
+
+当前身份: ${currentUser.realName} (${currentUser.roleCode})
+
+是否开始演示？
+            `);
+            
+            if (!result) return;
+            
+            addLog('🎬 开始完整工作流演示', 'info');
+            
+            try {
+                // 步骤1: 自动选择合适的模板
+                let demoTemplate;
+                switch (currentUser.roleCode) {
+                    case 'PRINCIPAL':
+                        demoTemplate = notificationTemplates.emergency;
+                        break;
+                    case 'ACADEMIC_ADMIN':
+                        demoTemplate = notificationTemplates.academic;
+                        break;
+                    case 'TEACHER':
+                    case 'CLASS_TEACHER':
+                        demoTemplate = notificationTemplates.reminder;
+                        break;
+                    default:
+                        demoTemplate = notificationTemplates.reminder;
+                }
+                
+                // 修改标题以区分演示
+                const demoNotification = {
+                    ...demoTemplate,
+                    title: `[演示] ${demoTemplate.title} - ${new Date().getLocaleTimeString()}`
+                };
+                
+                addLog(`📝 步骤1: 发布演示通知 - ${demoNotification.title}`, 'info');
+                
+                // 发布通知
+                const cleanToken = currentToken.startsWith('Bearer ') ? currentToken.substring(7) : currentToken;
+                const response = await fetch(`${API_BASE}/admin-api/test/notification/api/publish-database`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${cleanToken}`,
+                        'tenant-id': '1',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        title: demoNotification.title,
+                        content: demoNotification.content + '\n\n📍 这是系统自动演示的测试通知，将在几秒后自动删除。',
+                        level: demoNotification.level,
+                        targetScope: demoNotification.targetScope
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`发布失败: ${response.status}`);
+                }
+                
+                const publishResult = await response.json();
+                if (publishResult.code !== 0) {
+                    throw new Error(publishResult.msg || '发布失败');
+                }
+                
+                const newNotificationId = publishResult.data.notificationId;
+                addLog(`✅ 步骤1完成: 通知发布成功 ID=${newNotificationId}`, 'success');
+                
+                // 步骤2: 刷新列表显示新通知
+                addLog('🔄 步骤2: 刷新通知列表，显示新发布的通知', 'info');
+                await loadNotificationList();
+                
+                // 高亮显示新通知
+                setTimeout(() => {
+                    const newNotificationElement = document.querySelector(`[onclick*="${newNotificationId}"]`);
+                    if (newNotificationElement) {
+                        newNotificationElement.style.border = '3px solid #ffd700';
+                        newNotificationElement.style.boxShadow = '0 0 20px rgba(255, 215, 0, 0.5)';
+                        newNotificationElement.style.animation = 'pulse 2s infinite';
+                        newNotificationElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }, 1000);
+                
+                addLog('✅ 步骤2完成: 新通知已高亮显示', 'success');
+                
+                // 步骤3: 等待5秒后自动删除
+                addLog('⏳ 步骤3: 等待5秒后自动删除演示通知...', 'info');
+                
+                let countdown = 5;
+                const countdownInterval = setInterval(() => {
+                    addLog(`⏰ ${countdown}秒后删除演示通知...`, 'info');
+                    countdown--;
+                    
+                    if (countdown < 0) {
+                        clearInterval(countdownInterval);
+                        deleteWorkflowDemoNotification(newNotificationId, demoNotification.title);
+                    }
+                }, 1000);
+                
+            } catch (error) {
+                addLog(`❌ 工作流演示失败: ${error.message}`, 'error');
+                alert(`演示失败: ${error.message}`);
+            }
+        }
+        
+        // 删除演示通知
+        async function deleteWorkflowDemoNotification(notificationId, title) {
+            try {
+                addLog(`🗑️ 步骤3: 开始删除演示通知 ID=${notificationId}`, 'info');
+                
+                const cleanToken = currentToken.startsWith('Bearer ') ? currentToken.substring(7) : currentToken;
+                const response = await fetch(`${API_BASE}/admin-api/test/notification/api/delete/${notificationId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${cleanToken}`,
+                        'tenant-id': '1',
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`删除失败: ${response.status}`);
+                }
+                
+                const deleteResult = await response.json();
+                if (deleteResult.code !== 0) {
+                    throw new Error(deleteResult.msg || '删除失败');
+                }
+                
+                addLog(`✅ 步骤3完成: 演示通知删除成功`, 'success');
+                
+                // 刷新列表
+                await loadNotificationList();
+                
+                // 显示演示完成提示
+                addLog('🎉 完整工作流演示成功完成！', 'success');
+                alert(`🎉 工作流演示完成！
+
+✅ 已成功演示：
+1. 发布通知: "${title}"
+2. 列表显示和高亮
+3. 自动删除清理
+
+整个工作流程运行正常！`);
+                
+            } catch (error) {
+                addLog(`❌ 删除演示通知失败: ${error.message}`, 'error');
+                alert(`删除演示通知失败: ${error.message}\n请手动删除ID为${notificationId}的演示通知。`);
+            }
+        }
+
+        // 页面加载完成后的初始化 - 增强版
+        document.addEventListener('DOMContentLoaded', function() {
+            addLog('📋 Phase 4: 通知列表页面已加载', 'info');
+            
+            // 🚨 关键改进：优先检测Phase3传递的上下文
+            const jumpContext = detectJumpContext();
+            
+            if (jumpContext) {
+                addLog('🎯 检测到Phase3跳转上下文，将自动继承认证状态', 'success');
+                addLog('⚡ 跳过独立认证流程，进入智能继承模式', 'info');
+                // 上下文检测函数已经处理了认证和主内容显示
+            } else {
+                addLog('🔑 未检测到外部认证上下文，显示独立认证界面', 'info');
+                addLog('💡 用户需要选择角色并进行页面内认证后查看通知列表', 'info');
+            }
+            
+            addLog('🔧 如遇问题，请点击"API调试"按钮查看详细信息', 'info');
+        });
+    </script>
+</body>
+</html>

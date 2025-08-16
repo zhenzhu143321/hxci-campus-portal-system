@@ -1,0 +1,54 @@
+Valid School API Test Accounts
+========================================
+Generated: 2025-08-14 16:28:35
+
+Account: 2022010603
+Password: 888888
+Name: 车金荣
+Roles: ['student']
+------------------------------
+Account: 2022010604
+Password: 888888
+Name: 陈振盟
+Roles: ['student']
+------------------------------
+Account: 2022010605
+Password: 888888
+Name: 陈子豪
+Roles: ['student']
+------------------------------
+Account: 2022010608
+Password: 888888
+Name: 窦国良
+Roles: ['student']
+------------------------------
+Account: 2022010612
+Password: 888888
+Name: 何耀
+Roles: ['student']
+------------------------------
+Account: 2022010620
+Password: 888888
+Name: 刘怡
+Roles: ['student']
+------------------------------
+Account: 2022010621
+Password: 888888
+Name: 马金龙
+Roles: ['student']
+------------------------------
+Account: 2022010625
+Password: 888888
+Name: 王宝龙
+Roles: ['student']
+------------------------------
+Account: 2023010105
+Password: 888888
+Name: 顾春琳
+Roles: ['student']
+------------------------------
+Account: 2023010118
+Password: 888888
+Name: 孙雨桐
+Roles: ['student']
+------------------------------

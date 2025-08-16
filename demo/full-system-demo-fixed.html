@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎭 智能通知系统 - 全功能演示平台</title>
+    <style>
+        /* 基础样式 */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #2c3e50;
+        }
+        
+        .demo-container {
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+            height: 100vh;
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 0 0 20px 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        
+        /* 顶部区域 */
+        .header-section {
+            background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
+            padding: 15px 25px;
+            border-radius: 20px 20px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .title-area h1 {
+            color: white;
+            font-size: 24px;
+            font-weight: 700;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .system-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            color: white;
+        }
+        
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #00ff88;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-indicator.error {
+            background: #ff4444;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        /* 主体内容 */
+        .main-content {
+            display: grid;
+            grid-template-columns: 400px 1fr;
+            gap: 20px;
+            padding: 20px;
+            overflow: hidden;
+        }
+        
+        .control-panel {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+            padding: 20px;
+        }
+        
+        .api-display {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .api-header {
+            background: linear-gradient(90deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 15px 20px;
+            font-weight: 600;
+        }
+        
+        .api-content {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .demo-btn {
+            width: 100%;
+            padding: 12px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            margin-bottom: 10px;
+        }
+        
+        .demo-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .code-block {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 12px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+        
+        /* 状态栏 */
+        .status-bar {
+            background: linear-gradient(90deg, #34495e 0%, #2c3e50 100%);
+            color: white;
+            padding: 12px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+        }
+        
+        .status-info {
+            display: flex;
+            gap: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <!-- 顶部区域 -->
+        <div class="header-section">
+            <div class="title-area">
+                <h1>🎭 智能通知系统 - 全功能演示平台</h1>
+            </div>
+            
+            <div class="system-status">
+                <div id="statusIndicator" class="status-indicator"></div>
+                <span id="systemStatusText">检查中...</span>
+            </div>
+        </div>
+
+        <!-- 主体内容 -->
+        <div class="main-content">
+            <!-- 左侧操作面板 -->
+            <div class="control-panel">
+                <div class="section-title">
+                    🚀 系统功能测试
+                </div>
+                
+                <button class="demo-btn" onclick="testSystemConnection()">
+                    📡 测试系统连接
+                </button>
+                
+                <button class="demo-btn" onclick="testAuthentication()">
+                    🔐 测试用户认证
+                </button>
+                
+                <button class="demo-btn" onclick="testNotificationPublish()">
+                    📝 测试通知发布
+                </button>
+                
+                <button class="demo-btn" onclick="testNotificationList()">
+                    📋 测试通知列表
+                </button>
+                
+                <div class="section-title" style="margin-top: 20px;">
+                    🎭 角色切换测试
+                </div>
+                
+                <button class="demo-btn" onclick="switchToRole('PRINCIPAL', 'Principal-Zhang')">
+                    👑 切换到校长
+                </button>
+                
+                <button class="demo-btn" onclick="switchToRole('ACADEMIC_ADMIN', 'Director-Li')">
+                    📚 切换到教务主任
+                </button>
+                
+                <button class="demo-btn" onclick="switchToRole('TEACHER', 'Teacher-Wang')">
+                    👩‍🏫 切换到教师
+                </button>
+            </div>
+
+            <!-- 右侧API详情 -->
+            <div class="api-display">
+                <div class="api-header">
+                    💻 实时API调用详情
+                </div>
+                <div class="api-content">
+                    <div id="apiResults" class="code-block">等待API调用...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 状态栏 -->
+        <div class="status-bar">
+            <div class="status-info">
+                <span>👤 当前角色: <strong id="currentRole">校长</strong></span>
+                <span>🔧 当前操作: <span id="currentOperation">待机中</span></span>
+            </div>
+            <div>
+                🎭 演示平台就绪
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // API配置
+        const API_CONFIG = {
+            MAIN_API: 'http://localhost:48081',
+            MOCK_API: 'http://localhost:48082',
+            HEADERS: {
+                'Content-Type': 'application/json; charset=UTF-8',
+                'tenant-id': '1'
+            }
+        };
+
+        // 全局状态
+        const demoState = {
+            currentRole: 'PRINCIPAL',
+            currentRoleName: 'Principal-Zhang',
+            currentToken: '',
+            isAuthenticated: false
+        };
+
+        // 角色配置
+        const ROLE_CONFIG = {
+            'PRINCIPAL': {
+                name: 'Principal-Zhang',
+                employeeId: 'PRINCIPAL_001',
+                displayName: '校长',
+                permissions: '1-4级全权限'
+            },
+            'ACADEMIC_ADMIN': {
+                name: 'Director-Li', 
+                employeeId: 'ACADEMIC_ADMIN_001',
+                displayName: '教务主任',
+                permissions: '2-4级权限(1级需审批)'
+            },
+            'TEACHER': {
+                name: 'Teacher-Wang',
+                employeeId: 'TEACHER_001',
+                displayName: '数学教师',
+                permissions: '3-4级权限'
+            }
+        };
+
+        // 页面初始化
+        window.addEventListener('DOMContentLoaded', function() {
+            console.log('🎭 全功能演示平台已加载');
+            updateSystemStatus('系统初始化中...', false);
+            
+            // 延迟检查系统连接
+            setTimeout(() => {
+                testSystemConnection();
+            }, 1000);
+        });
+
+        // 更新系统状态
+        function updateSystemStatus(message, isOnline) {
+            document.getElementById('systemStatusText').textContent = message;
+            const indicator = document.getElementById('statusIndicator');
+            
+            if (isOnline) {
+                indicator.classList.remove('error');
+            } else {
+                indicator.classList.add('error');
+            }
+        }
+
+        // 更新操作状态
+        function updateOperation(operation) {
+            document.getElementById('currentOperation').textContent = operation;
+        }
+
+        // 显示API结果
+        function showApiResult(result) {
+            document.getElementById('apiResults').textContent = JSON.stringify(result, null, 2);
+        }
+
+        // 测试系统连接
+        async function testSystemConnection() {
+            console.log('📡 测试系统连接...');
+            updateOperation('测试系统连接...');
+            
+            try {
+                // 测试主服务
+                const mainResponse = await fetch(`${API_CONFIG.MAIN_API}/admin-api/test/notification/api/ping`);
+                const mainResult = mainResponse.ok;
+                
+                // 测试Mock API
+                const mockResponse = await fetch(`${API_CONFIG.MOCK_API}/mock-school-api/auth/health`);
+                const mockResult = mockResponse.ok;
+                
+                const result = {
+                    timestamp: new Date().toLocaleString(),
+                    mainService: {
+                        url: API_CONFIG.MAIN_API,
+                        status: mainResult ? '✅ 连接正常' : '❌ 连接失败',
+                        details: mainResult ? '主通知服务响应正常' : '主通知服务无响应'
+                    },
+                    mockAPI: {
+                        url: API_CONFIG.MOCK_API,
+                        status: mockResult ? '✅ 连接正常' : '❌ 连接失败',
+                        details: mockResult ? 'Mock认证服务响应正常' : 'Mock认证服务无响应'
+                    },
+                    overall: (mainResult && mockResult) ? '✅ 系统就绪' : '❌ 部分服务异常'
+                };
+                
+                showApiResult(result);
+                updateSystemStatus(result.overall, mainResult && mockResult);
+                updateOperation('系统连接测试完成');
+                
+                console.log('📡 系统连接测试完成:', result);
+                
+            } catch (error) {
+                console.error('📡 系统连接测试失败:', error);
+                const errorResult = {
+                    error: '系统连接测试失败',
+                    message: error.message,
+                    timestamp: new Date().toLocaleString()
+                };
+                showApiResult(errorResult);
+                updateSystemStatus('❌ 系统连接失败', false);
+                updateOperation('系统连接测试失败');
+            }
+        }
+
+        // 测试用户认证
+        async function testAuthentication() {
+            console.log('🔐 测试用户认证...');
+            updateOperation('测试用户认证...');
+            
+            try {
+                const roleConfig = ROLE_CONFIG[demoState.currentRole];
+                const authRequest = {
+                    employeeId: roleConfig.employeeId,
+                    name: roleConfig.name,
+                    password: 'admin123'
+                };
+                
+                const response = await fetch(`${API_CONFIG.MOCK_API}/mock-school-api/auth/authenticate`, {
+                    method: 'POST',
+                    headers: API_CONFIG.HEADERS,
+                    body: JSON.stringify(authRequest)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success && data.data.accessToken) {
+                    demoState.currentToken = data.data.accessToken;
+                    demoState.isAuthenticated = true;
+                    
+                    const result = {
+                        success: true,
+                        message: '用户认证成功',
+                        user: {
+                            username: data.data.username,
+                            roleCode: data.data.roleCode,
+                            roleName: data.data.roleName,
+                            employeeId: data.data.employeeId
+                        },
+                        token: data.data.accessToken.substring(0, 50) + '...',
+                        timestamp: new Date().toLocaleString()
+                    };
+                    
+                    showApiResult(result);
+                    updateOperation('用户认证成功');
+                    console.log('🔐 用户认证成功');
+                    
+                } else {
+                    throw new Error(data.message || '认证失败');
+                }
+                
+            } catch (error) {
+                console.error('🔐 用户认证失败:', error);
+                const errorResult = {
+                    success: false,
+                    error: '用户认证失败',
+                    message: error.message,
+                    timestamp: new Date().toLocaleString()
+                };
+                showApiResult(errorResult);
+                updateOperation('用户认证失败');
+            }
+        }
+
+        // 测试通知发布
+        async function testNotificationPublish() {
+            if (!demoState.isAuthenticated) {
+                alert('请先进行用户认证');
+                return;
+            }
+            
+            console.log('📝 测试通知发布...');
+            updateOperation('测试通知发布...');
+            
+            try {
+                const roleConfig = ROLE_CONFIG[demoState.currentRole];
+                const testNotification = {
+                    title: `【${roleConfig.displayName}测试】智能通知系统功能演示`,
+                    content: `这是来自${roleConfig.displayName}的测试通知，用于验证系统完整发布流程。发布时间：${new Date().toLocaleString()}`,
+                    level: 3,
+                    targetScope: 'SCHOOL_WIDE'
+                };
+                
+                const response = await fetch(`${API_CONFIG.MAIN_API}/admin-api/test/notification/api/publish-database`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${demoState.currentToken}`,
+                        ...API_CONFIG.HEADERS
+                    },
+                    body: JSON.stringify(testNotification)
+                });
+                
+                const data = await response.json();
+                
+                if (data.code === 0) {
+                    const result = {
+                        success: true,
+                        message: '通知发布成功',
+                        notification: {
+                            id: data.data.notificationId,
+                            title: data.data.title,
+                            level: data.data.level,
+                            status: data.data.status,
+                            publisherName: data.data.publisherName,
+                            publisherRole: data.data.publisherRole
+                        },
+                        timestamp: new Date().toLocaleString()
+                    };
+                    
+                    showApiResult(result);
+                    updateOperation('通知发布成功');
+                    console.log('📝 通知发布成功');
+                    
+                } else {
+                    throw new Error(data.msg || '发布失败');
+                }
+                
+            } catch (error) {
+                console.error('📝 通知发布失败:', error);
+                const errorResult = {
+                    success: false,
+                    error: '通知发布失败',
+                    message: error.message,
+                    timestamp: new Date().toLocaleString()
+                };
+                showApiResult(errorResult);
+                updateOperation('通知发布失败');
+            }
+        }
+
+        // 测试通知列表
+        async function testNotificationList() {
+            if (!demoState.isAuthenticated) {
+                alert('请先进行用户认证');
+                return;
+            }
+            
+            console.log('📋 测试通知列表...');
+            updateOperation('测试通知列表...');
+            
+            try {
+                const response = await fetch(`${API_CONFIG.MAIN_API}/admin-api/test/notification/api/list`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${demoState.currentToken}`,
+                        ...API_CONFIG.HEADERS
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.code === 0) {
+                    const result = {
+                        success: true,
+                        message: '通知列表查询成功',
+                        data: {
+                            total: data.data.total,
+                            notifications: data.data.notifications.slice(0, 3), // 只显示前3条
+                            queryUser: data.data.queryUser
+                        },
+                        timestamp: new Date().toLocaleString()
+                    };
+                    
+                    showApiResult(result);
+                    updateOperation(`查询到${data.data.total}条通知`);
+                    console.log('📋 通知列表查询成功');
+                    
+                } else {
+                    throw new Error(data.msg || '查询失败');
+                }
+                
+            } catch (error) {
+                console.error('📋 通知列表查询失败:', error);
+                const errorResult = {
+                    success: false,
+                    error: '通知列表查询失败',
+                    message: error.message,
+                    timestamp: new Date().toLocaleString()
+                };
+                showApiResult(errorResult);
+                updateOperation('通知列表查询失败');
+            }
+        }
+
+        // 切换角色
+        function switchToRole(roleCode, roleName) {
+            console.log(`🎭 角色切换: ${roleCode} (${roleName})`);
+            
+            demoState.currentRole = roleCode;
+            demoState.currentRoleName = roleName;
+            demoState.isAuthenticated = false;
+            demoState.currentToken = '';
+            
+            const roleConfig = ROLE_CONFIG[roleCode];
+            document.getElementById('currentRole').textContent = roleConfig.displayName;
+            
+            const result = {
+                action: '角色切换',
+                newRole: {
+                    code: roleCode,
+                    name: roleName,
+                    displayName: roleConfig.displayName,
+                    permissions: roleConfig.permissions
+                },
+                needsAuth: true,
+                timestamp: new Date().toLocaleString()
+            };
+            
+            showApiResult(result);
+            updateOperation(`已切换到${roleConfig.displayName}`);
+        }
+    </script>
+</body>
+</html>

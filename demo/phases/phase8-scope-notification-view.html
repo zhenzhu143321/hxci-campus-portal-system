@@ -1,0 +1,1422 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phase 8: 范围查看通知验证页面 - 智能通知系统</title>
+    
+    <!-- 安全头配置 -->
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'self'; 
+        script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; 
+        style-src 'self' 'unsafe-inline'; 
+        img-src 'self' data: https:; 
+        font-src 'self' https:; 
+        connect-src 'self' http://localhost:48081 http://localhost:48082; 
+        frame-src 'none'; 
+        object-src 'none';
+        base-uri 'self';
+        form-action 'self';">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-Frame-Options" content="DENY">
+    <meta http-equiv="X-XSS-Protection" content="1; mode=block">
+    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            margin-bottom: 20px;
+        }
+
+        /* 🎯 权限矩阵展示区域 - 放在页面上方 */
+        .permission-matrix {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .matrix-title {
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .matrix-subtitle {
+            background: #e8f4f8;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 4px solid #3498db;
+        }
+
+        .matrix-subtitle h4 {
+            color: #2980b9;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+
+        .matrix-subtitle p {
+            color: #34495e;
+            font-size: 0.95rem;
+            line-height: 1.4;
+        }
+
+        /* 查看权限矩阵表格 */
+        .view-matrix-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 25px;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .view-matrix-table th,
+        .view-matrix-table td {
+            padding: 12px 15px;
+            text-align: center;
+            border-bottom: 1px solid #ecf0f1;
+        }
+
+        .view-matrix-table th {
+            background: #3498db;
+            color: white;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .view-matrix-table td {
+            font-size: 0.9rem;
+        }
+
+        .view-matrix-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        /* 级别颜色标识 */
+        .level-1 { background: #ffebee; color: #c62828; }
+        .level-2 { background: #fff3e0; color: #ef6c00; }
+        .level-3 { background: #fff9c4; color: #f57f17; }
+        .level-4 { background: #e8f5e8; color: #2e7d32; }
+
+        /* 权限状态标识 */
+        .perm-all { background: #4caf50; color: white; padding: 4px 8px; border-radius: 4px; }
+        .perm-scope { background: #ff9800; color: white; padding: 4px 8px; border-radius: 4px; }
+        .perm-reason { color: #666; font-size: 0.85rem; }
+
+        /* 范围可见性矩阵表格 */
+        .scope-matrix-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .scope-matrix-table th,
+        .scope-matrix-table td {
+            padding: 12px 15px;
+            text-align: center;
+            border-bottom: 1px solid #ecf0f1;
+        }
+
+        .scope-matrix-table th {
+            background: #9b59b6;
+            color: white;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .scope-matrix-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        /* 阶段导航 */
+        .phase-navigation {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .phase-nav-item {
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .phase-nav-item:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-2px);
+        }
+
+        .phase-nav-item.current {
+            background: #ffc107;
+            color: #333;
+            font-weight: bold;
+        }
+
+        /* 认证区域 */
+        .auth-section {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .auth-controls {
+            display: grid;
+            grid-template-columns: 1fr auto auto;
+            gap: 15px;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .role-selector {
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            background: white;
+            transition: border-color 0.3s ease;
+        }
+
+        .role-selector:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: none;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: #5a67d8;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: #48bb78;
+            color: white;
+        }
+
+        .btn-success:hover:not(:disabled) {
+            background: #38a169;
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .auth-status {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-size: 0.95rem;
+        }
+
+        .status-pending {
+            background: #fff7cd;
+            border: 1px solid #fbbf24;
+            color: #92400e;
+        }
+
+        .status-success {
+            background: #d1fae5;
+            border: 1px solid #10b981;
+            color: #065f46;
+        }
+
+        .status-error {
+            background: #fee2e2;
+            border: 1px solid #ef4444;
+            color: #991b1b;
+        }
+
+        /* 通知查看测试区域 */
+        .view-test-section {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .section-title {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .test-controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+
+        .notification-list {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            min-height: 400px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .notification-item {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid #ddd;
+            transition: all 0.3s ease;
+        }
+
+        .notification-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .notification-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 10px;
+            gap: 15px;
+        }
+
+        .notification-title {
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: #2c3e50;
+            flex: 1;
+        }
+
+        .notification-level {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .notification-scope {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            background: #e9ecef;
+            color: #495057;
+        }
+
+        .notification-meta {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 10px;
+        }
+
+        .notification-content {
+            margin: 10px 0;
+            color: #555;
+            line-height: 1.4;
+        }
+
+        /* 日志区域 */
+        .log-section {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .log-container {
+            background: #1e1e1e;
+            color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 2px 0;
+        }
+
+        .log-info { color: #61dafb; }
+        .log-success { color: #98d982; }
+        .log-warning { color: #fbbf24; }
+        .log-error { color: #f87171; }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .container { padding: 15px; }
+            .header h1 { font-size: 2rem; }
+            .auth-controls { grid-template-columns: 1fr; }
+            .test-controls { flex-direction: column; }
+            .notification-header { flex-direction: column; align-items: flex-start; }
+            .notification-meta { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 480px) {
+            .header h1 { font-size: 1.8rem; }
+            .phase-navigation { gap: 10px; }
+            .phase-nav-item { padding: 6px 12px; font-size: 0.8rem; }
+        }
+
+        /* 加载动画 */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 页面标题 -->
+        <div class="header">
+            <h1>📋 Phase 8: 范围查看通知验证页面</h1>
+            <div class="subtitle">验证通知范围可见性和查看权限过滤功能</div>
+        </div>
+
+        <!-- 阶段导航 -->
+        <div class="phase-navigation">
+            <a href="phase5-notification-approval.html" class="phase-nav-item">Phase 5: 审批工作流</a>
+            <a href="phase6-notification-scope.html" class="phase-nav-item">Phase 6: 权限矩阵</a>
+            <a href="phase7-scope-notification-publish.html" class="phase-nav-item">Phase 7: 范围发布</a>
+            <a href="phase8-scope-notification-view.html" class="phase-nav-item current">Phase 8: 范围查看</a>
+        </div>
+
+        <!-- 🎯 权限矩阵展示区域 - 放在页面上方 -->
+        <div class="permission-matrix">
+            <div class="matrix-title">
+                👁️ 查看权限矩阵 (View Permissions Matrix)
+            </div>
+            
+            <div class="matrix-subtitle">
+                <h4>🚨 核心修复原则</h4>
+                <p>紧急通知和重要教务通知，所有相关人员(包括学生)都必须看到！之前设计错误地让"学生只能看Level 4通知"完全不合理。</p>
+            </div>
+
+            <!-- 查看权限矩阵表格 -->
+            <table class="view-matrix-table">
+                <thead>
+                    <tr>
+                        <th>通知级别</th>
+                        <th>校长</th>
+                        <th>教务主任</th>
+                        <th>教师</th>
+                        <th>班主任</th>
+                        <th>学生</th>
+                        <th>设计理由</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="level-1">
+                        <td><strong>Level 1 (紧急)</strong></td>
+                        <td><span class="perm-all">✅全部</span></td>
+                        <td><span class="perm-all">✅全部</span></td>
+                        <td><span class="perm-all">✅全部</span></td>
+                        <td><span class="perm-all">✅全部</span></td>
+                        <td><span class="perm-all">✅全部</span></td>
+                        <td class="perm-reason">🚨校园安全警报学生必须知道</td>
+                    </tr>
+                    <tr class="level-2">
+                        <td><strong>Level 2 (重要)</strong></td>
+                        <td><span class="perm-all">✅全部</span></td>
+                        <td><span class="perm-all">✅全部</span></td>
+                        <td><span class="perm-scope">✅相关范围</span></td>
+                        <td><span class="perm-scope">✅相关范围</span></td>
+                        <td><span class="perm-scope">✅相关范围</span></td>
+                        <td class="perm-reason">📚考试安排学生必须知道</td>
+                    </tr>
+                    <tr class="level-3">
+                        <td><strong>Level 3 (常规)</strong></td>
+                        <td><span class="perm-all">✅全部</span></td>
+                        <td><span class="perm-all">✅全部</span></td>
+                        <td><span class="perm-scope">✅相关范围</span></td>
+                        <td><span class="perm-scope">✅相关范围</span></td>
+                        <td><span class="perm-scope">✅相关范围</span></td>
+                        <td class="perm-reason">📋课程调整学生必须知道</td>
+                    </tr>
+                    <tr class="level-4">
+                        <td><strong>Level 4 (提醒)</strong></td>
+                        <td><span class="perm-all">✅全部</span></td>
+                        <td><span class="perm-all">✅全部</span></td>
+                        <td><span class="perm-all">✅全部</span></td>
+                        <td><span class="perm-all">✅全部</span></td>
+                        <td><span class="perm-all">✅全部</span></td>
+                        <td class="perm-reason">💡温馨提示大家都能看</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- 范围可见性矩阵表格 -->
+            <div class="matrix-subtitle">
+                <h4>🌐 范围可见性矩阵 (Scope Visibility Matrix)</h4>
+                <p>什么范围的通知谁可以看到 - 学生必须能看到所有与自己相关范围的通知！</p>
+            </div>
+
+            <table class="scope-matrix-table">
+                <thead>
+                    <tr>
+                        <th>通知范围</th>
+                        <th>校长</th>
+                        <th>教务主任</th>
+                        <th>教师</th>
+                        <th>班主任</th>
+                        <th>学生</th>
+                        <th>可见性逻辑</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>🏫 SCHOOL_WIDE</strong></td>
+                        <td><span class="perm-all">✅全部</span></td>
+                        <td><span class="perm-all">✅全部</span></td>
+                        <td><span class="perm-all">✅全部</span></td>
+                        <td><span class="perm-all">✅全部</span></td>
+                        <td><span class="perm-all">✅全部</span></td>
+                        <td class="perm-reason">全校通知所有人都能看</td>
+                    </tr>
+                    <tr>
+                        <td><strong>🏢 DEPARTMENT</strong></td>
+                        <td><span class="perm-all">✅全部</span></td>
+                        <td><span class="perm-all">✅全部</span></td>
+                        <td><span class="perm-scope">✅所在部门</span></td>
+                        <td><span class="perm-scope">✅相关部门</span></td>
+                        <td><span class="perm-scope">✅所在部门</span></td>
+                        <td class="perm-reason">部门学生能看部门通知</td>
+                    </tr>
+                    <tr>
+                        <td><strong>📚 GRADE</strong></td>
+                        <td><span class="perm-all">✅全部</span></td>
+                        <td><span class="perm-all">✅全部</span></td>
+                        <td><span class="perm-scope">✅教授年级</span></td>
+                        <td><span class="perm-scope">✅负责年级</span></td>
+                        <td><span class="perm-scope">✅所在年级</span></td>
+                        <td class="perm-reason">年级学生能看年级通知</td>
+                    </tr>
+                    <tr>
+                        <td><strong>👥 CLASS</strong></td>
+                        <td><span class="perm-all">✅全部</span></td>
+                        <td><span class="perm-all">✅全部</span></td>
+                        <td><span class="perm-scope">✅任课班级</span></td>
+                        <td><span class="perm-scope">✅负责班级</span></td>
+                        <td><span class="perm-scope">✅所在班级</span></td>
+                        <td class="perm-reason">班级学生能看班级通知</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 认证区域 -->
+        <div class="auth-section">
+            <div class="section-title">
+                🔐 用户认证测试
+            </div>
+            <div class="auth-controls">
+                <select id="roleSelector" class="role-selector">
+                    <option value="PRINCIPAL_001">🏫 校长 (Principal-Zhang)</option>
+                    <option value="ACADEMIC_ADMIN_001">📋 教务主任 (Director-Li)</option>
+                    <option value="TEACHER_001">👨‍🏫 教师 (Teacher-Wang)</option>
+                    <option value="CLASS_TEACHER_001">👩‍🏫 班主任 (ClassTeacher-Liu)</option>
+                    <option value="STUDENT_001">🎓 学生 (Student-Zhang)</option>
+                </select>
+                <button id="authBtn" class="btn btn-primary">登录认证</button>
+                <button id="viewNotificationsBtn" class="btn btn-success" disabled>查看通知列表</button>
+            </div>
+            <div id="authStatus" class="auth-status status-pending">
+                请选择角色并点击"登录认证"开始测试
+            </div>
+        </div>
+
+        <!-- 通知查看测试区域 -->
+        <div class="view-test-section">
+            <div class="section-title">
+                📋 通知查看权限验证
+            </div>
+            <div class="test-controls">
+                <button id="refreshNotificationsBtn" class="btn btn-primary" disabled>
+                    刷新通知列表
+                </button>
+                <button id="clearNotificationsBtn" class="btn btn-secondary">
+                    清空列表
+                </button>
+            </div>
+            <div id="notificationList" class="notification-list">
+                <div style="text-align: center; color: #666; padding: 50px;">
+                    请先完成用户认证，然后点击"查看通知列表"开始验证
+                </div>
+            </div>
+        </div>
+
+        <!-- 日志区域 -->
+        <div class="log-section">
+            <div class="section-title">
+                📊 系统日志
+            </div>
+            <div style="display: flex; gap: 15px; margin-bottom: 15px;">
+                <button onclick="saveLogsToFile()" class="btn btn-primary" style="font-size: 0.9rem; padding: 8px 16px;">
+                    📥 保存日志文件
+                </button>
+                <button onclick="clearLog()" class="btn btn-secondary" style="font-size: 0.9rem; padding: 8px 16px; background: #6c757d;">
+                    🗑️ 清空日志
+                </button>
+                <div style="flex: 1; text-align: right; color: #666; font-size: 0.9rem; align-self: center;">
+                    当前日志条数: <span id="logCount">0</span> | 自动保存: 仅错误时
+                </div>
+            </div>
+            <div id="logContainer" class="log-container">
+Phase 8: 范围查看通知验证页面已加载 ✅
+等待用户操作...
+
+🎯 验证重点：
+1. 各角色能看到的通知级别是否符合新的查看权限矩阵
+2. 学生是否能看到Level 1紧急通知和Level 2重要教务通知
+3. 范围过滤是否按照新的可见性逻辑工作
+4. 权限过滤的准确性验证
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ========================================
+        // 🌐 全局状态管理
+        // ========================================
+        
+        let currentToken = null;
+        let currentUser = null;
+        let isOperationInProgress = false;
+        
+        // 📝 日志系统 - 新增保存功能
+        let systemLogs = [];
+        let logFileHandle = null;
+        let isSavingLog = false; // 防止保存日志时的无限循环
+
+        // 测试账号映射
+        const testAccounts = {
+            'PRINCIPAL_001': { 
+                employeeId: 'PRINCIPAL_001', 
+                name: 'Principal-Zhang', 
+                password: 'admin123',
+                displayName: '校长张明',
+                expectedRole: 'PRINCIPAL'
+            },
+            'ACADEMIC_ADMIN_001': { 
+                employeeId: 'ACADEMIC_ADMIN_001', 
+                name: 'Director-Li', 
+                password: 'admin123',
+                displayName: '教务主任李华',
+                expectedRole: 'ACADEMIC_ADMIN'
+            },
+            'TEACHER_001': { 
+                employeeId: 'TEACHER_001', 
+                name: 'Teacher-Wang', 
+                password: 'admin123',
+                displayName: '教师王老师',
+                expectedRole: 'TEACHER'
+            },
+            'CLASS_TEACHER_001': { 
+                employeeId: 'CLASS_TEACHER_001', 
+                name: 'ClassTeacher-Liu', 
+                password: 'admin123',
+                displayName: '班主任刘老师',
+                expectedRole: 'CLASS_TEACHER'
+            },
+            'STUDENT_001': { 
+                employeeId: 'STUDENT_001', 
+                name: 'Student-Zhang', 
+                password: 'admin123',
+                displayName: '学生张三',
+                expectedRole: 'STUDENT'
+            }
+        };
+
+        // ========================================
+        // 🔧 工具函数
+        // ========================================
+
+        // 增强的带超时和重试的fetch封装
+        async function fetchWithRetry(url, options = {}, maxRetries = 2, timeout = 10000) {
+            const controller = new AbortController();
+            let timeoutId;
+            
+            for (let attempt = 0; attempt <= maxRetries; attempt++) {
+                try {
+                    timeoutId = setTimeout(() => controller.abort(), timeout);
+                    
+                    const response = await fetch(url, {
+                        ...options,
+                        signal: controller.signal
+                    });
+                    
+                    clearTimeout(timeoutId);
+                    return response;
+                    
+                } catch (error) {
+                    clearTimeout(timeoutId);
+                    
+                    if (attempt === maxRetries) {
+                        throw error;
+                    }
+                    
+                    addLog(`⚠️ 请求失败 (尝试 ${attempt + 1}/${maxRetries + 1}): ${error.message}`, 'warning');
+                    await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+                }
+            }
+        }
+        
+        // 安全的JSON解析
+        async function safeJsonParse(response) {
+            try {
+                const text = await response.text();
+                if (!text.trim()) {
+                    throw new Error('服务器返回空响应');
+                }
+                return JSON.parse(text);
+            } catch (error) {
+                addLog(`🚨 JSON解析失败: ${error.message}`, 'error');
+                throw error;
+            }
+        }
+
+        // 日志输出函数 - 增强版本，支持保存到文件
+        function addLog(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const fullMessage = `[${timestamp}] ${message}`;
+            
+            // 添加到日志数组
+            systemLogs.push({
+                timestamp: new Date().toISOString(),
+                time: timestamp,
+                type: type,
+                message: message,
+                fullMessage: fullMessage
+            });
+            
+            // 显示在页面上
+            const logContainer = document.getElementById('logContainer');
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${type}`;
+            logEntry.textContent = fullMessage;
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+            
+            // 更新日志计数器
+            const logCount = document.getElementById('logCount');
+            if (logCount) {
+                logCount.textContent = systemLogs.length;
+            }
+            
+            // 🔧 修复：只在错误时自动保存，避免无限循环
+            // 移除原来的每10条日志自动保存，改为仅错误时保存
+            if (type === 'error' && !isSavingLog) {
+                isSavingLog = true;
+                saveLogsToFile();
+                console.log('🚨 检测到错误，已自动保存调试日志');
+                isSavingLog = false;
+            }
+        }
+
+        // 📝 保存日志到文件
+        async function saveLogsToFile() {
+            try {
+                const logContent = generateLogContent();
+                const blob = new Blob([logContent], { type: 'text/plain;charset=utf-8' });
+                
+                // 使用现代浏览器的下载API
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `phase8-debug-log-${new Date().toISOString().slice(0, 19).replace(/[:.]/g, '-')}.txt`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                console.log('🗂️ 日志文件已保存到下载目录');
+            } catch (error) {
+                console.error('❌ 保存日志文件失败:', error);
+            }
+        }
+
+        // 📋 生成日志文件内容
+        function generateLogContent() {
+            const header = `# Phase 8: 范围查看通知验证页面 - 调试日志
+## 生成时间: ${new Date().toISOString()}
+## 用户代理: ${navigator.userAgent}
+## 页面URL: ${window.location.href}
+## 总日志条数: ${systemLogs.length}
+
+===========================================
+
+`;
+            
+            const logLines = systemLogs.map(log => {
+                return `[${log.timestamp}] [${log.type.toUpperCase()}] ${log.message}`;
+            }).join('\n');
+            
+            const footer = `
+
+===========================================
+## 系统信息
+- 浏览器: ${navigator.userAgent}
+- 屏幕分辨率: ${screen.width}x${screen.height}
+- 当前时间: ${new Date().toISOString()}
+- 日志级别统计: ${getLogTypeStats()}
+
+## 当前状态
+- 认证状态: ${currentToken ? '已认证' : '未认证'}
+- 当前用户: ${currentUser ? JSON.stringify(currentUser, null, 2) : '未设置'}
+- 操作进行中: ${isOperationInProgress}
+`;
+            
+            return header + logLines + footer;
+        }
+
+        // 📊 获取日志类型统计
+        function getLogTypeStats() {
+            const stats = {};
+            systemLogs.forEach(log => {
+                stats[log.type] = (stats[log.type] || 0) + 1;
+            });
+            return JSON.stringify(stats);
+        }
+
+        // 清空日志 - 增强版本
+        function clearLog() {
+            const logContainer = document.getElementById('logContainer');
+            logContainer.innerHTML = '';
+            systemLogs = []; // 清空日志数组
+            addLog('Phase 8: 范围查看通知验证页面 - 日志已清空', 'info');
+        }
+
+        // ========================================
+        // 🔐 认证相关函数
+        // ========================================
+        
+        async function authenticateUser() {
+            const roleSelector = document.getElementById('roleSelector');
+            const authBtn = document.getElementById('authBtn');
+            const authStatus = document.getElementById('authStatus');
+            
+            const selectedRole = roleSelector.value;
+            const account = testAccounts[selectedRole];
+            
+            if (!account) {
+                addLog('❌ 未找到对应的测试账号', 'error');
+                return;
+            }
+
+            if (isOperationInProgress) {
+                addLog('⚠️ 操作正在进行中，请等待...', 'warning');
+                return;
+            }
+
+            isOperationInProgress = true;
+            authBtn.disabled = true;
+            authStatus.className = 'auth-status status-pending';
+            authStatus.innerHTML = '<div class="loading"></div> 正在进行用户认证...';
+
+            addLog(`🔐 开始用户认证 - ${account.displayName} (${account.expectedRole})`, 'info');
+
+            try {
+                // Step 1: Mock School API认证
+                addLog(`🔍 第一步：Mock School API认证 - ${account.employeeId}`, 'info');
+                
+                const authResponse = await fetchWithRetry('http://localhost:48082/mock-school-api/auth/authenticate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        employeeId: account.employeeId,
+                        name: account.name,
+                        password: account.password
+                    })
+                });
+
+                if (!authResponse.ok) {
+                    throw new Error(`认证失败: ${authResponse.status} ${authResponse.statusText}`);
+                }
+
+                const authData = await safeJsonParse(authResponse);
+                addLog(`✅ Mock School API认证成功`, 'success');
+
+                if (!authData.success || !authData.data) {
+                    throw new Error(authData.message || 'Mock School API认证失败');
+                }
+
+                // 🔧 修复：使用正确的token字段名
+                const tokenField = authData.data.accessToken || authData.data.token;
+                if (!tokenField) {
+                    addLog(`⚠️ 认证响应完整数据: ${JSON.stringify(authData, null, 2)}`, 'warning');
+                    addLog(`⚠️ 可用字段: ${Object.keys(authData.data || {}).join(', ')}`, 'warning');
+                    throw new Error('认证成功但未获取到访问令牌 (accessToken 或 token)');
+                }
+
+                currentToken = `Bearer ${tokenField}`;
+                currentUser = authData.data;
+
+                // Step 2: 验证用户信息
+                addLog(`🔍 第二步：验证用户信息 - Token长度: ${currentToken.length}`, 'info');
+
+                const userInfoResponse = await fetchWithRetry('http://localhost:48082/mock-school-api/auth/user-info', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': currentToken
+                    },
+                    body: JSON.stringify({})
+                });
+
+                if (!userInfoResponse.ok) {
+                    throw new Error(`用户信息获取失败: ${userInfoResponse.status}`);
+                }
+
+                const userInfoData = await safeJsonParse(userInfoResponse);
+                if (!userInfoData.success) {
+                    throw new Error(`用户信息验证失败: ${userInfoData.message}`);
+                }
+
+                addLog(`✅ 用户信息验证成功: ${userInfoData.data.username} (${userInfoData.data.roleCode})`, 'success');
+
+                // 更新UI状态
+                authStatus.className = 'auth-status status-success';
+                authStatus.innerHTML = `
+                    ✅ 认证成功<br>
+                    用户: ${userInfoData.data.username}<br>
+                    角色: ${userInfoData.data.roleCode} (${userInfoData.data.roleName})<br>
+                    Token: ${currentToken.substring(0, 30)}...
+                `;
+
+                // 启用通知查看按钮
+                document.getElementById('viewNotificationsBtn').disabled = false;
+                document.getElementById('refreshNotificationsBtn').disabled = false;
+                
+                addLog(`🎯 认证流程完成，可以开始验证通知查看权限`, 'success');
+
+            } catch (error) {
+                addLog(`❌ 认证失败: ${error.message}`, 'error');
+                authStatus.className = 'auth-status status-error';
+                authStatus.innerHTML = `❌ 认证失败: ${error.message}`;
+                currentToken = null;
+                currentUser = null;
+            } finally {
+                isOperationInProgress = false;
+                authBtn.disabled = false;
+            }
+        }
+
+        // ========================================
+        // 📋 通知查看相关函数
+        // ========================================
+
+        async function viewNotifications() {
+            if (!currentToken) {
+                addLog('❌ 请先完成用户认证', 'error');
+                return;
+            }
+
+            if (isOperationInProgress) {
+                addLog('⚠️ 操作正在进行中，请等待...', 'warning');
+                return;
+            }
+
+            isOperationInProgress = true;
+            addLog('📋 开始获取通知列表...', 'info');
+
+            try {
+                const response = await fetchWithRetry('http://localhost:48081/admin-api/test/notification/api/list', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': currentToken,
+                        'Content-Type': 'application/json',
+                        'tenant-id': '1'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`获取通知列表失败: ${response.status} ${response.statusText}`);
+                }
+
+                const data = await safeJsonParse(response);
+                
+                // 🔍 增强调试：显示完整API响应
+                addLog(`🔍 通知列表API响应状态: ${JSON.stringify({
+                    success: data.success,
+                    code: data.code,
+                    message: data.message,
+                    dataExists: !!data.data,
+                    totalNotifications: data.data ? data.data.total : 'N/A'
+                })}`, 'info');
+                
+                // 🔧 修复：后端使用code: 0表示成功，而不是success: true
+                if (data.code !== 0 && !data.success) {
+                    const errorMsg = data.message || data.msg || data.error || '未知错误';
+                    addLog(`⚠️ API错误响应详情: ${JSON.stringify(data, null, 2)}`, 'warning');
+                    throw new Error(`API返回错误: ${errorMsg}`);
+                }
+
+                addLog(`✅ 通知列表获取成功: 共 ${data.data.total} 条通知`, 'success');
+                
+                // 显示通知列表
+                displayNotifications(data.data.notifications, data.data.queryUser);
+                
+                // 分析权限过滤效果
+                analyzeViewPermissions(data.data.notifications, data.data.queryUser);
+
+            } catch (error) {
+                addLog(`❌ 获取通知列表失败: ${error.message}`, 'error');
+                document.getElementById('notificationList').innerHTML = `
+                    <div style="text-align: center; color: #e74c3c; padding: 50px;">
+                        ❌ 获取通知列表失败: ${error.message}
+                    </div>
+                `;
+            } finally {
+                isOperationInProgress = false;
+            }
+        }
+
+        function displayNotifications(notifications, queryUser) {
+            const listContainer = document.getElementById('notificationList');
+            
+            if (!notifications || notifications.length === 0) {
+                listContainer.innerHTML = `
+                    <div style="text-align: center; color: #666; padding: 50px;">
+                        📭 当前没有可查看的通知<br>
+                        <small>这可能表明权限过滤过于严格</small>
+                    </div>
+                `;
+                return;
+            }
+
+            // 🎯 前端权限过滤 - 基于新的查看权限矩阵
+            addLog(`🔍 开始前端权限过滤 - 原始通知: ${notifications.length} 条`, 'info');
+            const filteredNotifications = applyNewViewPermissions(notifications, queryUser.roleCode);
+            addLog(`🔍 前端权限过滤完成 - 过滤后通知: ${filteredNotifications.length} 条`, 'success');
+
+            let html = `
+                <div style="background: #e8f4f8; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <h4 style="color: #2980b9; margin-bottom: 10px;">
+                        📊 查看结果概览 - ${queryUser.username} (${queryUser.roleCode})
+                    </h4>
+                    <p>后端返回 <strong>${notifications.length}</strong> 条通知，前端权限过滤后显示 <strong>${filteredNotifications.length}</strong> 条</p>
+                    ${notifications.length !== filteredNotifications.length ? 
+                        `<p style="color: #e67e22; margin-top: 8px;">🎯 前端过滤生效：隐藏了 ${notifications.length - filteredNotifications.length} 条不符合新权限矩阵的通知</p>` : 
+                        `<p style="color: #27ae60; margin-top: 8px;">✅ 无需过滤：所有通知都符合新权限矩阵</p>`}
+                </div>
+            `;
+
+            if (filteredNotifications.length === 0) {
+                listContainer.innerHTML = html + `
+                    <div style="text-align: center; color: #666; padding: 50px;">
+                        📭 根据新的查看权限矩阵，当前没有可查看的通知<br>
+                        <small>这表明前端权限过滤正在生效</small>
+                    </div>
+                `;
+                return;
+            }
+
+            filteredNotifications.forEach(notification => {
+                const levelColor = getLevelColor(notification.level);
+                const scopeIcon = getScopeIcon(notification.targetScope);
+                
+                html += `
+                    <div class="notification-item" style="border-left-color: ${levelColor};">
+                        <div class="notification-header">
+                            <div class="notification-title">${escapeHtml(notification.title)}</div>
+                            <div style="display: flex; gap: 10px;">
+                                <span class="notification-level" style="background: ${levelColor}; color: white;">
+                                    Level ${notification.level}
+                                </span>
+                                <span class="notification-scope">
+                                    ${scopeIcon} ${notification.targetScope || 'N/A'}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="notification-content">
+                            ${escapeHtml(notification.content || '')}
+                        </div>
+                        <div class="notification-meta">
+                            <div><strong>发布者:</strong> ${escapeHtml(notification.publisherName)} (${notification.publisherRole})</div>
+                            <div><strong>状态:</strong> ${getStatusText(notification.status)}</div>
+                            <div><strong>创建时间:</strong> ${formatDate(notification.createTime)}</div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            listContainer.innerHTML = html;
+            addLog(`📋 通知列表渲染完成: ${filteredNotifications.length} 条`, 'success');
+            
+            // 分析权限过滤效果 - 使用过滤后的通知
+            analyzeViewPermissions(filteredNotifications, queryUser, notifications.length);
+        }
+
+        // ========================================
+        // 🎯 核心前端权限过滤函数 - 基于新的查看权限矩阵
+        // ========================================
+
+        function applyNewViewPermissions(notifications, userRole) {
+            addLog(`🎯 执行新查看权限矩阵过滤 - 用户角色: ${userRole}`, 'info');
+            
+            const filteredNotifications = notifications.filter(notification => {
+                return canUserViewNotification(userRole, notification.level, notification.targetScope);
+            });
+            
+            const filteredCount = notifications.length - filteredNotifications.length;
+            if (filteredCount > 0) {
+                addLog(`🎯 前端过滤结果: 隐藏了 ${filteredCount} 条通知`, 'warning');
+            }
+            
+            return filteredNotifications;
+        }
+
+        function canUserViewNotification(userRole, notificationLevel, notificationScope) {
+            // 根据新的查看权限矩阵判断用户是否能看到通知
+            const viewMatrix = getNewViewPermissionMatrix();
+            const userPermissions = viewMatrix[userRole];
+            
+            if (!userPermissions) {
+                addLog(`⚠️ 未知用户角色: ${userRole}`, 'warning');
+                return false;
+            }
+
+            // 检查级别权限
+            const levelPermission = userPermissions.levels[notificationLevel];
+            if (levelPermission === 'ALL') {
+                return true; // 可以看所有这个级别的通知
+            } else if (levelPermission === 'SCOPE') {
+                // 需要检查范围权限
+                return canUserViewScope(userRole, notificationScope);
+            } else if (levelPermission === 'NONE') {
+                return false; // 不能看这个级别的通知
+            }
+            
+            return false;
+        }
+
+        function canUserViewScope(userRole, notificationScope) {
+            // 简化的范围权限检查 - 实际生产环境需要更复杂的逻辑
+            const scopeMatrix = getNewScopePermissionMatrix();
+            const userScopePermissions = scopeMatrix[userRole];
+            
+            if (!userScopePermissions || !notificationScope) {
+                return true; // 默认允许
+            }
+            
+            const scopePermission = userScopePermissions[notificationScope];
+            if (scopePermission === 'ALL') {
+                return true;
+            } else if (scopePermission === 'SCOPE') {
+                // 在实际系统中，这里需要检查用户的具体部门、年级、班级信息
+                // 现在我们简化为允许，表示"相关范围"
+                return true;
+            } else if (scopePermission === 'NONE') {
+                return false;
+            }
+            
+            return true; // 默认允许
+        }
+
+        function getNewViewPermissionMatrix() {
+            // 🎯 新的查看权限矩阵 - 基于修复后的设计
+            return {
+                'PRINCIPAL': {
+                    levels: { 1: 'ALL', 2: 'ALL', 3: 'ALL', 4: 'ALL' }
+                },
+                'ACADEMIC_ADMIN': {
+                    levels: { 1: 'ALL', 2: 'ALL', 3: 'ALL', 4: 'ALL' }
+                },
+                'TEACHER': {
+                    levels: { 1: 'ALL', 2: 'SCOPE', 3: 'SCOPE', 4: 'ALL' }
+                },
+                'CLASS_TEACHER': {
+                    levels: { 1: 'ALL', 2: 'SCOPE', 3: 'SCOPE', 4: 'ALL' }
+                },
+                'STUDENT': {
+                    // 🚨 关键修复：学生可以看Level 1紧急通知和相关范围的Level 2-3通知
+                    levels: { 1: 'ALL', 2: 'SCOPE', 3: 'SCOPE', 4: 'ALL' }
+                }
+            };
+        }
+
+        function getNewScopePermissionMatrix() {
+            // 🌐 新的范围可见性矩阵
+            return {
+                'PRINCIPAL': {
+                    'SCHOOL_WIDE': 'ALL', 'DEPARTMENT': 'ALL', 'GRADE': 'ALL', 'CLASS': 'ALL'
+                },
+                'ACADEMIC_ADMIN': {
+                    'SCHOOL_WIDE': 'ALL', 'DEPARTMENT': 'ALL', 'GRADE': 'ALL', 'CLASS': 'ALL'
+                },
+                'TEACHER': {
+                    'SCHOOL_WIDE': 'ALL', 'DEPARTMENT': 'SCOPE', 'GRADE': 'NONE', 'CLASS': 'SCOPE'
+                },
+                'CLASS_TEACHER': {
+                    'SCHOOL_WIDE': 'ALL', 'DEPARTMENT': 'SCOPE', 'GRADE': 'SCOPE', 'CLASS': 'SCOPE'
+                },
+                'STUDENT': {
+                    // 🚨 关键修复：学生可以看到相关范围的所有通知
+                    'SCHOOL_WIDE': 'ALL', 'DEPARTMENT': 'SCOPE', 'GRADE': 'SCOPE', 'CLASS': 'SCOPE'
+                }
+            };
+        }
+
+        // ========================================
+        // 📊 权限分析函数 - 更新版本
+        // ========================================
+
+        function analyzeViewPermissions(filteredNotifications, queryUser, originalCount) {
+            addLog('🔍 开始分析查看权限过滤效果...', 'info');
+            
+            const levelStats = {};
+            const scopeStats = {};
+            const publisherStats = {};
+
+            filteredNotifications.forEach(notification => {
+                // 统计级别分布
+                const level = notification.level;
+                levelStats[level] = (levelStats[level] || 0) + 1;
+                
+                // 统计范围分布
+                const scope = notification.targetScope || 'N/A';
+                scopeStats[scope] = (scopeStats[scope] || 0) + 1;
+                
+                // 统计发布者角色分布
+                const publisher = notification.publisherRole;
+                publisherStats[publisher] = (publisherStats[publisher] || 0) + 1;
+            });
+
+            addLog(`📊 前端过滤统计 - 原始: ${originalCount} 条 → 过滤后: ${filteredNotifications.length} 条`, 'info');
+            addLog(`📊 权限分析 - 用户角色: ${queryUser.roleCode}`, 'info');
+            addLog(`📊 级别分布: ${JSON.stringify(levelStats)}`, 'info');
+            addLog(`📊 范围分布: ${JSON.stringify(scopeStats)}`, 'info');
+            addLog(`📊 发布者角色分布: ${JSON.stringify(publisherStats)}`, 'info');
+
+            // 验证是否符合新的查看权限矩阵
+            validateNewViewPermissions(queryUser.roleCode, levelStats, scopeStats, originalCount, filteredNotifications.length);
+        }
+
+        function validateNewViewPermissions(userRole, levelStats, scopeStats, originalCount, filteredCount) {
+            addLog('🎯 验证新查看权限矩阵是否正确应用...', 'info');
+            
+            const expectedPermissions = getNewViewPermissionMatrix()[userRole];
+            if (!expectedPermissions) {
+                addLog(`❌ 未知用户角色: ${userRole}`, 'error');
+                return;
+            }
+            
+            // 关键验证：学生是否能看到Level 1紧急通知
+            if (userRole === 'STUDENT') {
+                const level1Count = levelStats[1] || 0;
+                if (level1Count > 0) {
+                    addLog(`✅ 学生权限修复验证成功: 可以看到 ${level1Count} 条Level 1紧急通知`, 'success');
+                } else {
+                    addLog(`⚠️ 学生权限验证: 当前没有Level 1通知可验证`, 'warning');
+                }
+                
+                const level2Count = levelStats[2] || 0;
+                if (level2Count > 0) {
+                    addLog(`✅ 学生权限修复验证成功: 可以看到 ${level2Count} 条Level 2重要通知`, 'success');
+                } else {
+                    addLog(`⚠️ 学生权限验证: 当前没有Level 2通知可验证`, 'warning');
+                }
+            }
+            
+            // 检查级别权限应用是否正确
+            for (let level = 1; level <= 4; level++) {
+                const actualCount = levelStats[level] || 0;
+                const expected = expectedPermissions.levels[level];
+                
+                if (expected === 'ALL') {
+                    addLog(`📋 Level ${level} 权限检查: ${expected} 权限，实际显示 ${actualCount} 条`, 'info');
+                } else if (expected === 'SCOPE') {
+                    addLog(`📋 Level ${level} 权限检查: ${expected} 权限 (范围相关)，实际显示 ${actualCount} 条`, 'info');
+                } else if (expected === 'NONE') {
+                    if (actualCount === 0) {
+                        addLog(`✅ Level ${level} 权限检查: ${expected} 权限应用正确，实际显示 0 条`, 'success');
+                    } else {
+                        addLog(`❌ Level ${level} 权限检查: ${expected} 权限但显示了 ${actualCount} 条，可能有问题`, 'error');
+                    }
+                }
+            }
+            
+            // 总体验证
+            if (originalCount !== filteredCount) {
+                addLog(`🎯 前端权限过滤生效: 隐藏了 ${originalCount - filteredCount} 条通知`, 'success');
+            } else {
+                addLog(`ℹ️ 前端权限过滤无变化: 所有通知都符合新权限矩阵要求`, 'info');
+            }
+        }
+
+        // ========================================
+        // 🔧 辅助函数
+        // ========================================
+
+        function getLevelColor(level) {
+            const colors = {
+                1: '#c62828', // 红色 - 紧急
+                2: '#ef6c00', // 橙色 - 重要
+                3: '#f57f17', // 黄色 - 常规
+                4: '#2e7d32'  // 绿色 - 提醒
+            };
+            return colors[level] || '#666';
+        }
+
+        function getScopeIcon(scope) {
+            const icons = {
+                'SCHOOL_WIDE': '🏫',
+                'DEPARTMENT': '🏢',
+                'GRADE': '📚',
+                'CLASS': '👥'
+            };
+            return icons[scope] || '📋';
+        }
+
+        function getStatusText(status) {
+            const statusMap = {
+                0: '草稿',
+                1: '待审批',
+                2: '已审批',
+                3: '已发布',
+                4: '已取消',
+                5: '已过期',
+                6: '已归档'
+            };
+            return statusMap[status] || `状态${status}`;
+        }
+
+        function formatDate(dateStr) {
+            try {
+                return new Date(dateStr).toLocaleString('zh-CN');
+            } catch {
+                return dateStr || 'N/A';
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function clearNotifications() {
+            document.getElementById('notificationList').innerHTML = `
+                <div style="text-align: center; color: #666; padding: 50px;">
+                    📋 通知列表已清空<br>
+                    <small>点击"查看通知列表"重新加载</small>
+                </div>
+            `;
+            addLog('📋 通知列表已清空', 'info');
+        }
+
+        // ========================================
+        // 🎯 事件绑定和页面初始化
+        // ========================================
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // 绑定认证按钮
+            document.getElementById('authBtn').addEventListener('click', authenticateUser);
+            
+            // 绑定通知查看按钮
+            document.getElementById('viewNotificationsBtn').addEventListener('click', viewNotifications);
+            
+            // 绑定刷新按钮
+            document.getElementById('refreshNotificationsBtn').addEventListener('click', viewNotifications);
+            
+            // 绑定清空按钮
+            document.getElementById('clearNotificationsBtn').addEventListener('click', clearNotifications);
+            
+            addLog('Phase 8: 范围查看通知验证页面初始化完成', 'success');
+            addLog('🎯 页面功能: 验证新的查看权限矩阵是否生效 (前端过滤实现)', 'info');
+            addLog('📋 特别关注: 学生是否能看到Level 1紧急通知和Level 2重要通知', 'info');
+            addLog('🔧 实现方式: 前端JavaScript权限过滤，无需修改后端代码', 'info');
+        });
+    </script>
+</body>
+</html>

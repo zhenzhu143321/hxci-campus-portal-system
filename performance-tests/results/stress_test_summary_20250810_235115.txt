@@ -1,0 +1,24 @@
+﻿INTELLIGENT NOTIFICATION SYSTEM - STRESS TEST SUMMARY
+Generated: 08/10/2025 23:57:02
+=====================================================
+
+OBJECTIVE: Determine system stress limits and performance degradation points
+
+TEST METHODOLOGY:
+- Progressive stress testing from 50 to 500 concurrent users
+- Focus on system health check API (lightest possible load)
+- Monitor system resources (CPU, Memory) during testing
+- Measure response times, success rates, and throughput
+
+STRESS TEST RESULTS:
+
+Users,Description,Success_Rate,RPS,Avg_Response_ms,Max_Response_ms,95th_Percentile_ms,System_Status
+50,Moderate Stress,0,0,0,0,0,STRESSED
+100,High Stress,0,0,0,0,0,STRESSED
+200,Very High Stress,0,0,0,0,0,STRESSED
+300,Extreme Stress,0,0,0,0,0,STRESSED
+500,Maximum Stress,0,0,0,0,0,STRESSED
+
+ANALYSIS:
+- System stress threshold:  concurrent users
+- Best overall performance: 0 RPS at 300 users
