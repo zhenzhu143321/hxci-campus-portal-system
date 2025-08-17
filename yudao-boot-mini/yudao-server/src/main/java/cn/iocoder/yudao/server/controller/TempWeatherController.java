@@ -236,7 +236,7 @@ public class TempWeatherController {
                 "FROM weather_cache WHERE city_code='101050101' ORDER BY update_time DESC LIMIT 1";
             
             String mysqlCommand = String.format(
-                "cmd /c \"C:\\tools\\mysql\\current\\bin\\mysql.exe -u root ruoyi-vue-pro --default-character-set=utf8 -e \"%s\"\"",
+                "mysql -u root ruoyi-vue-pro --default-character-set=utf8 -e \"%s\"",
                 querySql.replace("\"", "\\\"")
             );
             
@@ -371,10 +371,10 @@ public class TempWeatherController {
     private String generateQWeatherJWT() {
         try {
             // 调用Python脚本生成JWT Token
-            String scriptPath = "D:/ClaudeCode/AI_Web/scripts/weather/generate-weather-jwt.py";
-            ProcessBuilder processBuilder = new ProcessBuilder("python", scriptPath);
+            String scriptPath = "/opt/hxci-campus-portal/hxci-campus-portal-system/scripts/weather/generate-weather-jwt.py";
+            ProcessBuilder processBuilder = new ProcessBuilder("python3", scriptPath);
             // 设置工作目录为脚本所在目录，确保能找到私钥文件
-            processBuilder.directory(new java.io.File("D:/ClaudeCode/AI_Web/scripts/weather"));
+            processBuilder.directory(new java.io.File("/opt/hxci-campus-portal/hxci-campus-portal-system/scripts/weather"));
             Process process = processBuilder.start();
             
             java.io.BufferedReader reader = new java.io.BufferedReader(
@@ -447,7 +447,7 @@ public class TempWeatherController {
             );
 
             String mysqlCommand = String.format(
-                "cmd /c \"C:\\tools\\mysql\\current\\bin\\mysql.exe -u root ruoyi-vue-pro --default-character-set=utf8 -e \"%s\"\"",
+                "mysql -u root ruoyi-vue-pro --default-character-set=utf8 -e \"%s\"",
                 insertSql.replace("\"", "\\\"")
             );
 

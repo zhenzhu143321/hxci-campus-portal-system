@@ -237,7 +237,9 @@
       "Bash(\"C:\\tools\\mysql\\current\\bin\\mysql.exe\" -u root ruoyi-vue-pro -e \"SELECT id, title, level, status, publisher_name, publisher_role, approval_status, create_time FROM notification_info WHERE id=125;\")",
       "Bash(\"C:\\tools\\mysql\\current\\bin\\mysql.exe\" -u root ruoyi-vue-pro -e \"SELECT id, title, level, status, publisher_name, publisher_role, approval_status, approver_id, approver_name, approval_time, approval_comment FROM notification_info WHERE id=125;\")",
       "Bash(\"C:\\tools\\mysql\\current\\bin\\mysql.exe\" -u root ruoyi-vue-pro --default-character-set=utf8mb4 -e \"SELECT id, title, publisher_name, publisher_role, create_time FROM notification_info ORDER BY id DESC LIMIT 3;\")",
-      "Bash(move:*)"
+      "Bash(move:*)",
+      "Bash(npm:*)",
+      "Bash(pip3:*)"
     ],
     "deny": []
   }

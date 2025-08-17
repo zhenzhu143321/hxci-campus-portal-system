@@ -23,6 +23,7 @@ export default defineConfig({
     }
   },
   server: {
+    host: '0.0.0.0',  // 允许外网访问
     port: 3000,
     open: true,
     proxy: {

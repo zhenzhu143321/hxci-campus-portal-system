@@ -2,8 +2,8 @@ package cn.iocoder.yudao.server.controller;
 
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.tenant.core.aop.TenantIgnore;
-import cn.iocoder.yudao.server.integration.MockSchoolApiIntegration;
-import cn.iocoder.yudao.server.integration.MockSchoolApiIntegration.UserInfo;
+import cn.iocoder.yudao.module.infra.integration.MockSchoolApiIntegration;
+import cn.iocoder.yudao.module.infra.integration.MockSchoolApiIntegration.UserInfo;
 import cn.iocoder.yudao.server.util.NotificationScopeManager;
 import cn.iocoder.yudao.server.util.SafeSQLExecutor;
 import cn.iocoder.yudao.server.util.SecurityEnhancementUtil;
@@ -615,12 +615,9 @@ public class TempTodoController {
      */
     private Map<String, Object> executeQueryAndReturnSingle(String sql) {
         try {
-            String mysqlCommand = String.format(
-                "cmd /c \"C:\\tools\\mysql\\current\\bin\\mysql.exe -u root ruoyi-vue-pro --default-character-set=utf8 -e \"%s\"\"",
-                sql.replace("\"", "\\\"")
-            );
-            
-            Process process = Runtime.getRuntime().exec(mysqlCommand);
+            // 🔧 FIX: 使用数组形式避免shell转义问题
+            String[] command = {"mysql", "-u", "root", "ruoyi-vue-pro", "--default-character-set=utf8", "-e", sql};
+            Process process = Runtime.getRuntime().exec(command);
             java.io.BufferedReader reader = new java.io.BufferedReader(
                 new java.io.InputStreamReader(process.getInputStream(), "UTF-8"));
             
@@ -656,12 +653,9 @@ public class TempTodoController {
      */
     private List<Map<String, Object>> executeQueryAndReturnList(String sql) {
         try {
-            String mysqlCommand = String.format(
-                "cmd /c \"C:\\tools\\mysql\\current\\bin\\mysql.exe -u root ruoyi-vue-pro --default-character-set=utf8 -e \"%s\"\"",
-                sql.replace("\"", "\\\"")
-            );
-            
-            Process process = Runtime.getRuntime().exec(mysqlCommand);
+            // 🔧 FIX: 使用数组形式避免shell转义问题
+            String[] command = {"mysql", "-u", "root", "ruoyi-vue-pro", "--default-character-set=utf8", "-e", sql};
+            Process process = Runtime.getRuntime().exec(command);
             java.io.BufferedReader reader = new java.io.BufferedReader(
                 new java.io.InputStreamReader(process.getInputStream(), "UTF-8"));
             
@@ -701,12 +695,9 @@ public class TempTodoController {
      */
     private boolean executeSQLUpdate(String sql) {
         try {
-            String mysqlCommand = String.format(
-                "cmd /c \"C:\\tools\\mysql\\current\\bin\\mysql.exe -u root ruoyi-vue-pro --default-character-set=utf8 -e \"%s\"\"",
-                sql.replace("\"", "\\\"")
-            );
-            
-            Process process = Runtime.getRuntime().exec(mysqlCommand);
+            // 🔧 FIX: 使用数组形式避免shell转义问题
+            String[] command = {"mysql", "-u", "root", "ruoyi-vue-pro", "--default-character-set=utf8", "-e", sql};
+            Process process = Runtime.getRuntime().exec(command);
             int exitCode = process.waitFor();
             
             if (exitCode == 0) {

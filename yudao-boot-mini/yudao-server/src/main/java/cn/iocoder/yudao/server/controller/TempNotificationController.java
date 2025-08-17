@@ -230,6 +230,12 @@ public class TempNotificationController {
 
         // 原有的级别权限检查（保持向后兼容）
         switch (userInfo.roleCode) {
+            case "SYSTEM_ADMIN":
+                // 系统管理员：拥有最高权限，可以发布1-4级所有通知，无需审批
+                result.hasPermission = true;
+                result.approvalRequired = false;
+                log.debug("🔒 [PERMISSION] 系统管理员权限: 拥有最高级别发布权限");
+                break;
             case "PRINCIPAL":
                 result.hasPermission = true; // 校长有所有权限
                 break;
@@ -856,16 +862,17 @@ public class TempNotificationController {
             log.info("💾 [MYSQL-EXEC] 开始执行SQL: {}", sql);
             
             // 统一的MySQL路径和命令格式
-            String mysqlPath = "C:\\tools\\mysql\\current\\bin\\mysql.exe";
+            String mysqlPath = "mysql";
             String mysqlCommand = String.format(
-                "cmd /c \"%s -u root ruoyi-vue-pro --default-character-set=utf8 -e \"%s\"\"",
+                "%s -u root ruoyi-vue-pro --default-character-set=utf8 -e \"%s\"",
                 mysqlPath, sql.replace("\"", "\\\"")
             );
             
             log.info("💾 [MYSQL-EXEC] 执行命令: {}", mysqlCommand);
             
-            // 统一使用Runtime.exec执行
-            Process process = Runtime.getRuntime().exec(mysqlCommand);
+            // 🔧 FIX: 使用数组形式避免shell转义问题
+            String[] command = {"mysql", "-u", "root", "ruoyi-vue-pro", "--default-character-set=utf8", "-e", sql};
+            Process process = Runtime.getRuntime().exec(command);
             
             // 🚨 CRITICAL-ENCODING-FIX: 修复中文编码 - 使用UTF-8替代GBK
             java.io.BufferedReader stdReader = new java.io.BufferedReader(
@@ -928,10 +935,9 @@ public class TempNotificationController {
         try {
             log.info("💾 [DB-QUERY] 开始查询notification_info表");
             
-            // 构造查询SQL - 包含目标范围字段
+            // 构造查询SQL - 移除不存在的expired_time字段
             String querySql = "SELECT id, title, content, level, status, publisher_name, publisher_role, target_scope, " +
-                "DATE_FORMAT(create_time, '%Y-%m-%dT%H:%i:%s') as create_time, " +
-                "CASE WHEN expired_time IS NULL THEN NULL ELSE DATE_FORMAT(expired_time, '%Y-%m-%dT%H:%i:%s') END as expired_time " +
+                "DATE_FORMAT(create_time, '%Y-%m-%dT%H:%i:%s') as create_time " +
                 "FROM notification_info WHERE deleted=0 ORDER BY create_time DESC LIMIT 20";
             
             // 🔧 FIX-1.4: 使用统一MySQL执行方式
@@ -1054,6 +1060,17 @@ public class TempNotificationController {
         java.util.Set<String> allowedRoles = new java.util.HashSet<>();
         
         switch (viewerRole) {
+            case "SYSTEM_ADMIN":
+                // 系统管理员：可查看所有角色发布的通知（超级权限）
+                allowedRoles.add("SYSTEM_ADMIN");
+                allowedRoles.add("PRINCIPAL");
+                allowedRoles.add("ACADEMIC_ADMIN");  
+                allowedRoles.add("TEACHER");
+                allowedRoles.add("CLASS_TEACHER");
+                allowedRoles.add("STUDENT");
+                allowedRoles.add("SYSTEM"); // 系统通知
+                log.debug("🔒 [PERMISSION] 系统管理员权限: 可查看所有通知（超级权限）");
+                break;
             case "PRINCIPAL":
                 // 校长：可查看所有角色发布的通知
                 allowedRoles.add("PRINCIPAL");
