@@ -70,12 +70,12 @@
 - **进程控制**: 用户可以随时用Ctrl+C停止服务
 
 ### 🔄 **服务重启操作** (用户手动执行)
-```cmd
-REM 1. 停止所有Java服务
-wmic process where "name='java.exe'" delete
+```bash
+# 1. 停止所有Java服务
+sudo pkill -f java
 
-REM 2. 用户手动启动服务 (打开两个独立CMD窗口)
-cd /d D:\ClaudeCode\AI_Web\yudao-boot-mini
+# 2. 用户手动启动服务 (打开两个独立终端窗口)
+cd /opt/hxci-campus-portal/hxci-campus-portal-system/yudao-boot-mini
 mvn spring-boot:run -pl yudao-server -Dspring.profiles.active=local          # 48081
 mvn spring-boot:run -pl yudao-mock-school-api -Dspring.profiles.active=local # 48082
 ```
@@ -91,16 +91,16 @@ mvn spring-boot:run -pl yudao-mock-school-api -Dspring.profiles.active=local # 4
 ### 后端服务启动 (Java)
 ```bash
 # 一键启动脚本 (仅在用户授权时使用)
-D:\ClaudeCode\AI_Web\scripts\deployment\start_all_services_complete.bat
+/opt/hxci-campus-portal/hxci-campus-portal-system/scripts/deployment/start_all_services_complete.sh
 ```
 
 ### Vue前端服务启动 (Port 3000)
 ```bash
 # 详细版启动脚本 (推荐)
-D:\ClaudeCode\AI_Web\scripts\deployment\start_vue_dev_server.bat
+/opt/hxci-campus-portal/hxci-campus-portal-system/scripts/deployment/start_vue_dev_server.sh
 
 # 快速启动版本 (简洁)
-D:\ClaudeCode\AI_Web\scripts\deployment\vue_dev_quick.bat
+/opt/hxci-campus-portal/hxci-campus-portal-system/scripts/deployment/vue_dev_quick.sh
 ```
 
 **📋 分工模式**：
@@ -245,21 +245,23 @@ Level 4 (提醒) - 🟢 绿色：温馨提示、一般信息
 | **GRADE** (年级范围) | 特定年级 | 系统管理员、校长、教务主任、班主任 |
 | **CLASS** (班级范围) | 具体班级 | 所有角色 |
 
-## 📋 Windows系统开发要点
+## 📋 Linux系统开发要点
 
-⚠️ **本系统运行在Windows环境，必须使用Windows CMD/PowerShell精确指令！**
+⚠️ **本系统运行在Linux环境，必须使用Linux Bash精确指令！**
 
-### Windows服务管理
-```cmd
+### Linux服务管理
+```bash
 # 检查端口占用
-netstat -ano | findstr :48081
-netstat -ano | findstr :48082
+netstat -tlnp | grep :48081
+netstat -tlnp | grep :48082
 
 # 清理Java进程
-wmic process where "name='java.exe'" delete
+sudo pkill -f java
+# 或者更精确的清理
+sudo pkill -f "spring-boot:run"
 
 # 设置JVM内存参数
-set "MAVEN_OPTS=-Xms256m -Xmx1024m -XX:MaxMetaspaceSize=512m"
+export MAVEN_OPTS="-Xms256m -Xmx1024m -XX:MaxMetaspaceSize=512m"
 ```
 
 ### 中文支持配置
@@ -271,7 +273,7 @@ set "MAVEN_OPTS=-Xms256m -Xmx1024m -XX:MaxMetaspaceSize=512m"
 ⚠️ **当前限制**: API传输中文存在编码问题，推荐使用直接数据库插入
 ```sql
 # 使用utf8mb4字符集插入中文通知
-"C:\tools\mysql\current\bin\mysql.exe" -u root ruoyi-vue-pro --default-character-set=utf8mb4 -e "
+mysql -u root ruoyi-vue-pro --default-character-set=utf8mb4 -e "
 INSERT INTO notification_info 
 (tenant_id, title, content, summary, level, status, category_id, publisher_id, publisher_name, publisher_role, target_scope, push_channels, require_confirm, pinned, creator, updater) 
 VALUES 
@@ -285,35 +287,41 @@ VALUES
 # target_scope: SCHOOL_WIDE/DEPARTMENT/CLASS/GRADE
 ```
 
-### 💾 **Windows文件操作关键经验** (重要!)
-⚠️ **中文文件名移动操作必须使用PowerShell，CMD批处理会失败**
+### 💾 **Linux文件操作关键经验** (重要!)
+⚠️ **Linux原生支持UTF-8，文件操作更加稳定可靠**
 
-#### 🚨 **CMD vs PowerShell文件操作对比**
-| 工具 | 中文文件名支持 | 编码支持 | 成功率 | 推荐度 |
-|------|---------------|----------|--------|--------|
-| **CMD批处理** | ❌ GBK编码限制 | 传统DOS编码 | 低 | 不推荐 |
-| **PowerShell** | ✅ Unicode原生支持 | UTF-16 | 高 | 强烈推荐 |
+#### 🚨 **Linux vs Windows文件操作对比**
+| 特性 | Linux | Windows | 优势 |
+|------|-------|---------|------|
+| **编码支持** | ✅ UTF-8原生支持 | ❌ GBK/UTF-16混乱 | Linux更统一 |
+| **中文文件名** | ✅ 完美支持 | ❌ 需要特殊处理 | Linux无需担心 |
+| **权限管理** | ✅ sudo/chmod精确控制 | ❌ 权限复杂 | Linux更安全 |
+| **命令稳定性** | ✅ Bash命令可靠 | ❌ CMD/PowerShell分化 | Linux更统一 |
 
-#### 📋 **实战命令对比**
-```powershell
-# ✅ 推荐: PowerShell (成功率100%)
-Move-Item '中文文件名.md' 'archive\target-dir\'
-Get-ChildItem | Move-Item -Destination 'archive\target-dir\'
+#### 📋 **Linux文件操作命令**
+```bash
+# ✅ Linux文件移动 (支持中文文件名)
+mv "中文文件名.md" "archive/target-dir/"
+find . -name "*.md" -exec mv {} archive/target-dir/ \;
 
-# ❌ 避免: CMD批处理 (中文文件名失败)
-move "中文文件名.md" "archive\target-dir\"
+# ✅ 权限管理
+sudo chown $(whoami):$(whoami) /path/to/file
+chmod 755 /path/to/script.sh
+
+# ✅ 批量操作
+find . -type f -name "*.java" | xargs grep "pattern"
 ```
 
-#### 🎯 **核心原因分析**
-1. **编码差异**: CMD使用GBK编码，PowerShell使用Unicode
-2. **路径处理**: PowerShell有更智能的路径解析和.NET Framework支持
-3. **错误处理**: PowerShell提供详细错误反馈，CMD可能静默失败
-4. **特殊字符**: PowerShell对特殊字符和长文件名支持更好
+#### 🎯 **Linux优势分析**
+1. **编码统一**: 系统级UTF-8支持，无需考虑编码转换
+2. **权限清晰**: sudo/chmod权限模型简单明确
+3. **命令稳定**: Bash命令语法统一，无分化问题
+4. **管道强大**: 强大的管道和重定向支持
 
 #### ⚡ **最佳实践**
-- **文件操作**: 优先使用PowerShell，特别是涉及中文文件名
-- **批量处理**: 使用PowerShell脚本而非CMD批处理
-- **编码环境**: 确保PowerShell环境配置UTF-8支持
+- **文件操作**: 直接使用Bash命令，无需特殊处理
+- **权限管理**: 合理使用sudo，避免权限不足
+- **编码环境**: 系统默认UTF-8，无需额外配置
 
 ## ⚡ 故障排除核心 (最常见问题)
 
@@ -329,9 +337,9 @@ move "中文文件名.md" "archive\target-dir\"
 | **🚨 数据库连接失败** | MySQL连接异常 | 检查MySQL服务状态和连接字符串 |
 
 ### 🔄 快速重启服务
-```cmd
-wmic process where "name='java.exe'" delete
-然后用户手动启动两个服务
+```bash
+sudo pkill -f java
+# 然后用户手动启动两个服务
 ```
 
 ### 🌤️ T12.6前端天气API修复详细步骤 (🔥 最高优先级)
@@ -339,7 +347,7 @@ wmic process where "name='java.exe'" delete
 **问题**: 前端调用错误的API路径，导致天气数据无法正确显示
 
 **修复步骤**:
-1. **文件位置**: `D:\ClaudeCode\AI_Web\hxci-campus-portal\src\api\weather.ts`
+1. **文件位置**: `/opt/hxci-campus-portal/hxci-campus-portal-system/hxci-campus-portal/src/api/weather.ts`
 2. **修改第39行**:
    ```typescript
    // 修改前
@@ -362,7 +370,7 @@ wmic process where "name='java.exe'" delete
 
 ### 📁 **项目核心文件位置**
 
-**项目根目录**: `D:\ClaudeCode\AI_Web\`
+**项目根目录**: `/opt/hxci-campus-portal/hxci-campus-portal-system/`
 
 **🔥 T12.6修复目标文件**: `hxci-campus-portal/src/api/weather.ts`  
 **🏠 首页组件**: `hxci-campus-portal/src/views/Home.vue` (2400+行)  
@@ -371,12 +379,12 @@ wmic process where "name='java.exe'" delete
 **📄 已读状态**: `hxci-campus-portal/src/composables/useNotificationReadStatus.ts`
 
 **🔧 后端API控制器**:  
-- `yudao-server/src/main/java/cn/iocoder/yudao/server/controller/TempWeatherController.java` (完成)  
-- `yudao-server/src/main/java/cn/iocoder/yudao/server/controller/TempNotificationController.java`
+- `yudao-boot-mini/yudao-server/src/main/java/cn/iocoder/yudao/server/controller/TempWeatherController.java` (完成)  
+- `yudao-boot-mini/yudao-server/src/main/java/cn/iocoder/yudao/server/controller/TempNotificationController.java`
 
 **🚀 启动脚本**:  
-- `scripts/deployment/start_all_services_complete.bat` (一键启动)  
-- `scripts/deployment/start_vue_dev_server.bat` (Vue启动)  
+- `scripts/deployment/start_all_services_complete.sh` (一键启动)  
+- `scripts/deployment/start_vue_dev_server.sh` (Vue启动)  
 - `scripts/weather/generate-weather-jwt.py` (天气JWT生成器)
 
 ## ⚙️ 关键配置
@@ -392,18 +400,44 @@ wmic process where "name='java.exe'" delete
 - 系统角色: SYSTEM (自动通知，非登录用户)
 
 ### 📁 关键文件位置
-- **Vue门户项目**: `D:\ClaudeCode\AI_Web\hxci-campus-portal`
-- **后端服务**: `D:\ClaudeCode\AI_Web\yudao-boot-mini`
-- **测试页面**: `D:\ClaudeCode\AI_Web\demo\phases\`
+- **Vue门户项目**: `/opt/hxci-campus-portal/hxci-campus-portal-system/hxci-campus-portal`
+- **后端服务**: `/opt/hxci-campus-portal/hxci-campus-portal-system/yudao-boot-mini`
+- **测试页面**: `/opt/hxci-campus-portal/hxci-campus-portal-system/demo/phases/`
+
+## 📦 Git仓库管理
+
+### 🔗 **项目仓库信息**
+- **Git地址**: https://gitee.com/hxcisunli/hxci-campus-portal-system.git
+- **账号**: hxcisunli@126.com  
+- **密码**: Sunyewei1231
+- **推送模式**: 强制推送模式 (--force)
+
+### 📋 **Git操作命令**
+```bash
+# 配置Git凭据
+git config user.name "hxcisunli"
+git config user.email "hxcisunli@126.com"
+
+# 添加远程仓库
+git remote add origin https://gitee.com/hxcisunli/hxci-campus-portal-system.git
+
+# 强制推送到远程仓库
+git push --force origin main
+```
+
+### ⚠️ **Git管理注意事项**
+- 使用强制推送模式，确保本地代码完全覆盖远程仓库
+- 定期提交项目进度和重要功能更新
+- 保持代码同步，便于团队协作和版本管理
 
 ## 🌤️ 和风天气API系统 (生产就绪)
 
 ### 🔑 **和风天气JWT Token生成** (已验证)
-- **生成脚本**: `D:\ClaudeCode\AI_Web\generate-jwt.py`
-- **私钥文件**: `D:\ClaudeCode\AI_Web\ed25519-private.pem`
-- **公钥文件**: `D:\ClaudeCode\AI_Web\ed25519-public.pem`
+- **生成脚本**: `/opt/hxci-campus-portal/hxci-campus-portal-system/scripts/weather/generate-weather-jwt.py`
+- **私钥文件**: `/opt/hxci-campus-portal/hxci-campus-portal-system/scripts/weather/ed25519-private.pem`
+- **公钥文件**: `/opt/hxci-campus-portal/hxci-campus-portal-system/scripts/weather/ed25519-public.pem`
 - **Token有效期**: 15分钟 (自动生成)
-- **使用方式**: `python generate-jwt.py` 生成最新Token
+- **使用方式**: `python3 generate-weather-jwt.py` 生成最新Token
 
 #### 📋 **API配置信息**
 - **专属域名**: https://kc62b63hjr.re.qweatherapi.com
@@ -415,7 +449,7 @@ wmic process where "name='java.exe'" delete
 #### 🧪 **API测试验证** (2025-08-14 20:28 成功)
 ```bash
 # JWT Token生成
-python generate-jwt.py
+python3 generate-weather-jwt.py
 
 # API测试命令
 curl -H "Authorization: Bearer {token}" --compressed \
@@ -470,7 +504,7 @@ CREATE TABLE weather_cache (
 - **降级机制**: API故障时自动返回默认天气数据，用户无感知
 
 #### 📋 **实现细节** (TempWeatherController.java)
-- **位置**: `yudao-server/src/main/java/cn/iocoder/yudao/server/controller/`
+- **位置**: `yudao-boot-mini/yudao-server/src/main/java/cn/iocoder/yudao/server/controller/`
 - **认证模式**: @PermitAll + @TenantIgnore + getUserInfoFromMockApi()双重认证
 - **数据源**: weather_cache表 + 和风天气API + 默认数据降级
 - **JWT生成**: Python脚本 `scripts/weather/generate-weather-jwt.py`
@@ -479,4 +513,4 @@ CREATE TABLE weather_cache (
 ---
 
 **📋 与todos.md协作**: CLAUDE.md = 技术手册，todos.md = 项目管理  
-**📅 最后更新**: 2025年8月14日 20:30 | **维护**: Claude Code AI
+**📅 最后更新**: 2025年8月18日 09:30 | **维护**: Claude Code AI | **环境**: Linux迁移完成

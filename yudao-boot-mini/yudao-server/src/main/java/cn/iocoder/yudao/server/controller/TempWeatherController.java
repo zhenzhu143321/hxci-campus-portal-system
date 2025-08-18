@@ -240,7 +240,8 @@ public class TempWeatherController {
                 querySql.replace("\"", "\\\"")
             );
             
-            Process process = Runtime.getRuntime().exec(mysqlCommand);
+            ProcessBuilder processBuilder = new ProcessBuilder("/bin/bash", "-c", mysqlCommand);
+            Process process = processBuilder.start();
             java.io.BufferedReader reader = new java.io.BufferedReader(
                 new java.io.InputStreamReader(process.getInputStream(), "UTF-8"));
             
@@ -451,7 +452,8 @@ public class TempWeatherController {
                 insertSql.replace("\"", "\\\"")
             );
 
-            Process process = Runtime.getRuntime().exec(mysqlCommand);
+            ProcessBuilder processBuilder = new ProcessBuilder("/bin/bash", "-c", mysqlCommand);
+            Process process = processBuilder.start();
             int exitCode = process.waitFor();
 
             if (exitCode == 0) {
