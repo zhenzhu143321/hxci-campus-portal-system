@@ -77,7 +77,7 @@ export const useTodoStore = defineStore('todo', () => {
     try {
       // 🔄 真实API调用
       console.log('🌐 [TodoStore] 尝试调用真实API...')
-      const response = await api.get('/admin-api/test/todo/api/my-list')
+      const response = await api.get('/admin-api/test/todo-new/api/my-list')
       
       if (response.data.code === 0 && response.data.data?.todos) {
         // 转换后端数据格式为前端格式
@@ -127,7 +127,7 @@ export const useTodoStore = defineStore('todo', () => {
     
     try {
       // 🌐 真实API调用
-      const response = await api.post(`/admin-api/test/todo/api/${id}/complete`, {
+      const response = await api.post(`/admin-api/test/todo-new/api/${id}/complete`, {
         completed
       })
       

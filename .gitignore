@@ -76,3 +76,18 @@
 # 注意：密钥文件保留上传到私有仓库
 # ed25519-private.pem
 # ed25519-public.pem
+
+# 分析文档忽略 (避免提交临时分析文件)
+PROJECT_ARCHITECTURE.md
+TECHNICAL_DEBT_OPTIMIZATION_PLAN.md
+SECURITY_PERFORMANCE_PRIORITY_ASSESSMENT.md
+TEAM_EXECUTION_PLAN.md
+TaskArchitect_ProjectManagement_Plan.md
+CURRENT_WORK_STATUS.md
+IMPLEMENTATION_PLAN.md
+
+# 临时备份和工作文件
+**/*.backup.*
+**/backup/
+**/*_backup_*
+**/*.bak

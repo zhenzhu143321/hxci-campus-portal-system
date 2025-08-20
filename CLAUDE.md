@@ -8,10 +8,49 @@
 - **认证**: 工号+姓名+密码登录 + JWT Token双重认证
 - **核心**: 通知发布/审批/权限控制 + 智能门户界面
 - **用户**: 学生85% + 教师12% + 管理3%
-- **当前进度**: 35-40%完成 (门户前端基本完成，后台管理系统0%完成)
+- **当前进度**: 35-40%完成 (10天开发+1天Linux迁移，门户前端90%完成)
 - **核心缺失**: 后台管理系统完全未开发，影响项目实用性
 
-**📊 项目状态获取**: 详见 todos.md (进度/任务/里程碑)
+## 🚨 **快速恢复工作状态指引** (压缩上下文后必读)
+
+### **📋 核心项目文档体系** (压缩上下文后必读)
+
+#### **🎯 三大核心文档**
+1. **CLAUDE.md** (本文档) - 开发指南和快速上手
+2. **PROJECT_ARCHITECTURE.md** - 项目架构理解文档 (原todos.md)
+   - **yudao框架集成模式详细分析**
+   - **双重认证系统技术实现**  
+   - **数据库混合设计模式**
+   - **关键技术决策解释**
+3. **CURRENT_WORK_STATUS.md** - 当前工作状态备份
+   - **压缩上下文前的完整工作状态**
+   - **当前任务优先级和执行计划**
+   - **项目进度和下一步指引**
+
+#### **📖 文档阅读顺序**
+**新Claude实例理解步骤**:
+1. **快速理解**: CLAUDE.md (本文档) - 30秒掌握项目本质
+2. **架构深度**: PROJECT_ARCHITECTURE.md - 理解yudao框架集成和双重认证  
+3. **当前状态**: CURRENT_WORK_STATUS.md - 了解当前工作进展
+4. **项目规划**: TaskArchitect_ProjectManagement_Plan.md - 完整开发计划
+
+### **🔥 当前最高优先级任务**  
+**T18: API全面测试验证** (3天) - Linux迁移后必须优先执行
+**原因**: Windows→Linux迁移修改了大量核心代码，必须全面测试确保系统稳定性
+
+### **⚡ 任务优先级排序**
+1. **T18 API测试** (3天) - 系统稳定性基础保障
+2. **Bug修复** (2天) - T16归档UI优化 + T19持久化Bug
+3. **T12.5 学校API集成** (1天) - 真实数据集成
+4. **T14 后台管理系统** (15-18天) - 长期项目
+
+### **📊 快速状态评估**
+- **已完成**: 10天开发 (35-40%完成度)
+- **Linux迁移**: 已完成，需要全面测试验证
+- **核心功能**: 门户前端90%+后端API85%，质量优秀
+- **下一步**: 立即执行T18，确保迁移后系统稳定
+
+**📅 项目状态获取**: 详见 CURRENT_WORK_STATUS.md (当前工作状态) + PROJECT_ARCHITECTURE.md (项目架构)
 
 **✅ 完整的双重认证流程**
 
@@ -42,7 +81,6 @@
 
 ### ⚠️ **文档修改原则** (⚠️ 严格遵守)
 - **CLAUDE.md**: 技术手册和项目状态，修改需用户审核
-- **todos.md**: 项目管理和任务状态，修改需用户审核
 - **代码文件**: 功能实现相关，可以直接修改
 - **审核流程**: 先说明 → 用户确认 → 再执行
 
@@ -103,6 +141,20 @@ mvn spring-boot:run -pl yudao-mock-school-api -Dspring.profiles.active=local # 4
 /opt/hxci-campus-portal/hxci-campus-portal-system/scripts/deployment/vue_dev_quick.sh
 ```
 
+### Demo展示服务 (8080端口) - nginx稳定版
+```bash
+# 服务状态检查
+/opt/hxci-campus-portal/hxci-campus-portal-system/scripts/deployment/monitor_8080_service.sh status
+
+# 快速健康检查  
+/opt/hxci-campus-portal/hxci-campus-portal-system/scripts/deployment/monitor_8080_service.sh check
+
+# 手动重启服务
+/opt/hxci-campus-portal/hxci-campus-portal-system/scripts/deployment/monitor_8080_service.sh restart
+```
+
+**⚡ 自动监控**: 每5分钟自动检测+修复异常，nginx替代不稳定Python服务器
+
 **📋 分工模式**：
 - **Claude负责**: 代码修改、编译、文档更新
 - **用户负责**: 服务启动、重启、关闭 (Ctrl+C)
@@ -128,12 +180,18 @@ mvn spring-boot:run -pl yudao-mock-school-api -Dspring.profiles.active=local # 4
 ✅ POST /admin-api/test/weather/api/refresh                # 手动刷新天气
 ✅ GET  /admin-api/test/weather/api/ping                   # 服务状态测试
 
-# 待办通知API (T13完成 - 2025-08-15)
-✅ GET  /admin-api/test/todo/api/my-list                   # 获取我的待办列表
-✅ POST /admin-api/test/todo/api/{id}/complete             # 标记待办完成
-✅ POST /admin-api/test/todo/api/publish                   # 发布待办通知
-✅ GET  /admin-api/test/todo/api/{id}/stats                # 获取待办统计
-✅ GET  /admin-api/test/todo/api/ping                      # 测试接口
+# 待办通知API (T13完成 - 2025-08-15 | 重构完成 - 2025-08-19)
+✅ GET  /admin-api/test/todo-new/api/my-list               # 获取我的待办列表
+✅ POST /admin-api/test/todo-new/api/{id}/complete         # 标记待办完成
+✅ POST /admin-api/test/todo-new/api/publish               # 发布待办通知
+✅ GET  /admin-api/test/todo-new/api/{id}/stats            # 获取待办统计
+✅ GET  /admin-api/test/todo-new/api/ping                  # 测试接口
+
+# ⚠️ API重构说明 (2025-08-19)
+- **新路径**: `/admin-api/test/todo-new/` (NewTodoNotificationController)
+- **旧路径**: `/admin-api/test/todo/` (TempTodoController - 已弃用)
+- **重构原因**: 修复emoji编码+tenant_id缺失问题，避免代码冲突
+- **前端已更新**: todo.ts已切换到新API路径
 
 # 🚨 必需请求头:
 # Authorization: Bearer {jwt_token}
@@ -376,11 +434,15 @@ sudo pkill -f java
 **🏠 首页组件**: `hxci-campus-portal/src/views/Home.vue` (2400+行)  
 **🌤️ 天气组件**: `hxci-campus-portal/src/components/WeatherWidget.vue`  
 **📢 通知API**: `hxci-campus-portal/src/api/notification.ts`  
-**📄 已读状态**: `hxci-campus-portal/src/composables/useNotificationReadStatus.ts`
+**📄 已读状态**: `hxci-campus-portal/src/composables/useNotificationReadStatus.ts`  
+**📋 待办状态管理**: `hxci-campus-portal/src/stores/todo.ts` (已更新新API路径)  
+**📝 待办组件**: `hxci-campus-portal/src/components/TodoNotificationWidget.vue` (UI修复完成)  
+**📝 待办项组件**: `hxci-campus-portal/src/components/TodoNotificationItem.vue` (CSS样式正确)
 
 **🔧 后端API控制器**:  
 - `yudao-boot-mini/yudao-server/src/main/java/cn/iocoder/yudao/server/controller/TempWeatherController.java` (完成)  
 - `yudao-boot-mini/yudao-server/src/main/java/cn/iocoder/yudao/server/controller/TempNotificationController.java`
+- `yudao-boot-mini/yudao-server/src/main/java/cn/iocoder/yudao/server/controller/NewTodoNotificationController.java` (重构版 - 2025-08-19)
 
 **🚀 启动脚本**:  
 - `scripts/deployment/start_all_services_complete.sh` (一键启动)  
@@ -513,4 +575,4 @@ CREATE TABLE weather_cache (
 ---
 
 **📋 与todos.md协作**: CLAUDE.md = 技术手册，todos.md = 项目管理  
-**📅 最后更新**: 2025年8月18日 09:30 | **维护**: Claude Code AI | **环境**: Linux迁移完成
+**📅 最后更新**: 2025年8月19日 11:20 | **维护**: Claude Code AI | **环境**: Linux + 待办API重构完成

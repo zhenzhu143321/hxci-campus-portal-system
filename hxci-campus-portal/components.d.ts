@@ -25,14 +25,17 @@ declare module 'vue' {
     ElTable: typeof import('element-plus/es')['ElTable']
     ElTableColumn: typeof import('element-plus/es')['ElTableColumn']
     ElTag: typeof import('element-plus/es')['ElTag']
+    HeaderNavigation: typeof import('./src/components/HeaderNavigation.vue')['default']
     NotificationArchiveIndicator: typeof import('./src/components/notification/NotificationArchiveIndicator.vue')['default']
     NotificationArchivePanel: typeof import('./src/components/notification/NotificationArchivePanel.vue')['default']
     PriorityTestComponent: typeof import('./src/components/PriorityTestComponent.vue')['default']
+    QuickServicesGrid: typeof import('./src/components/QuickServicesGrid.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     TodoNotificationItem: typeof import('./src/components/TodoNotificationItem.vue')['default']
     TodoNotificationWidget: typeof import('./src/components/TodoNotificationWidget.vue')['default']
     WeatherWidget: typeof import('./src/components/WeatherWidget.vue')['default']
+    WelcomeBanner: typeof import('./src/components/WelcomeBanner.vue')['default']
   }
   export interface ComponentCustomProperties {
     vLoading: typeof import('element-plus/es')['ElLoadingDirective']

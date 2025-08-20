@@ -329,14 +329,80 @@ onMounted(() => {
     backdrop-filter: blur(10px);
   }
   
+  // 修复统计信息区域的文字颜色
+  :deep(.todo-notification-widget) {
+    .todo-stats {
+      background: rgba(255, 255, 255, 1) !important;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      
+      .stat-item {
+        .stat-label {
+          color: #4a5568 !important;
+          font-weight: 600;
+        }
+        
+        .stat-value {
+          font-weight: 700;
+          
+          &.total {
+            color: #2d3748 !important;
+          }
+          
+          &.pending {
+            color: #8B5CF6 !important;
+          }
+          
+          &.overdue {
+            color: #EF4444 !important;
+          }
+          
+          &.completed {
+            color: #10B981 !important;
+          }
+        }
+      }
+    }
+  }
+  
   .todo-grid {
     display: grid;
     gap: 12px;
     
-    // 每个待办项占满宽度
-    .todo-notification-item {
-      background: rgba(255, 255, 255, 0.95);
+    // 每个待办项占满宽度 - 确保背景完全不透明
+    :deep(.todo-notification-item) {
+      background: rgba(255, 255, 255, 1) !important;
       backdrop-filter: blur(10px);
+      border: 1px solid rgba(139, 92, 246, 0.15);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      
+      // 确保文字颜色足够深
+      .todo-title {
+        color: #1a202c !important;
+        font-weight: 600;
+      }
+      
+      .todo-meta-info {
+        color: #4a5568 !important;
+      }
+      
+      .todo-content-preview {
+        color: #4a5568 !important;
+      }
+      
+      .todo-assigner {
+        color: #8B5CF6 !important;
+        font-weight: 600;
+      }
+      
+      &:hover {
+        background: rgba(255, 255, 255, 1) !important;
+        border-color: rgba(139, 92, 246, 0.3);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 16px rgba(139, 92, 246, 0.15);
+      }
     }
   }
 }

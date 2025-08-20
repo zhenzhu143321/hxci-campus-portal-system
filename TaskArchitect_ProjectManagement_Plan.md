@@ -4,8 +4,8 @@
 
 **📅 制定日期**: 2025-08-18  
 **👥 制定者**: Sunli 
-**🎯 项目完成度**: 当前35-40% → 目标95%完成 (考虑后台管理系统缺失)  
-**⏱️ 总工期**: 40天 (约6-7周) - 基于真实开发数据重新评估
+**🎯 项目完成度**: 当前38-40% → 目标95%完成 (考虑后台管理系统缺失)  
+**⏱️ 总工期**: 45天 (约6-7周) - 基于真实开发数据重新评估
 
 ---
 
@@ -138,10 +138,10 @@ Linux迁移过程中修改了大量核心代码，必须全面测试确保系统
   - 测试删除API: `/admin-api/test/notification/api/delete/{id}`
   - 验证权限矩阵逻辑和范围控制
 - [ ] **待办API测试** (1小时)
-  - 测试列表API: `/admin-api/test/todo/api/my-list`
-  - 测试完成API: `/admin-api/test/todo/api/{id}/complete`
-  - 测试发布API: `/admin-api/test/todo/api/publish`
-  - 测试统计API: `/admin-api/test/todo/api/{id}/stats`
+  - 测试列表API: `/admin-api/test/todo-new/api/my-list`
+  - 测试完成API: `/admin-api/test/todo-new/api/{id}/complete`
+  - 测试发布API: `/admin-api/test/todo-new/api/publish`
+  - 测试统计API: `/admin-api/test/todo-new/api/{id}/stats`
 - [ ] **天气API测试** (1小时)
   - 测试获取天气API: `/admin-api/test/weather/api/current`
   - 测试刷新API: `/admin-api/test/weather/api/refresh`
@@ -596,10 +596,10 @@ Linux迁移过程中修改了大量核心代码，必须全面测试确保系统
   - 测试删除API `/admin-api/test/notification/api/delete/{id}`
   - 验证权限矩阵逻辑
 - [ ] **待办API测试** (2小时)
-  - 测试列表API `/admin-api/test/todo/api/my-list`
-  - 测试完成API `/admin-api/test/todo/api/{id}/complete`
-  - 测试发布API `/admin-api/test/todo/api/publish`
-  - 测试统计API `/admin-api/test/todo/api/{id}/stats`
+  - 测试列表API `/admin-api/test/todo-new/api/my-list`
+  - 测试完成API `/admin-api/test/todo-new/api/{id}/complete`
+  - 测试发布API `/admin-api/test/todo-new/api/publish`
+  - 测试统计API `/admin-api/test/todo-new/api/{id}/stats`
 - [ ] **天气API测试** (1小时)
   - 测试获取天气API `/admin-api/test/weather/api/current`
   - 测试刷新API `/admin-api/test/weather/api/refresh`

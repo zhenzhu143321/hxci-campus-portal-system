@@ -239,7 +239,14 @@
       "Bash(\"C:\\tools\\mysql\\current\\bin\\mysql.exe\" -u root ruoyi-vue-pro --default-character-set=utf8mb4 -e \"SELECT id, title, publisher_name, publisher_role, create_time FROM notification_info ORDER BY id DESC LIMIT 3;\")",
       "Bash(move:*)",
       "Bash(npm:*)",
-      "Bash(pip3:*)"
+      "Bash(pip3:*)",
+      "mcp__playwright__browser_snapshot",
+      "mcp__playwright__browser_click",
+      "mcp__playwright__browser_wait_for",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_take_screenshot",
+      "mcp__playwright__browser_type",
+      "mcp__playwright__browser_evaluate"
     ],
     "deny": []
   }

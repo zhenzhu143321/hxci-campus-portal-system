@@ -1,5 +1,10 @@
 # 📋 T13待办通知系统 - TempTodoController API文档
 
+> ⚠️ **重要通知 (2025-08-19)**: TempTodoController已被弃用  
+> **新API**: 请使用 `NewTodoNotificationController` - 路径为 `/admin-api/test/todo-new/`  
+> **弃用原因**: 修复emoji编码问题 + tenant_id缺失问题  
+> **前端已更新**: todo.ts已切换到新API路径
+
 ## 🎯 项目概述
 
 TempTodoController是专为T13待办通知系统设计的控制器，从TempNotificationController解耦而来，专门处理Level 5待办通知功能。基于TempWeatherController的架构设计，采用双重认证模式。

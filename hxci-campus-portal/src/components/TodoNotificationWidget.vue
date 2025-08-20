@@ -73,16 +73,13 @@
       </div>
 
       <!-- 查看更多按钮 -->
-      <div v-if="(props.displayMode === 'homepage' && notifications.filter(item => !item.isCompleted).length > maxDisplayItems) || (props.displayMode !== 'homepage' && notifications.length > maxDisplayItems)" class="view-more-container">
+      <div v-if="notifications.length > maxDisplayItems" class="view-more-container">
         <el-button 
           type="text" 
           class="view-more-btn"
           @click="handleViewAll"
         >
-          {{ props.displayMode === 'homepage' ? 
-            `查看全部 ${notifications.filter(item => !item.isCompleted).length} 项待办` : 
-            `查看全部 ${notifications.length} 项待办` 
-          }}
+          查看全部 {{ notifications.length }} 项待办
           <el-icon><ArrowRight /></el-icon>
         </el-button>
       </div>
@@ -181,10 +178,10 @@ const maxDisplayItems = computed(() => props.maxDisplayItems || 5)
 const displayedNotifications = computed(() => {
   let filteredNotifications = props.notifications
   
-  // 首页模式：只显示待处理的待办（排除已完成的）
-  if (props.displayMode === 'homepage') {
-    filteredNotifications = props.notifications.filter(item => !item.isCompleted)
-  }
+  // 首页模式：显示所有待办，包括已完成的（让CSS样式处理显示效果）
+  // 已完成的待办会通过TodoNotificationItem的CSS样式变暗+划横线显示
+  // 不再过滤已完成项，让用户可以看到完成状态直到手动归档
+  
   // 管理页模式：显示所有待办（由父组件控制过滤）
   
   return filteredNotifications.slice(0, maxDisplayItems.value)

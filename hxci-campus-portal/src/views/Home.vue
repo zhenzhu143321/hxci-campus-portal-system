@@ -1,79 +1,15 @@
 <template>
   <div class="portal-container">
-    <!-- 顶部导航栏 -->
-    <div class="portal-header">
-      <div class="header-content">
-        <div class="header-left">
-          <div class="school-brand">
-            <el-icon class="brand-icon" :size="28"><School /></el-icon>
-            <div class="brand-info">
-              <h1 class="brand-title">哈尔滨信息工程学院</h1>
-              <span class="brand-subtitle">智慧校园门户</span>
-            </div>
-          </div>
-        </div>
-        
-        <div class="header-right">
-          <div class="user-panel" v-if="currentUserInfo">
-            <el-avatar 
-              class="user-avatar" 
-              :size="40"
-              :icon="Avatar"
-              :alt="currentUserInfo.username"
-            />
-            <div class="user-details">
-              <div class="user-name">{{ currentUserInfo?.username }}</div>
-              <div class="user-role">{{ currentUserInfo?.roleName }}</div>
-            </div>
-            <el-button type="danger" size="small" @click="handleLogout">
-              <el-icon><SwitchButton /></el-icon>
-              退出
-            </el-button>
-          </div>
-        </div>
-      </div>
-    </div>
+    <!-- 顶部导航栏组件 -->
+    <HeaderNavigation :user-info="currentUserInfo" @logout="handleLogoutFromHeader" />
 
-    <!-- 个性化问候 -->
-    <div class="welcome-banner">
-      <div class="welcome-content">
-        <h2 class="greeting">{{ getGreeting() }}，{{ currentUserInfo?.username }}！</h2>
-        <p class="date-info">{{ getCurrentDate() }}</p>
-      </div>
-      <!-- 天气组件 -->
-      <WeatherWidget />
-    </div>
+    <!-- 欢迎横幅组件 -->
+    <WelcomeBanner :user-info="currentUserInfo" />
 
     <!-- 三区布局主体 -->
     <div class="portal-main">
       <!-- 左侧：快捷服务区 -->
-      <div class="quick-services">
-        <div class="section-header">
-          <h3><el-icon><Setting /></el-icon>快捷服务</h3>
-        </div>
-        <div class="service-grid">
-          <div 
-            v-for="service in quickServices" 
-            :key="service.id" 
-            class="service-item"
-            :class="{ disabled: !service.available }"
-            @click="handleServiceClick(service)"
-          >
-            <div class="service-icon" :style="{ color: service.color }">
-              <el-icon :size="24">
-                <Bell />
-              </el-icon>
-            </div>
-            <div class="service-info">
-              <div class="service-name">{{ service.name }}</div>
-              <div class="service-desc">{{ service.desc }}</div>
-            </div>
-            <div class="service-arrow">
-              <el-icon><Bell /></el-icon>
-            </div>
-          </div>
-        </div>
-      </div>
+      <QuickServicesGrid />
 
       <!-- 中间：智能通知工作台（革命性重构） -->
       <div class="intelligent-workspace">
@@ -496,6 +432,9 @@ import WeatherWidget from '@/components/WeatherWidget.vue'
 import TodoNotificationWidget from '@/components/TodoNotificationWidget.vue'
 import NotificationArchiveIndicator from '@/components/notification/NotificationArchiveIndicator.vue'
 import NotificationArchivePanel from '@/components/notification/NotificationArchivePanel.vue'
+import HeaderNavigation from '@/components/HeaderNavigation.vue'
+import WelcomeBanner from '@/components/WelcomeBanner.vue'
+import QuickServicesGrid from '@/components/QuickServicesGrid.vue'
 import type { TodoNotificationItem } from '@/types/todo'
 import { useTodoStore } from '@/stores/todo'
 import dayjs from 'dayjs'
@@ -782,48 +721,39 @@ const handleMarkAsUnread = (notificationId: number) => {
   ElMessage.info('已撤销已读状态')
 }
 
-// 处理永久删除通知（新增功能）
+// 处理永久删除通知（修复版本 - 本地隐藏机制）
 const handlePermanentDeleteNotification = (notificationId: number) => {
-  // 这里可以调用API删除通知，目前仅从本地状态移除
-  const index = allNotifications.value.findIndex(n => n.id === notificationId)
-  if (index !== -1) {
-    allNotifications.value.splice(index, 1)
-    console.log('🗑️ [用户操作] 永久删除通知:', notificationId)
+  const statusManager = initializeReadStatusManager()
+  if (statusManager) {
+    // 🔧 修复：使用hideNotification而不是从数组删除
+    statusManager.hideNotification(notificationId)
+    ElMessage.success('已永久删除通知')
+    console.log('🗑️ [用户操作] 永久隐藏通知:', notificationId)
   }
 }
 
-// 处理清空所有归档（修复版本 - 永久删除）
+// 处理清空所有归档（修复版本 - 设置清理时间而不是删除已读状态）
 const handleClearAllArchive = () => {
   ElMessageBox.confirm(
-    '确定要永久删除所有已读归档消息吗？此操作不可恢复。',
+    '确定要清空所有已读归档消息吗？已读状态会保留，但归档区域将被清空。',
     '清空归档确认',
     {
-      confirmButtonText: '确定删除',
+      confirmButtonText: '确定清空',
       cancelButtonText: '取消',
       type: 'warning',
-      confirmButtonClass: 'el-button--danger'
+      confirmButtonClass: 'el-button--warning'
     }
   ).then(() => {
     const statusManager = initializeReadStatusManager()
     if (statusManager) {
-      // 获取所有已读归档消息
-      const archivedNotifications = readArchivedNotifications.value
-      const archivedCount = archivedNotifications.length
+      // 获取当前归档数量
+      const archivedCount = readArchivedNotifications.value.length
       
-      // 从allNotifications中永久删除这些消息
-      archivedNotifications.forEach(notification => {
-        const index = allNotifications.value.findIndex(n => n.id === notification.id)
-        if (index !== -1) {
-          allNotifications.value.splice(index, 1)
-        }
-      })
+      // 🔧 修复：使用clearArchive而不是清空已读状态
+      statusManager.clearArchive()
       
-      // 清空已读状态记录
-      statusManager.readNotificationIds.value = new Set()
-      statusManager.saveReadStatus()
-      
-      ElMessage.success(`已永久删除 ${archivedCount} 条归档消息`)
-      console.log('🧹 [用户操作] 永久删除所有归档消息，数量:', archivedCount)
+      ElMessage.success(`已清空所有归档消息 (${archivedCount}条)`)
+      console.log('🧹 [用户操作] 清空归档消息，数量:', archivedCount)
     }
   }).catch(() => {
     console.log('👤 [用户操作] 取消清空归档')
@@ -849,52 +779,6 @@ const notificationPagination = reactive({
   currentPage: 1,
   pageSize: 20
 })
-
-// 快捷服务列表 - 简化版本
-const quickServices = computed(() => [
-  {
-    id: 'education',
-    name: '教务系统',
-    desc: '课程查询、成绩管理',
-    color: '#409EFF',
-    available: false
-  },
-  {
-    id: 'student-affairs',
-    name: '学工系统',  
-    desc: '学生管理、事务办理',
-    color: '#67C23A',
-    available: false
-  },
-  {
-    id: 'library',
-    name: '图书馆',
-    desc: '图书借阅、座位预约',
-    color: '#E6A23C',
-    available: false
-  },
-  {
-    id: 'finance',
-    name: '财务查询',
-    desc: '学费、奖学金查询',
-    color: '#F56C6C',
-    available: false
-  },
-  {
-    id: 'dormitory',
-    name: '宿舍管理',
-    desc: '宿舍分配、报修',
-    color: '#909399',
-    available: false
-  },
-  {
-    id: 'course-selection',
-    name: '选课系统',
-    desc: '课程选择、时间表',
-    color: '#9C27B0',
-    available: false
-  }
-])
 
 // 今日课程安排 Mock数据（革命性工作台功能）
 const todayCourses = ref([
@@ -1055,24 +939,6 @@ const currentEmergencyNotification = computed(() => {
 
 // 公告通知数据（右侧通知公告栏专用，改为使用智能分类的系统公告）
 const announcementNotifications = computed(() => systemAnnouncements.value)
-
-// 获取问候语
-const getGreeting = () => {
-  const hour = new Date().getHours()
-  if (hour < 6) return '夜深了'
-  if (hour < 9) return '早上好'
-  if (hour < 12) return '上午好'
-  if (hour < 14) return '中午好'
-  if (hour < 18) return '下午好'
-  if (hour < 22) return '晚上好'
-  return '夜深了'
-}
-
-// 获取当前日期
-const getCurrentDate = () => {
-  return dayjs().format('YYYY年MM月DD日 dddd')
-}
-
 
 // 获取通知类型
 const getAnnouncementType = (level: number): string => {
@@ -1282,7 +1148,21 @@ const isAdmin = computed(() => {
   return currentUserInfo.value?.roleCode === 'PRINCIPAL' || currentUserInfo.value?.roleCode === 'ACADEMIC_ADMIN'
 })
 
-// 处理用户退出登录
+// 处理来自HeaderNavigation组件的退出事件
+const handleLogoutFromHeader = () => {
+  // 清理当前状态
+  currentToken.value = ''
+  currentUserInfo.value = null
+  isUserLoggedIn.value = false
+  
+  // 重置已读状态管理器和归档动画管理器
+  readStatusManager = null
+  archiveAnimationManager = null
+  
+  console.log('🧹 [HeaderNavigation] 清理本地数据完成')
+}
+
+// 处理用户退出登录（保留原函数以兼容其他组件）
 const handleLogout = async () => {
   try {
     console.log('🔓 [退出登录] 开始处理用户退出...')
@@ -1331,17 +1211,6 @@ const handleLogout = async () => {
       ElMessage.error('退出登录失败')
     }
   }
-}
-
-// 处理快捷服务点击
-const handleServiceClick = (service: any) => {
-  if (!service.available) {
-    ElMessage.info(`${service.name} 功能即将上线，敬请期待`)
-    return
-  }
-  
-  console.log('🎯 [快捷服务] 点击服务:', service.name)
-  ElMessage.info(`正在打开 ${service.name}...`)
 }
 
 // 处理图片加载错误
@@ -1448,133 +1317,6 @@ onMounted(() => {
   z-index: 2;
 }
 
-/* 顶部导航栏 - 现代化设计 */
-.portal-header {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  box-shadow: 0 4px 20px rgba(30, 58, 138, 0.08);
-  border-bottom: 1px solid rgba(59, 130, 246, 0.1);
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-
-.header-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 24px;
-  height: 70px;
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-.school-brand {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.brand-icon {
-  color: #1E3A8A; /* 深蓝色 */
-}
-
-.brand-info {
-  display: flex;
-  flex-direction: column;
-}
-
-.brand-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #1E3A8A; /* 深蓝色 */
-  margin: 0;
-  line-height: 1.2;
-}
-
-.brand-subtitle {
-  font-size: 12px;
-  color: #3B82F6; /* 天蓝色 */
-  line-height: 1.2;
-}
-
-.user-panel {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.user-details {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-}
-
-.user-name {
-  font-size: 14px;
-  font-weight: 500;
-  color: #262626;
-  line-height: 1.2;
-}
-
-.user-role {
-  font-size: 12px;
-  color: #8c8c8c;
-  line-height: 1.2;
-}
-
-/* 问候横幅 - 清新学院风设计 */
-.welcome-banner {
-  background: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%);
-  color: white;
-  padding: 32px 24px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-  border-radius: 16px;
-  margin: 0 24px 24px 24px;
-  box-shadow: 0 8px 32px rgba(30, 58, 138, 0.2);
-  position: relative;
-  overflow: hidden;
-}
-
-/* 横幅装饰元素 */
-.welcome-banner::before {
-  content: '';
-  position: absolute;
-  top: -50%;
-  right: -20%;
-  width: 200px;
-  height: 200px;
-  background: radial-gradient(circle, rgba(16, 185, 129, 0.15) 0%, transparent 70%);
-  border-radius: 50%;
-}
-
-.welcome-banner::after {
-  content: '';
-  position: absolute;
-  bottom: -30%;
-  left: -10%;
-  width: 150px;
-  height: 150px;
-  background: radial-gradient(circle, rgba(245, 158, 11, 0.15) 0%, transparent 70%);
-  border-radius: 50%;
-}
-
-.greeting {
-  font-size: 24px;
-  font-weight: 600;
-  margin: 0 0 8px 0;
-}
-
-.date-info {
-  font-size: 14px;
-  opacity: 0.9;
-  margin: 0;
-}
-
-
 /* 三区布局主体 */
 .portal-main {
   display: grid;
@@ -1583,111 +1325,6 @@ onMounted(() => {
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 24px;
-}
-
-/* 左侧快捷服务区 - 现代化卡片 */
-.quick-services {
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(10px);
-  border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(30, 58, 138, 0.08);
-  border: 1px solid rgba(59, 130, 246, 0.1);
-  padding: 24px;
-  height: fit-content;
-  transition: all 0.3s ease;
-}
-
-.quick-services:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 40px rgba(30, 58, 138, 0.12);
-}
-
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.section-header h3 {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0;
-  font-size: 16px;
-  color: #262626;
-}
-
-.service-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.service-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 16px;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  border: 1px solid transparent;
-  background: rgba(240, 249, 255, 0.3);
-}
-
-.service-item:hover {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(16, 185, 129, 0.05) 100%);
-  border-color: rgba(59, 130, 246, 0.2);
-  transform: translateX(4px);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
-}
-
-.service-item.disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.service-item.disabled:hover {
-  background: rgba(240, 249, 255, 0.3);
-  border-color: transparent;
-  transform: none;
-  box-shadow: none;
-}
-
-.service-icon {
-  flex-shrink: 0;
-}
-
-.service-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.service-name {
-  font-size: 14px;
-  font-weight: 500;
-  color: #262626;
-  line-height: 1.2;
-  margin-bottom: 4px;
-}
-
-.service-desc {
-  font-size: 12px;
-  color: #8c8c8c;
-  line-height: 1.2;
-}
-
-.service-arrow {
-  color: #bfbfbf;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-
-.service-item:hover .service-arrow {
-  opacity: 1;
 }
 
 /* 中间智能工作台 - 革命性重构样式 */
@@ -2266,14 +1903,6 @@ onMounted(() => {
   
   .portal-main {
     padding: 0 16px;
-  }
-  
-  .welcome-banner {
-    padding: 16px;
-  }
-  
-  .greeting {
-    font-size: 18px;
   }
   
   .brand-title {

@@ -232,12 +232,15 @@ public class SecurityEnhancementUtil {
             errors.add("待办优先级必须是 low、medium 或 high");
         }
         
-        // 验证截止日期
-        String dueDate = (String) request.get("dueDate");
-        if (!StringUtils.hasText(dueDate)) {
+        // 验证截止日期 - 支持deadline和dueDate两种字段名
+        String deadline = (String) request.get("deadline");
+        if (deadline == null) {
+            deadline = (String) request.get("dueDate"); // 向后兼容
+        }
+        if (!StringUtils.hasText(deadline)) {
             errors.add("待办截止日期不能为空");
-        } else if (!dueDate.matches("\\d{4}-\\d{2}-\\d{2}")) {
-            errors.add("待办截止日期格式不正确，应为 YYYY-MM-DD");
+        } else if (!deadline.matches("\\d{4}-\\d{2}-\\d{2}.*")) {
+            errors.add("待办截止日期格式不正确，应为 YYYY-MM-DD 或 YYYY-MM-DDTHH:mm:ss");
         }
         
         // 验证目标范围
