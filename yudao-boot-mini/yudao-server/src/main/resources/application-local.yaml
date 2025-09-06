@@ -246,6 +246,20 @@ mock:
     connect-timeout: 5
     # 读取超时时间（秒）
     read-timeout: 10
+
+--- #################### 权限缓存系统配置 ####################
+# 权限缓存配置 - P0级性能优化
+yudao:
+  permission:
+    cache:
+      enabled: true                    # 启用权限缓存
+      ttl: 900                        # 缓存TTL 15分钟 (15*60=900秒)
+      key-prefix: "permission:user:"   # Redis键前缀
+      max-cached-users: 10000         # 最大缓存用户数量
+      metrics-enabled: true           # 启用性能监控
+      warmup-users:                   # 缓存预热用户列表
+        - "SYSTEM_ADMIN_001"
+        - "PRINCIPAL_001"
   pay:
     order-notify-url: https://yutou.mynatapp.cc/admin-api/pay/notify/order # 支付渠道的【支付】回调地址
     refund-notify-url: https://yutou.mynatapp.cc/admin-api/pay/notify/refund # 支付渠道的【退款】回调地址

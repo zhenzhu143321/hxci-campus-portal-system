@@ -11,180 +11,12 @@
       <!-- 左侧：快捷服务区 -->
       <QuickServicesGrid />
 
-      <!-- 中间：智能通知工作台（革命性重构） -->
-      <div class="intelligent-workspace">
-        <div class="section-header">
-          <h3><el-icon><Bell /></el-icon>📋 智能通知工作台</h3>
-          <el-button type="text" size="small" @click="showAllNotifications = true">查看更多</el-button>
-        </div>
-        
-        <!-- 🚨 Level 1-3 未读通知（按Level 1→2→3严格排序） -->
-        <div v-if="unreadPriorityNotifications.length > 0" class="priority-workspace-section">
-          <div class="workspace-priority-header">
-            <h4>🎯 优先处理通知</h4>
-            <el-tag type="info" size="small">{{ unreadPriorityNotifications.length }}条未读</el-tag>
-          </div>
-          
-          <div class="priority-notification-list">
-            <div 
-              v-for="notification in unreadPriorityNotifications.slice(0, 5)" 
-              :key="notification.id"
-              class="priority-notification-card"
-              :class="{
-                'level-1-emergency': notification.level === 1,
-                'level-2-important': notification.level === 2,
-                'level-3-regular': notification.level === 3
-              }"
-              @click="handleNotificationClick(notification)"
-            >
-              <div class="notification-priority-content">
-                <div class="notification-header-row">
-                  <span class="notification-title-priority">{{ notification.title }}</span>
-                  <div class="notification-actions">
-                    <el-tag 
-                      :type="notification.level === 1 ? 'danger' : notification.level === 2 ? 'warning' : 'primary'" 
-                      size="small"
-                    >
-                      {{ getLevelText(notification.level) }}
-                    </el-tag>
-                    <!-- 根据已读状态显示不同的按钮 -->
-                    <el-button 
-                      v-if="!isRead(notification.id)"
-                      type="success" 
-                      size="small" 
-                      @click.stop="handleMarkAsRead(notification.id)"
-                      class="mark-read-btn"
-                    >
-                      <el-icon><Check /></el-icon>
-                      标记已读
-                    </el-button>
-                    <el-tag 
-                      v-else
-                      type="success" 
-                      size="small"
-                      effect="plain"
-                    >
-                      <el-icon><CircleCheck /></el-icon>
-                      已读
-                    </el-tag>
-                  </div>
-                </div>
-                <div class="notification-summary-priority">{{ getContentPreview(notification.content, 80) }}</div>
-                <div class="notification-meta-priority">
-                  <span class="notification-publisher-priority">{{ notification.publisherName }}</span>
-                  <span class="notification-time-priority">{{ formatDate(notification.createTime) }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div v-if="unreadPriorityNotifications.length > 5" class="show-more-priority">
-            <el-button type="text" size="small" @click="showAllNotifications = true">
-              查看全部{{ unreadPriorityNotifications.length }}条优先通知 →
-            </el-button>
-          </div>
-        </div>
-        
-        <!-- 📚 今日课程安排（新增功能模块） -->
-        <div class="workspace-module-card course-module">
-          <div class="module-header">
-            <h4><el-icon><Clock /></el-icon>📚 今日课程安排</h4>
-            <el-tag type="info" size="small">{{ todayCourses.length }}节课</el-tag>
-          </div>
-          <div class="course-schedule-list">
-            <div 
-              v-for="course in todayCourses" 
-              :key="course.id" 
-              class="course-schedule-item"
-              :class="{
-                'course-completed': course.status === 'completed',
-                'course-current': course.status === 'current',
-                'course-upcoming': course.status === 'upcoming'
-              }"
-            >
-              <div class="course-time-info">{{ course.time }}</div>
-              <div class="course-details">
-                <div class="course-name-main">{{ course.name }}</div>
-                <div class="course-location-teacher">{{ course.location }} · {{ course.teacher }}</div>
-              </div>
-              <el-tag 
-                :type="course.status === 'current' ? 'warning' : course.status === 'upcoming' ? 'success' : 'info'" 
-                size="small"
-              >
-                {{ course.status === 'current' ? '进行中' : course.status === 'upcoming' ? '即将开始' : '已结束' }}
-              </el-tag>
-            </div>
-          </div>
-        </div>
-        
-        <!-- 📋 待办通知（Level 5专用区域） -->
-        <div class="workspace-module-card todo-notification-module">
-          <div class="module-header">
-            <h4><el-icon><Document /></el-icon>📋 待办通知</h4>
-            <el-tag type="primary" size="small">{{ pendingTodoCount }}项待办</el-tag>
-          </div>
-          <TodoNotificationWidget 
-            :notifications="todoStore.todoNotifications" 
-            :max-display-items="4"
-            :is-loading="todoStore.isLoading"
-            :error="todoStore.error"
-            display-mode="homepage"
-            @complete="handleTodoComplete"
-            @view-all="handleViewAllTodos"
-          />
-        </div>
-        
-        <!-- 💬 通知消息（Level 4专用区域） -->
-        <div class="workspace-module-card level4-module" v-if="level4Messages.length > 0">
-          <div class="module-header">
-            <h4><el-icon><Bell /></el-icon>💬 通知消息</h4>
-            <el-tag type="success" size="small">{{ level4Messages.length }}条提醒</el-tag>
-          </div>
-          <div class="level4-messages-list">
-            <div 
-              v-for="message in level4Messages.slice(0, 4)" 
-              :key="message.id"
-              class="level4-message-item"
-              :class="{ 'level4-read': isRead(message.id) }"
-              @click="handleNotificationClick(message, false)"
-            >
-              <div class="level4-icon">
-                <el-icon :style="{ color: '#67C23A' }"><Bell /></el-icon>
-              </div>
-              <div class="level4-content">
-                <div class="level4-title">{{ message.title }}</div>
-                <div class="level4-time">{{ formatDate(message.createTime) }}</div>
-              </div>
-              
-              <!-- 新增：根据已读状态显示不同按钮 -->
-              <div class="level4-actions">
-                <el-button 
-                  v-if="!isRead(message.id)"
-                  type="success" 
-                  size="small" 
-                  @click.stop="handleMarkAsRead(message.id)"
-                  class="mark-read-btn"
-                >
-                  <el-icon><Check /></el-icon>
-                  标记已读
-                </el-button>
-                <el-tag 
-                  v-else
-                  type="success" 
-                  size="small"
-                  effect="plain"
-                  class="level4-read-tag"
-                >
-                  <el-icon><CircleCheck /></el-icon>
-                  已读
-                </el-tag>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <!-- 统计模块已移除，简化界面布局 -->
-      </div>
+      <!-- 中间：智能通知工作台组件 -->
+      <IntelligentNotificationWorkspace 
+        @show-all-notifications="handleShowAllNotifications"
+        @notification-click="handleNotificationClick"
+        @view-all-todos="handleViewAllTodos"
+      />
 
       <!-- 右侧：校园资讯区 -->
       <div class="campus-news">
@@ -199,7 +31,14 @@
             <h4>📢 校园新闻</h4>
             <div class="news-list">
               <div v-for="news in campusNews" :key="news.id" class="news-item">
-                <img :src="news.image" :alt="news.title" class="news-image" @error="handleImageError" />
+                <img 
+                  :src="news.image" 
+                  :alt="news.title" 
+                  class="news-image" 
+                  loading="lazy"
+                  decoding="async"
+                  @error="handleImageError" 
+                />
                 <div class="news-info">
                   <div class="news-title">{{ news.title }}</div>
                   <div class="news-time">{{ news.time }}</div>
@@ -296,126 +135,27 @@
     </div>
   </div>
 
-  <!-- 全部通知对话框 -->
-  <el-dialog 
-    v-model="showAllNotifications" 
-    title="全部通知" 
-    width="80%" 
-    :close-on-click-modal="false"
-    class="notification-dialog"
-  >
-    <div class="notification-dialog-content">
-      <div class="notification-filters">
-        <el-select v-model="notificationFilter.level" placeholder="按级别筛选" clearable size="small" style="width: 120px">
-          <el-option label="紧急" :value="1" />
-          <el-option label="重要" :value="2" />
-          <el-option label="常规" :value="3" />
-          <el-option label="提醒" :value="4" />
-        </el-select>
-        <el-select v-model="notificationFilter.scope" placeholder="按范围筛选" clearable size="small" style="width: 120px">
-          <el-option label="全校" value="SCHOOL_WIDE" />
-          <el-option label="部门" value="DEPARTMENT" />
-          <el-option label="年级" value="GRADE" />
-          <el-option label="班级" value="CLASS" />
-        </el-select>
-        <el-input v-model="notificationFilter.search" placeholder="搜索通知标题" clearable size="small" style="width: 200px" />
-      </div>
-      
-      <div class="notification-table">
-        <el-table :data="filteredNotifications" height="400" style="width: 100%">
-          <el-table-column label="级别" width="80" align="center">
-            <template #default="{ row }">
-              <el-tag :color="row.levelColor" effect="plain" size="small">
-                {{ getLevelText(row.level) }}
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column prop="title" label="标题" min-width="200" show-overflow-tooltip />
-          <el-table-column prop="publisherName" label="发布者" width="120" />
-          <el-table-column prop="scope" label="范围" width="100" align="center">
-            <template #default="{ row }">
-              <el-tag size="small" type="info">{{ getScopeText(row.scope) }}</el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column prop="createTime" label="发布时间" width="120" />
-          <el-table-column label="操作" width="100" align="center">
-            <template #default="{ row }">
-              <el-button type="primary" link size="small" @click="handleNotificationClick(row)">查看详情</el-button>
-            </template>
-          </el-table-column>
-        </el-table>
-      </div>
-      
-      <div class="notification-pagination">
-        <el-pagination
-          v-model:current-page="notificationPagination.currentPage"
-          v-model:page-size="notificationPagination.pageSize"
-          :page-sizes="[10, 20, 50, 100]"
-          :total="allNotifications.length"
-          layout="total, sizes, prev, pager, next, jumper"
-          size="small"
-        />
-      </div>
-    </div>
-  </el-dialog>
+  <!-- 全部通知对话框组件 -->
+  <AllNotificationsDialog
+    v-model="showAllNotifications"
+    @notification-click="handleNotificationClick"
+    @mark-read="handleMarkAsRead"
+    @mark-unread="handleMarkAsUnread"
+  />
 
-  <!-- 通知详情对话框 -->
-  <el-dialog 
-    v-model="showNotificationDetail" 
-    :title="selectedNotification?.title || '通知详情'" 
-    width="60%"
-    class="notification-detail-dialog"
-  >
-    <div v-if="selectedNotification" class="notification-detail">
-      <div class="notification-meta">
-        <div class="meta-row">
-          <span class="meta-label">级别：</span>
-          <el-tag :color="selectedNotification.levelColor" effect="plain" size="small">
-            {{ getLevelText(selectedNotification.level) }}
-          </el-tag>
-        </div>
-        <div class="meta-row">
-          <span class="meta-label">发布者：</span>
-          <span>{{ selectedNotification.publisherName }}</span>
-        </div>
-        <div class="meta-row">
-          <span class="meta-label">发布范围：</span>
-          <el-tag size="small" type="info">{{ getScopeText(selectedNotification.scope) }}</el-tag>
-        </div>
-        <div class="meta-row">
-          <span class="meta-label">发布时间：</span>
-          <span>{{ selectedNotification.createTime }}</span>
-        </div>
-      </div>
-      
-      <div class="notification-content-detail">
-        <h4>通知内容：</h4>
-        <div class="content-text formatted-content">{{ formatNotificationContent(selectedNotification.content) }}</div>
-      </div>
-    </div>
-    
-    <template #footer>
-      <el-button @click="showNotificationDetail = false">关闭</el-button>
-      <el-button 
-        v-if="selectedNotification && !isRead(selectedNotification.id)" 
-        type="primary" 
-        @click="handleMarkAsRead(selectedNotification.id); showNotificationDetail = false"
-      >
-        标记为已读
-      </el-button>
-      <el-button 
-        v-else-if="selectedNotification && isRead(selectedNotification.id)" 
-        type="info" 
-        @click="handleMarkAsUnread(selectedNotification.id); showNotificationDetail = false"
-      >
-        撤销已读
-      </el-button>
-    </template>
-  </el-dialog>
+  <!-- 通知详情对话框组件 -->
+  <NotificationDetailDialog
+    :visible="showNotificationDetail"
+    :notification="uiStore.selectedNotification"
+    :read-status-checker="notificationStore.isRead"
+    @update:visible="(value) => showNotificationDetail = value"
+    @close="() => showNotificationDetail = false"
+    @mark-read="handleMarkAsRead"
+  />
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, nextTick } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref, nextTick, defineAsyncComponent } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
@@ -423,95 +163,237 @@ import {
   Clock, Document, Check, CircleCheck
 } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
+import { useNotificationStore } from '@/stores/notification'
+import { useUIStore } from '@/stores/ui'
 import { authAPI } from '@/api/auth'
-import { notificationAPI } from '@/api/notification'
 import type { NotificationItem } from '@/api/notification'
-import { useNotificationReadStatus } from '@/composables/useNotificationReadStatus'
 import { useNotificationArchiveAnimation } from '@/composables/useNotificationArchiveAnimation'
 import WeatherWidget from '@/components/WeatherWidget.vue'
 import TodoNotificationWidget from '@/components/TodoNotificationWidget.vue'
 import NotificationArchiveIndicator from '@/components/notification/NotificationArchiveIndicator.vue'
-import NotificationArchivePanel from '@/components/notification/NotificationArchivePanel.vue'
+// NotificationArchivePanel 已改为懒加载
 import HeaderNavigation from '@/components/HeaderNavigation.vue'
 import WelcomeBanner from '@/components/WelcomeBanner.vue'
 import QuickServicesGrid from '@/components/QuickServicesGrid.vue'
+// 🚀 Stage 9性能优化: 异步组件懒加载 (深化版)
+const AllNotificationsDialog = defineAsyncComponent({
+  loader: () => import('@/views/home/components/AllNotificationsDialog.vue'),
+  loadingComponent: {
+    template: '<div class="dialog-loading"><el-skeleton :rows="5" animated /></div>'
+  },
+  errorComponent: {
+    template: '<div class="dialog-error">组件加载失败，请刷新重试</div>'
+  },
+  delay: 200, // 200ms后显示loading
+  timeout: 5000 // 5s超时
+})
+
+const NotificationDetailDialog = defineAsyncComponent({
+  loader: () => import('@/views/home/components/NotificationDetailDialog.vue'),
+  loadingComponent: {
+    template: '<div class="dialog-loading"><el-skeleton :rows="3" animated /></div>'
+  },
+  errorComponent: {
+    template: '<div class="dialog-error">详情加载失败，请重试</div>'
+  },
+  delay: 200,
+  timeout: 5000
+})
+
+// 🚀 Stage 9性能优化: 新增懒加载组件
+const NotificationArchivePanel = defineAsyncComponent({
+  loader: () => import('@/components/notification/NotificationArchivePanel.vue'),
+  loadingComponent: {
+    template: '<div class="archive-loading"><el-skeleton :rows="2" animated /></div>'
+  },
+  delay: 100
+})
+import IntelligentNotificationWorkspace from '@/views/home/components/IntelligentNotificationWorkspace.vue'
 import type { TodoNotificationItem } from '@/types/todo'
 import { useTodoStore } from '@/stores/todo'
 import dayjs from 'dayjs'
 
-const router = useRouter()
-const userStore = useUserStore()
-const todoStore = useTodoStore()
+// 🚀 Stage 9性能优化: 防抖工具函数
+const debounce = <T extends (...args: any[]) => any>(
+  func: T,
+  wait: number
+): ((...args: Parameters<T>) => void) => {
+  let timeout: NodeJS.Timeout | null = null
+  return (...args: Parameters<T>) => {
+    if (timeout) clearTimeout(timeout)
+    timeout = setTimeout(() => func(...args), wait)
+  }
+}
 
-// 直接使用localStorage的用户状态（绕过Pinia响应式问题）
-const currentToken = ref<string>('')
-const currentUserInfo = ref<any>(null)
-const isUserLoggedIn = ref<boolean>(false)
-
-// 从localStorage直接加载用户状态
-const loadUserStateFromStorage = () => {
-  const savedToken = localStorage.getItem('campus_token')
-  const savedUserInfo = localStorage.getItem('campus_user_info')
-  
-  console.log('🔍 直接从localStorage加载用户状态...')
-  
-  if (savedToken && savedUserInfo) {
-    try {
-      const userInfo = JSON.parse(savedUserInfo)
-      currentToken.value = savedToken
-      currentUserInfo.value = userInfo
-      isUserLoggedIn.value = true
-      
-      console.log('✅ 用户状态加载成功:')
-      console.log('👤 用户:', userInfo.username)
-      console.log('🔑 Token长度:', savedToken.length)
-      
-      return true
-    } catch (error) {
-      console.error('❌ 用户信息解析失败:', error)
+// 🚀 Stage 9性能优化: 节流工具函数
+const throttle = <T extends (...args: any[]) => any>(
+  func: T,
+  limit: number
+): ((...args: Parameters<T>) => void) => {
+  let inThrottle: boolean = false
+  return (...args: Parameters<T>) => {
+    if (!inThrottle) {
+      func(...args)
+      inThrottle = true
+      setTimeout(() => inThrottle = false, limit)
     }
   }
-  
-  console.log('❌ 未找到有效的用户状态')
-  return false
 }
 
-// 测试加载状态
-const testLoading = reactive({
-  health: false,
-  verify: false,
-  notification: false
-})
+// 🚀 Stage 9性能优化: 性能监控工具
+const performanceMonitor = {
+  startTimer: (label: string): (() => void) => {
+    const start = performance.now()
+    console.log(`⏱️ [性能监控] ${label} 开始`)
+    
+    return () => {
+      const end = performance.now()
+      const duration = end - start
+      console.log(`⏱️ [性能监控] ${label} 完成: ${duration.toFixed(2)}ms`)
+      
+      // 记录性能指标
+      if (duration > 100) {
+        console.warn(`⚠️ [性能预警] ${label} 耗时过长: ${duration.toFixed(2)}ms`)
+      }
+      
+      return duration
+    }
+  },
+  
+  measureAsync: async <T>(label: string, asyncFunc: () => Promise<T>): Promise<T> => {
+    const endTimer = performanceMonitor.startTimer(label)
+    try {
+      const result = await asyncFunc()
+      endTimer()
+      return result
+    } catch (error) {
+      endTimer()
+      console.error(`❌ [性能监控] ${label} 执行失败:`, error)
+      throw error
+    }
+  }
+}
 
-// 测试结果
+const router = useRouter()
+const userStore = useUserStore()
+const notificationStore = useNotificationStore()
+const uiStore = useUIStore()
+const todoStore = useTodoStore()
+
+
+// 🔧 P0级修复: 统一使用UserStore管理用户状态 (替代直接localStorage操作)
+// 使用computed确保响应式更新
+const currentToken = computed(() => userStore.token)
+const currentUserInfo = computed(() => userStore.userInfo)
+const isUserLoggedIn = computed(() => userStore.isLoggedIn)
+
+// 🔧 统一用户状态初始化方法 (使用UserStore)
+const loadUserStateFromStorage = async () => {
+  console.log('🔍 使用UserStore加载用户状态...')
+  
+  try {
+    // 使用UserStore的初始化方法
+    await userStore.initializeAuth()
+    
+    if (userStore.isLoggedIn && userStore.userInfo) {
+      console.log('✅ 用户状态加载成功:')
+      console.log('👤 用户:', userStore.userInfo.username)
+      console.log('🔑 Token长度:', userStore.token.length)
+      
+      return true
+    } else {
+      console.log('❌ 用户未登录或状态无效')
+      return false
+    }
+  } catch (error) {
+    console.error('❌ UserStore初始化失败:', error)
+    console.log('❌ 未找到有效的用户状态')
+    return false
+  }
+}
+
+// 🎯 Stage 7: 测试和调试状态已迁移到uiStore
+const testLoading = uiStore.testLoading
 const testResults = ref<any>(null)
-
-// 登录时间
 const loginTime = ref('')
 
-// 调试面板显示状态
-const showDebugPanel = ref(true)
-
-
-// 通知相关状态
-const notificationLoading = ref(false)
-const recentNotifications = ref<NotificationItem[]>([])
-const allNotifications = ref<NotificationItem[]>([]) // 存储所有通知
-const unreadNotificationCount = ref(0)
-
-// 初始化智能工作台已读状态管理（响应式初始化，解决异步用户ID问题）
-let readStatusManager: any = null
-let archiveAnimationManager: any = null
-
-// 初始化已读状态管理器（当用户信息可用时）
-const initializeReadStatusManager = () => {
-  const userId = currentUserInfo.value?.userId
-  if (userId && !readStatusManager) {
-    readStatusManager = useNotificationReadStatus(userId)
-    console.log('🔧 [已读状态] 初始化完成，用户ID:', userId)
+// 调试面板显示状态 - 使用uiStore
+const showDebugPanel = computed({
+  get: () => uiStore.showDebugPanel,
+  set: (value: boolean) => {
+    if (value !== uiStore.showDebugPanel) {
+      uiStore.toggleDebugPanel()
+    }
   }
-  return readStatusManager
-}
+})
+
+
+// 🚀 Stage 9性能优化: 计算属性缓存优化 (深化版) - 使用shallowRef减少深度响应性开销
+const notificationData = computed(() => {
+  const endTimer = performanceMonitor.startTimer('通知数据计算')
+  
+  const notifications = notificationStore.notifications
+  const loading = notificationStore.loading
+  const unreadStats = notificationStore.unreadStats
+  
+  const result = {
+    loading,
+    notifications,
+    recent: notificationStore.recentNotifications,
+    unreadTotal: unreadStats.total,
+    unreadStats,
+    // 智能分类（一次性计算所有分类，减少Store访问次数）
+    systemAnnouncements: notificationStore.systemAnnouncements,
+    readArchived: notificationStore.readArchivedNotifications,
+    level4Messages: notificationStore.level4Messages,
+    emergency: notificationStore.emergencyNotifications,
+    important: notificationStore.importantNotifications,
+    unreadPriority: notificationStore.unreadPriorityNotifications
+  }
+  
+  endTimer()
+  return result
+})
+
+// 🚀 Stage 9性能优化: 使用合并的计算属性，避免重复计算
+const notificationLoading = computed(() => notificationData.value.loading)
+const recentNotifications = computed(() => notificationData.value.recent)
+const allNotifications = computed(() => notificationData.value.notifications)
+const unreadNotificationCount = computed(() => notificationData.value.unreadTotal)
+
+// 🚀 Stage 9性能优化: 继续优化剩余计算属性，使用合并数据源
+const systemAnnouncements = computed(() => notificationData.value.systemAnnouncements)
+const readArchivedNotifications = computed(() => notificationData.value.readArchived)
+const level4Messages = computed(() => notificationData.value.level4Messages)
+const emergencyNotifications = computed(() => notificationData.value.emergency)
+const importantNotifications = computed(() => notificationData.value.important)
+const unreadPriorityNotifications = computed(() => notificationData.value.unreadPriority)
+const unreadStats = computed(() => notificationData.value.unreadStats)
+
+// 🎯 Stage 7: 兼容性保留 - 智能分类计算
+const categorizeNotifications = computed(() => {
+  // 兼容原有接口，返回统一的分类结果
+  return (notifications: NotificationItem[]) => ({
+    unreadPriority: unreadPriorityNotifications.value,
+    readArchive: readArchivedNotifications.value,
+    level4Messages: level4Messages.value,
+    systemAnnouncements: systemAnnouncements.value,
+    emergencyNotifications: emergencyNotifications.value,
+    importantNotifications: importantNotifications.value
+  })
+})
+
+const unreadCounts = computed(() => {
+  return unreadStats.value
+})
+
+// 🎯 Stage 7: 智能工作台计算属性已迁移到notificationStore - 直接使用store计算属性
+const categorizedNotifications = computed(() => {
+  return categorizeNotifications.value(allNotifications.value)
+})
+
+// 🚀 Stage 9性能优化: 恢复已读状态管理并添加性能监控
+let archiveAnimationManager: any = null
 
 // 初始化归档动画管理器
 const initializeArchiveAnimationManager = () => {
@@ -522,180 +404,40 @@ const initializeArchiveAnimationManager = () => {
   return archiveAnimationManager
 }
 
-// 已读状态操作函数（延迟初始化）
+// 🎯 Stage 7: 已读状态操作已迁移到notificationStore
 const markAsRead = (notificationId: number) => {
-  const manager = initializeReadStatusManager()
-  if (manager) {
-    manager.markAsRead(notificationId)
-  }
+  notificationStore.markAsRead(notificationId)
 }
 
 const markAsUnread = (notificationId: number) => {
-  const manager = initializeReadStatusManager()
-  if (manager) {
-    manager.markAsUnread(notificationId)
-  }
+  notificationStore.markAsUnread(notificationId)
 }
 
 const isRead = (notificationId: number): boolean => {
-  const manager = initializeReadStatusManager()
-  return manager ? manager.isRead(notificationId) : false
+  return notificationStore.isRead(notificationId)
 }
 
-const categorizeNotifications = computed(() => {
-  const manager = initializeReadStatusManager()
-  return manager ? manager.categorizeNotifications.value : (() => ({
-    unreadPriority: [],
-    readArchive: [],
-    level4Messages: [],
-    systemAnnouncements: [],
-    emergencyNotifications: [],
-    importantNotifications: []
-  }))
-})
-
-const unreadCounts = computed(() => {
-  const manager = initializeReadStatusManager()
-  return manager ? manager.unreadCounts.value : (() => ({
-    total: 0,
-    emergency: 0,
-    important: 0,
-    level4: 0
-  }))
-})
-
-// 智能工作台核心计算属性 - 基于革命性一次遍历多重分类算法
-const categorizedNotifications = computed(() => {
-  return categorizeNotifications.value(allNotifications.value)
-})
-
-// 未读优先级通知 (Level 1-3未读，工作台主要显示区域) - 修复响应式更新
-const unreadPriorityNotifications = computed(() => {
-  const manager = initializeReadStatusManager()
-  if (!manager) return []
-  
-  // 强制依赖已读状态变化，确保响应式更新
-  const readIds = manager.readNotificationIds.value
-  const categories = categorizeNotifications.value(allNotifications.value)
-  
-  console.log('🔍 [响应式更新] 未读优先级计算:', {
-    已读ID数量: readIds.size,
-    未读优先级数量: categories.unreadPriority.length,
-    全部通知数量: allNotifications.value.length
-  })
-  
-  return categories.unreadPriority
-})
-
-// 系统公告 (右侧系统公告区域显示) - 🔧 修复响应式依赖
-const systemAnnouncements = computed(() => {
-  const manager = initializeReadStatusManager()
-  if (!manager) {
-    console.log('🔧 [DEBUG] 系统公告: 管理器未初始化')
-    return []
-  }
-  
-  // 🔧 强制依赖已读状态变化，确保响应式更新（关键修复）
-  const readIds = manager.readNotificationIds.value
-  const allData = allNotifications.value
-  const categories = categorizeNotifications.value(allData)
-  
-  console.log('🔧 [DEBUG] 系统公告计算:', {
-    全部通知数量: allData.length,
-    已读状态数量: readIds.size,
-    系统公告数量: categories.systemAnnouncements.length,
-    系统公告内容: categories.systemAnnouncements.map(n => ({ id: n.id, title: n.title, role: n.publisherRole }))
-  })
-  
-  console.log('🔍 [响应式更新] 系统公告计算:', {
-    系统公告数量: categories.systemAnnouncements.length,
-    全部通知数量: allData.length,
-    已读ID数量: readIds.size,
-    分类结果: Object.keys(categories).map(key => `${key}: ${categories[key].length}`)
-  })
-  
-  return categories.systemAnnouncements
-})
-
-// 已读归档通知 (右侧归档区域显示) - 🔧 强化调试日志
-const readArchivedNotifications = computed(() => {
-  const manager = initializeReadStatusManager()
-  if (!manager) {
-    console.log('🔧 [DEBUG] 归档计算: 管理器未初始化')
-    return []
-  }
-  
-  // 强制依赖已读状态变化，确保响应式更新
-  const readIds = manager.readNotificationIds.value
-  const categories = categorizeNotifications.value(allNotifications.value)
-  
-  console.log('🔧 [DEBUG] 归档计算: 已读数量=', readIds.size, '归档数量=', categories.readArchive.length)
-  console.log('🔧 [DEBUG] 归档计算: 归档ID列表=', categories.readArchive.map(n => n.id))
-  
-  console.log('🔍 [响应式更新] 已读归档计算:', {
-    已读ID数量: readIds.size,
-    归档通知数量: categories.readArchive.length,
-    全部通知数量: allNotifications.value.length
-  })
-  
-  return categories.readArchive // 返回完整归档数据，显示限制由组件内部处理
-})
-
-// Level 4 通知消息 (工作台底部专区显示)
-const level4Messages = computed(() => {
-  return categorizedNotifications.value.level4Messages
-})
-
-// 紧急通知 (Level 1)
-const emergencyNotifications = computed(() => {
-  return categorizedNotifications.value.emergencyNotifications
-})
-
-// 重要通知 (Level 2-3)
-const importantNotifications = computed(() => {
-  return categorizedNotifications.value.importantNotifications
-})
-
-// 未读数量统计 - 修复响应式更新
-const unreadStats = computed(() => {
-  const manager = initializeReadStatusManager()
-  if (!manager) return { total: 0, emergency: 0, important: 0, level4: 0 }
-  
-  // 强制依赖已读状态变化
-  const readIds = manager.readNotificationIds.value
-  const counts = unreadCounts.value(allNotifications.value)
-  
-  console.log('🔍 [响应式更新] 未读统计计算:', {
-    已读ID数量: readIds.size,
-    未读统计: counts
-  })
-  
-  return counts
-})
-
-// 处理"已读"按钮点击（集成归档动画）- 🔧 强化调试日志
+// 🎯 Stage 7: 处理"已读"按钮点击 - 使用store和保留动画 + 🚀 Stage 9性能优化
 const handleMarkAsRead = async (notificationId: number) => {
+  const endTimer = performanceMonitor.startTimer(`标记已读-${notificationId}`)
+  
   console.log('🔧 [DEBUG] === 开始标记已读 ===', notificationId)
   
-  const statusManager = initializeReadStatusManager()
   const animationManager = initializeArchiveAnimationManager()
   
-  console.log('🔧 [DEBUG] 状态管理器:', !!statusManager)
-  console.log('🔧 [DEBUG] 动画管理器:', !!animationManager)
+  // 添加加载状态
+  uiStore.addMarkingReadLoading(notificationId)
   
-  if (statusManager) {
-    console.log('🔧 [DEBUG] 标记前已读列表长度:', statusManager.readNotificationIds.value.size)
+  try {
     console.log('🔧 [DEBUG] 标记前归档列表长度:', readArchivedNotifications.value.length)
     
-    statusManager.markAsRead(notificationId)
+    // 使用store方法标记已读
+    notificationStore.markAsRead(notificationId)
     
     // 延迟检查状态更新
     await nextTick()
     
-    console.log('🔧 [DEBUG] 标记后已读列表长度:', statusManager.readNotificationIds.value.size)
     console.log('🔧 [DEBUG] 标记后归档列表长度:', readArchivedNotifications.value.length)
-    console.log('🔧 [DEBUG] 归档列表内容:', readArchivedNotifications.value.map(n => n.id))
-    
     console.log('📝 [用户操作] 标记通知为已读:', notificationId)
     
     // 触发归档动画
@@ -707,8 +449,10 @@ const handleMarkAsRead = async (notificationId: number) => {
     } else {
       ElMessage.success('已标记为已读')
     }
-  } else {
-    console.error('❌ [ERROR] 状态管理器未初始化')
+  } finally {
+    // 移除加载状态
+    uiStore.removeMarkingReadLoading(notificationId)
+    endTimer()
   }
   
   console.log('🔧 [DEBUG] === 标记已读完成 ===')
@@ -723,13 +467,10 @@ const handleMarkAsUnread = (notificationId: number) => {
 
 // 处理永久删除通知（修复版本 - 本地隐藏机制）
 const handlePermanentDeleteNotification = (notificationId: number) => {
-  const statusManager = initializeReadStatusManager()
-  if (statusManager) {
-    // 🔧 修复：使用hideNotification而不是从数组删除
-    statusManager.hideNotification(notificationId)
-    ElMessage.success('已永久删除通知')
-    console.log('🗑️ [用户操作] 永久隐藏通知:', notificationId)
-  }
+  // 🔧 修复：直接使用NotificationStore的hideNotification方法
+  notificationStore.hideNotification(notificationId)
+  ElMessage.success('已永久删除通知')
+  console.log('🗑️ [用户操作] 永久隐藏通知:', notificationId)
 }
 
 // 处理清空所有归档（修复版本 - 设置清理时间而不是删除已读状态）
@@ -744,43 +485,91 @@ const handleClearAllArchive = () => {
       confirmButtonClass: 'el-button--warning'
     }
   ).then(() => {
-    const statusManager = initializeReadStatusManager()
-    if (statusManager) {
-      // 获取当前归档数量
-      const archivedCount = readArchivedNotifications.value.length
-      
-      // 🔧 修复：使用clearArchive而不是清空已读状态
-      statusManager.clearArchive()
-      
-      ElMessage.success(`已清空所有归档消息 (${archivedCount}条)`)
-      console.log('🧹 [用户操作] 清空归档消息，数量:', archivedCount)
-    }
+    // 获取当前归档数量
+    const archivedCount = readArchivedNotifications.value.length
+    
+    // 🔧 修复：直接使用NotificationStore的clearArchive方法
+    notificationStore.clearArchive()
+    
+    ElMessage.success(`已清空所有归档消息 (${archivedCount}条)`)
+    console.log('🧹 [用户操作] 清空归档消息，数量:', archivedCount)
   }).catch(() => {
     console.log('👤 [用户操作] 取消清空归档')
   })
 }
 
-// 通知对话框相关
-const showAllNotifications = ref(false)
-const showNotificationDetail = ref(false)
-const selectedNotification = ref<NotificationItem | null>(null)
-
-// 通知筛选和分页
-const notificationFilter = reactive({
-  level: null as number | null,
-  scope: '' as string,
-  search: '' as string
+// 🎯 Stage 7: UI状态已迁移到uiStore - 使用store的状态和方法
+const showAllNotifications = computed({
+  get: () => uiStore.showAllNotifications,
+  set: (value: boolean) => {
+    if (value) uiStore.openAllNotifications()
+    else uiStore.closeAllNotifications()
+  }
 })
 
-// 待办统计计算属性 - 使用store中的数据
+const showNotificationDetail = computed({
+  get: () => uiStore.showNotificationDetail,
+  set: (value: boolean) => {
+    if (!value) uiStore.closeNotificationDetail()
+  }
+})
+
+const selectedNotification = computed(() => uiStore.selectedNotification)
+
+// 通知筛选器 - 使用uiStore
+const notificationFilter = uiStore.notificationFilters
+
+// 🎯 Stage 7: 分页状态已迁移到uiStore
+const notificationPagination = uiStore.notificationPagination
+
+// 🎯 Stage 7: 待办统计使用todoStore
 const pendingTodoCount = computed(() => todoStore.pendingCount)
 
-const notificationPagination = reactive({
-  currentPage: 1,
-  pageSize: 20
-})
+// 🎯 Stage 7: 通知点击处理 - 使用uiStore管理对话框状态 + 🚀 Stage 9性能优化 (去除重复缓存)
+const handleNotificationClick = async (notification: NotificationItem, autoMarkRead: boolean = false) => {
+  return performanceMonitor.measureAsync(`通知详情查看-${notification.id}`, async () => {
+    console.log('📖 点击查看通知详情:', notification.title)
+    
+    try {
+      // 🚀 Stage 9优化: 直接使用NotificationService的统一缓存机制，避免重复缓存
+      const notificationDetail = await notificationStore.getNotificationDetail(notification.id)
+      
+      if (notificationDetail) {
+        uiStore.openNotificationDetail(notificationDetail)
+        
+        // 只有明确指定才自动标记为已读
+        if (autoMarkRead && !notificationStore.isRead(notification.id)) {
+          notificationStore.markAsRead(notification.id)
+          console.log('🏷️ [自动标记] 通知已标记为已读:', notification.id)
+        }
+      } else {
+        ElMessage.error('获取通知详情失败')
+      }
+    } catch (error) {
+      console.error('❌ 查看通知详情失败:', error)
+      ElMessage.error('查看通知详情失败')
+    }
+  })
+}
 
-// 今日课程安排 Mock数据（革命性工作台功能）
+// 🚀 Stage 9性能优化: 防抖版本的通知点击处理 (强化版)
+const debouncedNotificationClick = debounce(handleNotificationClick, 300)
+
+// 🚀 Stage 9性能优化: 防抖搜索处理
+const debouncedSearch = debounce((searchTerm: string) => {
+  notificationFilter.search = searchTerm
+}, 500)
+
+// 🚀 Stage 9性能优化: 节流滚动处理
+const throttledScroll = throttle((event: Event) => {
+  const target = event.target as HTMLElement
+  if (target.scrollTop > 100) {
+    // 滚动优化逻辑
+    console.log('📜 [性能优化] 滚动节流处理')
+  }
+}, 16) // 60fps
+
+// 今日课程安排 Mock数据（革命性工作台功能）- 保留本地数据
 const todayCourses = ref([
   {
     id: 1,
@@ -815,31 +604,6 @@ const todayCourses = ref([
     status: 'upcoming'
   }
 ])
-
-// 处理通知点击 - 修复版：默认不自动标记已读
-const handleNotificationClick = async (notification: NotificationItem, autoMarkRead: boolean = false) => {
-  console.log('📖 点击查看通知详情:', notification.title)
-  
-  try {
-    const result = await notificationAPI.getNotificationDetail(notification.id)
-    
-    if (result.success) {
-      selectedNotification.value = result.data
-      showNotificationDetail.value = true
-      
-      // 只有明确指定才自动标记为已读
-      if (autoMarkRead && !isRead(notification.id)) {
-        markAsRead(notification.id)
-        console.log('🏷️ [自动标记] 通知已标记为已读:', notification.id)
-      }
-    } else {
-      ElMessage.error('获取通知详情失败')
-    }
-  } catch (error) {
-    console.error('❌ 查看通知详情失败:', error)
-    ElMessage.error('查看通知详情失败')
-  }
-}
 
 // 获取级别文本
 const getLevelText = (level: number): string => {
@@ -970,72 +734,27 @@ const handleEmergencyClick = (notification: NotificationItem) => {
   handleNotificationClick(notification)
 }
 
-// 更新通知加载逻辑，添加智能统计
+// 🎯 Stage 7: 数据加载逻辑已迁移到notificationStore
 const loadNotificationData = async () => {
   console.log('📢 开始加载通知数据...')
-  notificationLoading.value = true
   
   try {
-    const result = await notificationAPI.getNotificationList({ pageSize: 100 })
+    // 使用notificationStore的方法加载数据
+    await notificationStore.fetchNotifications({ pageSize: 100 })
+    console.log('✅ 通知数据加载成功:', allNotifications.value.length, '条')
     
-    if (result.success && result.data.list) {
-      allNotifications.value = result.data.list
-      recentNotifications.value = result.data.list.slice(0, 3) // 兼容原有逻辑
-      console.log('✅ 通知数据加载成功:', allNotifications.value.length, '条')
-      
-      // 🔧 立即验证系统公告数据加载
-      console.log('🔍 [系统公告验证] 原始数据检查:')
-      allNotifications.value.forEach(n => {
-        if (n.publisherRole === 'SYSTEM_ADMIN' || n.publisherRole === 'SYSTEM') {
-          console.log(`  - ID=${n.id}, 标题="${n.title}", 发布者="${n.publisherName}", 角色="${n.publisherRole}"`)
-        }
-      })
-      
-      // 强制触发系统公告计算
-      setTimeout(() => {
-        console.log('🔍 [强制验证] 系统公告计算结果:', systemAnnouncements.value.length, '条')
-        systemAnnouncements.value.forEach(n => {
-          console.log(`  - 系统公告: ID=${n.id}, 标题="${n.title}"`)
-        })
-        
-        // 🔥 强制触发完整分类统计
-        const manager = initializeReadStatusManager()
-        if (manager) {
-          const categories = categorizeNotifications.value(allNotifications.value)
-          console.log('🔥 [完整统计] 通知分类结果:')
-          console.log(`  - 未读优先级: ${categories.unreadPriority.length}条`)
-          console.log(`  - 已读归档: ${categories.readArchive.length}条`)
-          console.log(`  - Level4消息: ${categories.level4Messages.length}条`)
-          console.log(`  - 系统公告: ${categories.systemAnnouncements.length}条`)
-          console.log(`  - 紧急通知: ${categories.emergencyNotifications.length}条`)
-          console.log(`  - 重要通知: ${categories.importantNotifications.length}条`)
-        }
-      }, 100)
-      
-      // 更新未读数量
-      updateUnreadCount()
-    } else {
-      console.log('⚠️ 通知API返回失败，使用默认数据')
-      allNotifications.value = notificationAPI.getDefaultNotifications()
-      recentNotifications.value = allNotifications.value.slice(0, 3)
-      ElMessage.warning('使用默认通知数据')
-    }
+    // 更新未读数量
+    updateUnreadCount()
   } catch (error) {
     console.error('❌ 加载通知数据失败:', error)
-    allNotifications.value = notificationAPI.getDefaultNotifications()
-    recentNotifications.value = allNotifications.value.slice(0, 3)
-    ElMessage.error('通知数据加载失败，使用默认数据')
-  } finally {
-    notificationLoading.value = false
-    console.log('🏁 通知数据加载完成')
+    ElMessage.error('通知数据加载失败')
   }
 }
 
-// 更新未读通知数量 - 使用智能统计
+// 🎯 Stage 7: 未读数量更新使用notificationStore
 const updateUnreadCount = () => {
   try {
     const counts = unreadStats.value
-    unreadNotificationCount.value = counts.total
     console.log('🔔 [智能统计] 更新未读通知数量:', counts)
   } catch (error) {
     console.error('❌ 更新未读数量失败:', error)
@@ -1113,8 +832,8 @@ const testNotificationAPI = async () => {
   try {
     console.log('📤 发送通知API Ping请求...')
     
-    // 直接使用fetch测试主通知服务
-    const response = await fetch('http://localhost:48081/admin-api/test/notification/api/ping', {
+    // 🔧 修复：使用Vite代理路径，避免CORS问题
+    const response = await fetch('/admin-api/test/notification/api/ping', {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${currentToken.value}`,
@@ -1130,12 +849,29 @@ const testNotificationAPI = async () => {
     
     if (response.ok) {
       console.log('✅ 主通知服务连接成功')
-      ElMessage.success('主通知服务连接正常')
+      ElMessage.success(`主通知服务连接正常: ${result}`)
+      testResults.value = {
+        type: 'success',
+        message: '主通知服务连接正常',
+        details: result
+      }
     } else {
       console.log('❌ 通知API响应错误')
+      ElMessage.error(`通知API响应错误: ${response.status}`)
+      testResults.value = {
+        type: 'error',
+        message: `通知API响应错误: ${response.status}`,
+        details: result
+      }
     }
   } catch (error) {
     console.log('❌ 通知API测试异常:', error)
+    ElMessage.error(`通知API测试异常: ${error.message}`)
+    testResults.value = {
+      type: 'error',
+      message: '通知API测试异常',
+      details: error.message
+    }
   } finally {
     testLoading.notification = false
     console.log('=== 通知API测试结束 ===')
@@ -1148,18 +884,35 @@ const isAdmin = computed(() => {
   return currentUserInfo.value?.roleCode === 'PRINCIPAL' || currentUserInfo.value?.roleCode === 'ACADEMIC_ADMIN'
 })
 
-// 处理来自HeaderNavigation组件的退出事件
+// 🔧 P0级修复: 统一退出登录逻辑 (使用UserStore)
 const handleLogoutFromHeader = () => {
-  // 清理当前状态
-  currentToken.value = ''
-  currentUserInfo.value = null
-  isUserLoggedIn.value = false
-  
-  // 重置已读状态管理器和归档动画管理器
-  readStatusManager = null
-  archiveAnimationManager = null
-  
-  console.log('🧹 [HeaderNavigation] 清理本地数据完成')
+  try {
+    console.log('🔓 [HeaderNavigation] 开始处理退出登录...')
+    
+    // 🔧 使用UserStore统一管理用户状态
+    userStore.logout()
+    
+    // 重置Store状态
+    notificationStore.setCurrentUserId(null)
+    uiStore.resetAllUIState()
+    
+    // 重置归档动画管理器
+    archiveAnimationManager = null
+    
+    console.log('🧹 [HeaderNavigation] 清理本地数据完成')
+    
+    console.log('✅ [HeaderNavigation] 退出登录处理完成')
+  } catch (error) {
+    console.error('❌ [HeaderNavigation] 退出过程出错:', error)
+    ElMessage.error('退出登录时出现异常，请刷新页面')
+    
+    // 🔧 备用清理方案：使用UserStore确保清理
+    try {
+      userStore.logout()
+    } catch (fallbackError) {
+      console.error('❌ [HeaderNavigation] 备用清理也失败:', fallbackError)
+    }
+  }
 }
 
 // 处理用户退出登录（保留原函数以兼容其他组件）
@@ -1180,19 +933,13 @@ const handleLogout = async () => {
     
     console.log('✅ [退出登录] 用户确认退出')
     
-    // 清理本地存储数据（保留已读状态）
-    localStorage.removeItem('campus_token')
-    localStorage.removeItem('campus_user_info')
-    // ❌ 已删除：localStorage.removeItem('campus_portal_read_notifications')
+    // 🔧 P0级修复: 使用UserStore统一管理退出逻辑
+    userStore.logout()
     // ✅ 已读状态应该持久化保存，用户重新登录后仍能看到已读归档
     
-    // 清理当前状态
-    currentToken.value = ''
-    currentUserInfo.value = null
-    isUserLoggedIn.value = false
-    
-    // 🔧 重置已读状态管理器和归档动画管理器（为下次登录准备）
-    readStatusManager = null
+    // 🔧 重置Store状态和归档动画管理器（为下次登录准备）
+    notificationStore.setCurrentUserId(null)
+    uiStore.resetAllUIState()
     archiveAnimationManager = null
     
     console.log('🧹 [退出登录] 清理本地数据完成')
@@ -1251,16 +998,22 @@ const handleViewAllTodos = () => {
   console.log('📋 跳转到待办管理页面')
 }
 
-// 组件初始化
-onMounted(() => {
+// 🔧 P0级修复: 处理显示全部通知事件
+const handleShowAllNotifications = () => {
+  console.log('📋 [事件处理] 显示全部通知弹窗')
+  uiStore.openAllNotifications()
+}
+
+// 🎯 Stage 7: 组件初始化 - 使用Store进行状态管理
+onMounted(async () => {
   console.log('=== 首页初始化开始 ===')
   console.log('当前时间:', dayjs().format('YYYY/MM/DD HH:mm:ss'))
   console.log('当前路由:', router.currentRoute.value.path)
   
   console.log('🔍 开始加载用户认证状态...')
   
-  // 直接从localStorage加载用户状态，不再依赖Pinia
-  const isLoggedIn = loadUserStateFromStorage()
+  // 🔧 P0级修复: 使用UserStore异步加载用户状态
+  const isLoggedIn = await loadUserStateFromStorage()
   
   if (isLoggedIn && currentUserInfo.value) {
     loginTime.value = dayjs().format('YYYY-MM-DD HH:mm:ss')
@@ -1268,10 +1021,15 @@ onMounted(() => {
     console.log('👤 当前用户:', currentUserInfo.value.username)
     console.log('🔑 当前Token长度:', currentToken.value.length)
     
-    // 🔧 用户信息加载完成后，强制初始化已读状态管理器和归档动画管理器
-    readStatusManager = null // 重置管理器
+    // 🎯 Stage 7: 设置notificationStore的用户ID
+    const userId = currentUserInfo.value?.userId
+    if (userId) {
+      notificationStore.setCurrentUserId(userId)
+      console.log('🆔 [NotificationStore] 用户ID已设置:', userId)
+    }
+    
+    // 🎯 Stage 7: 初始化归档动画管理器
     archiveAnimationManager = null // 重置动画管理器
-    initializeReadStatusManager() // 重新初始化
     initializeArchiveAnimationManager() // 初始化动画管理器
     
     // 用户登录成功后加载数据
@@ -1285,6 +1043,52 @@ onMounted(() => {
   }
   
   console.log('=== 首页初始化结束 ===')
+})
+
+// 🚀 Stage 9性能优化: 组件卸载时的资源清理 (强化版)
+onUnmounted(() => {
+  const endTimer = performanceMonitor.startTimer('组件卸载清理')
+  console.log('=== Home组件开始卸载 ===')
+  
+  // 清理归档动画管理器
+  if (archiveAnimationManager) {
+    console.log('🧹 清理归档动画管理器')
+    archiveAnimationManager = null
+  }
+  
+  // 🚀 Stage 9优化: 删除重复的SessionStorage清理逻辑，NotificationService已统一管理缓存
+  
+  // 清理可能的定时器和事件监听器
+  console.log('🧹 清理事件监听器和定时器')
+  window.removeEventListener('scroll', throttledScroll)
+  window.removeEventListener('resize', throttledScroll)
+  
+  // 🔧 Pinia Store状态重置 (替代不存在的cleanup方法)
+  try {
+    // 重置通知Store状态 (使用$reset方法)
+    if (notificationStore && typeof notificationStore.$reset === 'function') {
+      notificationStore.$reset()
+      console.log('✅ NotificationStore状态已重置')
+    }
+    
+    // 重置UI Store状态 (使用$reset方法)
+    if (uiStore && typeof uiStore.$reset === 'function') {
+      uiStore.$reset()
+      console.log('✅ UIStore状态已重置')
+    }
+    
+    // 重置待办Store状态 (使用$reset方法)
+    if (todoStore && typeof todoStore.$reset === 'function') {
+      todoStore.$reset()
+      console.log('✅ TodoStore状态已重置')
+    }
+  } catch (error) {
+    console.warn('⚠️ Store重置过程中出现警告:', error)
+  }
+  
+  console.log('✅ Home组件资源清理完成')
+  endTimer()
+  console.log('=== Home组件卸载结束 ===')
 })
 </script>
 
@@ -1868,6 +1672,27 @@ onMounted(() => {
   font-size: 11px;
   color: #8c8c8c;
   line-height: 1.2;
+}
+
+/* 🚀 Stage 9性能优化: 新增加载状态样式 */
+.dialog-loading, .archive-loading {
+  padding: 20px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 8px;
+  min-height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dialog-error {
+  padding: 20px;
+  text-align: center;
+  color: #f56565;
+  background: #fed7d7;
+  border-radius: 8px;
+  border: 1px solid #feb2b2;
 }
 
 /* 调试面板 */

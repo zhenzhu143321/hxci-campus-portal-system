@@ -1,0 +1,78 @@
+# P0级安全修复 - 配置文件示例
+# 文件位置：application-local.yml 或 application.yml
+
+# ==============================
+# 安全配置 (Security Configuration)
+# ==============================
+security:
+  encryption:
+    # 是否允许自动生成密钥（仅开发环境使用）
+    allow-auto-generation: true
+    
+    # 备用密钥配置（优先级低于环境变量）
+    # 生产环境请使用环境变量设置密钥
+    encryption-key: "hxci-campus-portal-aes-256-key-backup-2025"
+    jwt-secret-key: "hxci-campus-portal-jwt-secret-backup-2025"
+    hmac-secret-key: "hxci-campus-portal-hmac-secret-backup-2025"
+
+# ==============================
+# 环境变量配置说明
+# ==============================
+# 在生产环境中，请设置以下环境变量：
+# export HXCI_ENCRYPTION_KEY="your-256-bit-aes-key-base64-encoded"
+# export HXCI_JWT_SECRET_KEY="your-jwt-signing-secret-key"
+# export HXCI_HMAC_SECRET_KEY="your-hmac-secret-key"
+
+# ==============================
+# 安全审计日志配置
+# ==============================
+logging:
+  level:
+    SECURITY_AUDIT: INFO
+    cn.iocoder.yudao.server.security: DEBUG
+    cn.iocoder.yudao.server.config.GlobalAuthenticationConfig: DEBUG
+  
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+  
+  file:
+    name: logs/security-audit.log
+    max-size: 100MB
+    max-history: 30
+
+# ==============================
+# Spring Boot Actuator (监控)
+# ==============================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health,metrics,info"
+  endpoint:
+    health:
+      show-details: when-authorized
+
+# ==============================
+# 数据库配置 (如果使用安全配置表)
+# ==============================
+spring:
+  datasource:
+    # 现有数据库配置保持不变
+    url: jdbc:mysql://localhost:3306/ruoyi-vue-pro
+    username: root
+    password: 123456
+    
+  # Redis配置 (用于Basic Token缓存)
+  redis:
+    host: localhost
+    port: 6379
+    password: 
+    database: 1
+    timeout: 6000ms
+    lettuce:
+      pool:
+        max-active: 200
+        max-wait: -1ms
+        max-idle: 10
+        min-idle: 0

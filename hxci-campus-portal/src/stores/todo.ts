@@ -26,6 +26,12 @@ export const useTodoStore = defineStore('todo', () => {
   /** 最后更新时间 */
   const lastUpdateTime = ref<Date | null>(null)
   
+  /** 本地完成状态缓存键前缀 */
+  const LOCAL_STORAGE_KEY_PREFIX = 'todo-completed-'
+  
+  /** 本地状态缓存有效期（毫秒）*/
+  const LOCAL_CACHE_EXPIRE_TIME = 7 * 24 * 60 * 60 * 1000 // 7天
+  
   // ================== 计算属性 (Getters) ==================
   
   /** 待处理的待办事项 */
@@ -66,8 +72,8 @@ export const useTodoStore = defineStore('todo', () => {
   // ================== 操作方法 (Actions) ==================
   
   /**
-   * 初始化待办数据
-   * @description 从真实API加载待办通知数据，降级到Mock数据
+   * 初始化待办数据 (修复版)
+   * @description 从真实API加载待办通知数据，合并本地持久化状态
    */
   const initializeTodos = async () => {
     console.log('📋 [TodoStore] 初始化待办数据...')
@@ -82,10 +88,15 @@ export const useTodoStore = defineStore('todo', () => {
       if (response.data.code === 0 && response.data.data?.todos) {
         // 转换后端数据格式为前端格式
         const backendTodos = response.data.data.todos
-        todoNotifications.value = convertBackendToFrontend(backendTodos)
+        let todos = convertBackendToFrontend(backendTodos)
+        
+        // 🔧 关键修复：合并本地持久化状态
+        todos = mergeWithLocalState(todos)
+        
+        todoNotifications.value = todos
         lastUpdateTime.value = new Date()
         
-        console.log('✅ [TodoStore] 真实API数据加载成功', {
+        console.log('✅ [TodoStore] 真实API数据加载成功 (含本地状态合并)', {
           总数: todoNotifications.value.length,
           待处理: pendingTodos.value.length,
           逾期: overdueTodos.value.length,
@@ -102,11 +113,16 @@ export const useTodoStore = defineStore('todo', () => {
     } catch (err) {
       // 🛡️ 降级到Mock数据
       console.warn('⚠️ [TodoStore] API调用失败，使用Mock数据降级', err)
-      todoNotifications.value = getMockTodos()
+      let mockTodos = getMockTodos()
+      
+      // 即使是Mock数据也需要合并本地状态
+      mockTodos = mergeWithLocalState(mockTodos)
+      
+      todoNotifications.value = mockTodos
       lastUpdateTime.value = new Date()
       error.value = err instanceof Error ? err.message : '加载待办数据失败，使用本地数据'
       
-      console.log('🔄 [TodoStore] Mock数据降级完成', {
+      console.log('🔄 [TodoStore] Mock数据降级完成 (含本地状态)', {
         总数: todoNotifications.value.length,
         待处理: pendingTodos.value.length,
         逾期: overdueTodos.value.length,
@@ -118,12 +134,15 @@ export const useTodoStore = defineStore('todo', () => {
   }
   
   /**
-   * 更新待办状态
+   * 更新待办状态 (修复版)
    * @param id 待办项ID
    * @param completed 是否完成
    */
   const updateTodoStatus = async (id: number, completed: boolean) => {
     console.log('🔄 [TodoStore] 更新待办状态:', { id, completed })
+    
+    // 🔧 关键修复：先更新本地持久化状态
+    persistTodoState(id, completed)
     
     try {
       // 🌐 真实API调用
@@ -132,14 +151,14 @@ export const useTodoStore = defineStore('todo', () => {
       })
       
       if (response.data.code === 0) {
-        // 更新本地状态
+        // 更新本地内存状态
         const todo = todoNotifications.value.find(item => item.id === id)
         if (todo) {
           todo.isCompleted = completed
           todo.status = completed ? 'completed' : 'pending'
           lastUpdateTime.value = new Date()
           
-          console.log('✅ [TodoStore] 待办状态更新成功 (API):', {
+          console.log('✅ [TodoStore] 待办状态更新成功 (API + 本地持久化):', {
             id: todo.id,
             title: todo.title,
             status: todo.status,
@@ -147,11 +166,13 @@ export const useTodoStore = defineStore('todo', () => {
           })
         }
       } else {
+        // API失败时回滚本地持久化状态
+        persistTodoState(id, !completed)
         throw new Error(response.data.msg || '更新失败')
       }
       
     } catch (err) {
-      // 🛡️ 降级到本地更新
+      // 🛡️ 降级到本地更新 (保持本地持久化状态)
       console.warn('⚠️ [TodoStore] API更新失败，使用本地更新:', err)
       
       const todo = todoNotifications.value.find(item => item.id === id)
@@ -160,11 +181,12 @@ export const useTodoStore = defineStore('todo', () => {
         todo.status = completed ? 'completed' : 'pending'
         lastUpdateTime.value = new Date()
         
-        console.log('🔄 [TodoStore] 本地状态更新完成:', {
+        console.log('🔄 [TodoStore] 本地状态更新完成 (含持久化):', {
           id: todo.id,
           title: todo.title,
           status: todo.status,
-          completed: todo.isCompleted
+          completed: todo.isCompleted,
+          persistedLocally: true
         })
       } else {
         console.warn('⚠️ [TodoStore] 未找到ID为', id, '的待办项')
@@ -205,11 +227,170 @@ export const useTodoStore = defineStore('todo', () => {
   }
   
   /**
-   * 根据条件过滤待办项
+   * 根据条件过滤待办项 (增强版 - 支持学号/年级/班级过滤)
    * @param options 过滤选项
    */
   const getFilteredTodos = (options: TodoFilterOptions) => {
     let filtered = [...todoNotifications.value]
+    
+    console.log('🔍 [TodoStore] 开始过滤待办数据:', {
+      原始数量: filtered.length,
+      过滤条件: options
+    })
+    
+    // 🎯 【第4层核心功能】按学号过滤 - 精确匹配目标学生
+    if (options.studentId && options.studentId.trim()) {
+      const targetStudentId = options.studentId.trim()
+      
+      filtered = filtered.filter(todo => {
+        // 从后端获取目标学生ID列表（JSON字符串格式）
+        if (todo.targetStudentIds) {
+          try {
+            let targetIds: string[] = []
+            
+            // 处理不同的数据格式
+            if (typeof todo.targetStudentIds === 'string') {
+              // JSON字符串格式: '["2023010105", "2023010106"]'
+              targetIds = JSON.parse(todo.targetStudentIds)
+            } else if (Array.isArray(todo.targetStudentIds)) {
+              // 已经是数组格式
+              targetIds = todo.targetStudentIds
+            }
+            
+            const isMatched = targetIds.includes(targetStudentId)
+            
+            console.log('🎯 [TodoStore] 学号过滤检查:', {
+              待办ID: todo.id,
+              待办标题: todo.title,
+              目标学生列表: targetIds,
+              查询学号: targetStudentId,
+              匹配结果: isMatched
+            })
+            
+            return isMatched
+          } catch (error) {
+            console.warn('⚠️ [TodoStore] 解析目标学生ID失败:', {
+              待办ID: todo.id,
+              targetStudentIds: todo.targetStudentIds,
+              错误: error
+            })
+            return false
+          }
+        }
+        
+        // 如果没有目标学生信息，则不匹配
+        console.log('⚠️ [TodoStore] 待办缺少目标学生信息:', {
+          待办ID: todo.id,
+          待办标题: todo.title
+        })
+        return false
+      })
+      
+      console.log('🎯 [TodoStore] 学号过滤完成:', {
+        查询学号: targetStudentId,
+        过滤后数量: filtered.length
+      })
+    }
+    
+    // 🎯 【第5层新增功能】按年级过滤 - 同年级所有班级学生都能看到
+    if (options.grade && options.grade.trim()) {
+      const targetGrade = options.grade.trim()
+      
+      filtered = filtered.filter(todo => {
+        // 从后端获取目标年级列表（JSON字符串格式）
+        if (todo.targetGrades) {
+          try {
+            let targetGrades: string[] = []
+            
+            // 处理不同的数据格式
+            if (typeof todo.targetGrades === 'string') {
+              // JSON字符串格式: '["2023级", "2024级"]'
+              targetGrades = JSON.parse(todo.targetGrades)
+            } else if (Array.isArray(todo.targetGrades)) {
+              // 已经是数组格式
+              targetGrades = todo.targetGrades
+            }
+            
+            const isMatched = targetGrades.includes(targetGrade)
+            
+            console.log('🎓 [TodoStore] 年级过滤检查:', {
+              待办ID: todo.id,
+              待办标题: todo.title,
+              目标年级列表: targetGrades,
+              查询年级: targetGrade,
+              匹配结果: isMatched
+            })
+            
+            return isMatched
+          } catch (error) {
+            console.warn('⚠️ [TodoStore] 解析目标年级失败:', {
+              待办ID: todo.id,
+              targetGrades: todo.targetGrades,
+              错误: error
+            })
+            return false
+          }
+        }
+        
+        // 如果没有年级信息，则不匹配
+        return false
+      })
+      
+      console.log('🎓 [TodoStore] 年级过滤完成:', {
+        查询年级: targetGrade,
+        过滤后数量: filtered.length
+      })
+    }
+    
+    // 🎯 【第5层新增功能】按班级过滤 - 只有同班学生能看到
+    if (options.className && options.className.trim()) {
+      const targetClassName = options.className.trim()
+      
+      filtered = filtered.filter(todo => {
+        // 从后端获取目标班级列表（JSON字符串格式）
+        if (todo.targetClasses) {
+          try {
+            let targetClasses: string[] = []
+            
+            // 处理不同的数据格式
+            if (typeof todo.targetClasses === 'string') {
+              // JSON字符串格式: '["计算机1班", "计算机2班"]'
+              targetClasses = JSON.parse(todo.targetClasses)
+            } else if (Array.isArray(todo.targetClasses)) {
+              // 已经是数组格式
+              targetClasses = todo.targetClasses
+            }
+            
+            const isMatched = targetClasses.includes(targetClassName)
+            
+            console.log('🏫 [TodoStore] 班级过滤检查:', {
+              待办ID: todo.id,
+              待办标题: todo.title,
+              目标班级列表: targetClasses,
+              查询班级: targetClassName,
+              匹配结果: isMatched
+            })
+            
+            return isMatched
+          } catch (error) {
+            console.warn('⚠️ [TodoStore] 解析目标班级失败:', {
+              待办ID: todo.id,
+              targetClasses: todo.targetClasses,
+              错误: error
+            })
+            return false
+          }
+        }
+        
+        // 如果没有班级信息，则不匹配
+        return false
+      })
+      
+      console.log('🏫 [TodoStore] 班级过滤完成:', {
+        查询班级: targetClassName,
+        过滤后数量: filtered.length
+      })
+    }
     
     // 按优先级过滤
     if (options.priority && options.priority !== 'all') {
@@ -231,6 +412,12 @@ export const useTodoStore = defineStore('todo', () => {
       )
     }
     
+    console.log('✅ [TodoStore] 最终过滤结果:', {
+      原始数量: todoNotifications.value.length,
+      过滤后数量: filtered.length,
+      过滤条件: options
+    })
+    
     return filtered
   }
   
@@ -251,6 +438,138 @@ export const useTodoStore = defineStore('todo', () => {
   
   // ================== 导出 ==================
   
+  // ================== 本地持久化方法 (新增) ==================
+  
+  /**
+   * 持久化待办状态到本地存储
+   * @param todoId 待办项ID
+   * @param completed 完成状态
+   */
+  const persistTodoState = (todoId: number, completed: boolean) => {
+    try {
+      const key = `${LOCAL_STORAGE_KEY_PREFIX}${todoId}`
+      const stateData = {
+        completed,
+        timestamp: Date.now()
+      }
+      
+      localStorage.setItem(key, JSON.stringify(stateData))
+      
+      console.log('💾 [TodoStore] 本地持久化成功:', {
+        todoId,
+        completed,
+        key
+      })
+      
+    } catch (error) {
+      console.warn('⚠️ [TodoStore] 本地持久化失败:', error)
+    }
+  }
+  
+  /**
+   * 从本地存储获取待办状态
+   * @param todoId 待办项ID
+   * @returns 完成状态或null
+   */
+  const getPersistedTodoState = (todoId: number): boolean | null => {
+    try {
+      const key = `${LOCAL_STORAGE_KEY_PREFIX}${todoId}`
+      const stored = localStorage.getItem(key)
+      
+      if (!stored) {
+        return null
+      }
+      
+      const stateData = JSON.parse(stored)
+      const now = Date.now()
+      
+      // 检查是否过期
+      if (now - stateData.timestamp > LOCAL_CACHE_EXPIRE_TIME) {
+        // 清理过期数据
+        localStorage.removeItem(key)
+        return null
+      }
+      
+      return stateData.completed
+      
+    } catch (error) {
+      console.warn('⚠️ [TodoStore] 读取本地持久化状态失败:', error)
+      return null
+    }
+  }
+  
+  /**
+   * 清理过期的本地持久化状态
+   */
+  const cleanExpiredLocalStates = () => {
+    try {
+      const now = Date.now()
+      
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i)
+        if (key && key.startsWith(LOCAL_STORAGE_KEY_PREFIX)) {
+          const stored = localStorage.getItem(key)
+          if (stored) {
+            const stateData = JSON.parse(stored)
+            if (now - stateData.timestamp > LOCAL_CACHE_EXPIRE_TIME) {
+              localStorage.removeItem(key)
+              console.log('🧹 [TodoStore] 清理过期本地状态:', key)
+            }
+          }
+        }
+      }
+      
+    } catch (error) {
+      console.warn('⚠️ [TodoStore] 清理过期状态失败:', error)
+    }
+  }
+  
+  /**
+   * 合并API数据与本地持久化状态 (核心修复方法)
+   * @param apiTodos API返回的待办数据
+   * @returns 合并后的待办数据
+   */
+  const mergeWithLocalState = (apiTodos: TodoNotificationItem[]): TodoNotificationItem[] => {
+    console.log('🔀 [TodoStore] 开始合并本地持久化状态...')
+    
+    // 先清理过期的本地状态
+    cleanExpiredLocalStates()
+    
+    let mergeCount = 0
+    
+    const mergedTodos = apiTodos.map(todo => {
+      const localState = getPersistedTodoState(todo.id)
+      
+      if (localState !== null && localState !== todo.isCompleted) {
+        // 本地状态与API状态不一致，优先使用本地状态
+        console.log('🔀 [TodoStore] 合并本地状态:', {
+          todoId: todo.id,
+          title: todo.title,
+          apiState: todo.isCompleted,
+          localState: localState,
+          finalState: localState
+        })
+        
+        mergeCount++
+        
+        return {
+          ...todo,
+          isCompleted: localState,
+          status: localState ? 'completed' : 'pending'
+        }
+      }
+      
+      return todo
+    })
+    
+    console.log('✅ [TodoStore] 本地状态合并完成:', {
+      总待办数: apiTodos.length,
+      合并状态数: mergeCount
+    })
+    
+    return mergedTodos
+  }
+
   // ================== 内部工具函数 ==================
   
   /**
@@ -318,7 +637,7 @@ export const useTodoStore = defineStore('todo', () => {
   }
   
   /**
-   * 后端数据格式转换为前端格式
+   * 后端数据格式转换为前端格式 (支持第4-5层字段: targetStudentIds + targetGrades + targetClasses)
    * @param backendData 后端返回的待办数据
    */
   const convertBackendToFrontend = (backendData: any[]): TodoNotificationItem[] => {
@@ -331,7 +650,10 @@ export const useTodoStore = defineStore('todo', () => {
       dueDate: item.dueDate,
       status: item.status as TodoStatus,
       assignerName: item.assignerName,
-      isCompleted: item.isCompleted
+      isCompleted: item.isCompleted,
+      targetStudentIds: item.targetStudentIds, // 【第4层】目标学生ID列表
+      targetGrades: item.targetGrades, // 【第5层新增】目标年级列表
+      targetClasses: item.targetClasses // 【第5层新增】目标班级列表
     }))
   }
   
@@ -373,8 +695,14 @@ export const useTodoStore = defineStore('todo', () => {
     clearError,
     refreshTodos,
     
+    // 本地持久化方法 (新增)
+    persistTodoState,
+    getPersistedTodoState,
+    cleanExpiredLocalStates,
+    
     // 内部工具函数 (用于测试和调试)
     getMockTodos,
-    convertBackendToFrontend
+    convertBackendToFrontend,
+    mergeWithLocalState
   }
 })

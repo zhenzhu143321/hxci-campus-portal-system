@@ -1,5 +1,7 @@
 package cn.iocoder.yudao.mock.school.service;
 
+import cn.iocoder.yudao.mock.school.dto.SchoolLoginRequest;
+import cn.iocoder.yudao.mock.school.dto.SchoolLoginResult;
 import cn.iocoder.yudao.mock.school.dto.UserInfo;
 import cn.iocoder.yudao.mock.school.entity.MockSchoolUser;
 
@@ -23,6 +25,15 @@ public interface MockSchoolUserService {
      * 用户认证（工号+姓名+密码登录）- 新增支持
      */
     UserInfo authenticateUserByEmployeeId(String employeeId, String name, String password);
+
+    /**
+     * 学校登录认证（双Token生成）
+     * 核心方法：实现完整的双Token认证流程
+     * 
+     * @param request 学校登录请求
+     * @return 双Token登录结果（JWT Token + Basic Token保存确认）
+     */
+    SchoolLoginResult processSchoolAuthentication(SchoolLoginRequest request);
 
     /**
      * 🆕 生成JWT Token（包含学号/工号信息）

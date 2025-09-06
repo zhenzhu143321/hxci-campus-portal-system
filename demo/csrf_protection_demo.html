@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🛡️ CSRF防护演示页面</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            color: #2c3e50;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .security-badge {
+            background: linear-gradient(45deg, #ff6b6b, #feca57);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            display: inline-block;
+            margin-bottom: 20px;
+        }
+        
+        .test-section {
+            margin: 30px 0;
+            padding: 20px;
+            border: 2px solid #e1e8ed;
+            border-radius: 10px;
+            background: #f8f9fa;
+        }
+        
+        .test-section h2 {
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        
+        .test-button {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+            transition: all 0.3s;
+        }
+        
+        .test-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+        }
+        
+        .attack-button {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+        }
+        
+        .attack-button:hover {
+            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4);
+        }
+        
+        .secure-button {
+            background: linear-gradient(45deg, #27ae60, #229954);
+        }
+        
+        .secure-button:hover {
+            box-shadow: 0 5px 15px rgba(39, 174, 96, 0.4);
+        }
+        
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .result.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        
+        .result.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        
+        .result.info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        
+        .status-protected {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-vulnerable {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .code-example {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🛡️ CSRF防护演示页面</h1>
+            <div class="security-badge">CVE-HXCI-2025-010 修复验证</div>
+            <p>演示跨站请求伪造(CSRF)攻击与防护机制</p>
+        </div>
+
+        <!-- CSRF Token状态 -->
+        <div class="test-section">
+            <h2>🔐 CSRF Token状态</h2>
+            <p>首先获取有效的CSRF Token，这是防护的基础</p>
+            <button class="test-button secure-button" onclick="getCsrfToken()">获取CSRF Token</button>
+            <button class="test-button" onclick="checkCsrfStatus()">检查CSRF状态</button>
+            <div id="csrf-status" class="result info" style="display: none;"></div>
+        </div>
+
+        <!-- 合法请求测试 -->
+        <div class="test-section">
+            <h2>✅ 合法请求测试 <span id="legitimate-status" class="status-indicator status-protected">受保护</span></h2>
+            <p>带有正确CSRF Token的请求应该能够成功执行</p>
+            <button class="test-button secure-button" onclick="performLegitimateRequest()">执行合法请求</button>
+            <div class="code-example">
+fetch('/admin-api/test/notification/api/publish-database', {
+    method: 'POST',
+    headers: {
+        'Authorization': 'Bearer ' + jwtToken,
+        'tenant-id': '1',
+        'X-CSRF-TOKEN': csrfToken,  // 🔐 正确的CSRF Token
+        'Content-Type': 'application/json'
+    },
+    credentials: 'include',
+    body: JSON.stringify({
+        title: '✅ 合法请求测试',
+        content: '这个请求携带了正确的CSRF Token',
+        level: 4,
+        targetScope: 'SCHOOL_WIDE'
+    })
+});
+            </div>
+            <div id="legitimate-result" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- CSRF攻击模拟 -->
+        <div class="test-section">
+            <h2>🚨 CSRF攻击模拟 <span id="attack-status" class="status-indicator status-protected">已防护</span></h2>
+            <p>恶意网站尝试在用户不知情的情况下执行操作（无CSRF Token）</p>
+            <button class="test-button attack-button" onclick="performCsrfAttack()">模拟CSRF攻击</button>
+            <div class="code-example">
+// 🚨 恶意网站的JavaScript代码
+fetch('/admin-api/test/notification/api/publish-database', {
+    method: 'POST',
+    headers: {
+        'Authorization': 'Bearer ' + stolenJwtToken,
+        'tenant-id': '1',
+        'Content-Type': 'application/json'
+        // ❌ 缺少CSRF Token - 攻击者无法获取
+    },
+    body: JSON.stringify({
+        title: '🚨 恶意通知',
+        content: '这是CSRF攻击尝试发布的恶意内容'
+    })
+});
+            </div>
+            <div id="attack-result" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- 伪造Token攻击 -->
+        <div class="test-section">
+            <h2>🎭 伪造Token攻击 <span id="forge-status" class="status-indicator status-protected">已防护</span></h2>
+            <p>攻击者尝试使用伪造的CSRF Token绕过防护</p>
+            <button class="test-button attack-button" onclick="performTokenForgeAttack()">尝试伪造Token攻击</button>
+            <div class="code-example">
+fetch('/admin-api/test/notification/api/publish-database', {
+    method: 'POST',
+    headers: {
+        'Authorization': 'Bearer ' + jwtToken,
+        'tenant-id': '1',
+        'X-CSRF-TOKEN': 'fake-token-12345',  // 🎭 伪造的CSRF Token
+        'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+        title: '🎭 伪造Token攻击',
+        content: '这个请求使用了伪造的CSRF Token'
+    })
+});
+            </div>
+            <div id="forge-result" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- GET请求测试 -->
+        <div class="test-section">
+            <h2>📖 GET请求测试 <span id="get-status" class="status-indicator status-protected">无需验证</span></h2>
+            <p>GET请求（读操作）不需要CSRF Token，保持RESTful API的无状态特性</p>
+            <button class="test-button" onclick="performGetRequest()">执行GET请求</button>
+            <div class="code-example">
+fetch('/admin-api/test/notification/api/list', {
+    method: 'GET',
+    headers: {
+        'Authorization': 'Bearer ' + jwtToken,
+        'tenant-id': '1'
+        // ℹ️ GET请求无需CSRF Token
+    }
+});
+            </div>
+            <div id="get-result" class="result" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        // 🔑 全局变量
+        let jwtToken = '';
+        let csrfToken = '';
+        
+        // 🔐 获取JWT Token（模拟用户登录）
+        async function getJwtToken() {
+            try {
+                const response = await fetch('http://localhost:48082/mock-school-api/auth/authenticate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        employeeId: 'PRINCIPAL_001',
+                        name: 'Principal-Zhang',
+                        password: 'admin123'
+                    })
+                });
+                
+                const data = await response.json();
+                if (data.token) {
+                    jwtToken = data.token;
+                    console.log('✅ JWT Token获取成功');
+                    return true;
+                } else {
+                    throw new Error('JWT Token获取失败');
+                }
+            } catch (error) {
+                console.error('❌ JWT Token获取失败:', error);
+                return false;
+            }
+        }
+        
+        // 🛡️ 获取CSRF Token
+        async function getCsrfToken() {
+            try {
+                // 确保有JWT Token
+                if (!jwtToken) {
+                    const jwtSuccess = await getJwtToken();
+                    if (!jwtSuccess) {
+                        throw new Error('无法获取JWT Token');
+                    }
+                }
+                
+                const response = await fetch('/csrf-token', {
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                if (data.code === 0 && data.data.token) {
+                    csrfToken = data.data.token;
+                    showResult('csrf-status', `✅ CSRF Token获取成功！
+Token长度: ${csrfToken.length}
+Header名称: ${data.data.headerName}
+有效期: ${data.data.expiresIn}秒
+Cookie名称: ${data.data.cookieName}
+说明: ${data.data.message}`, 'success');
+                } else {
+                    throw new Error('CSRF Token获取失败');
+                }
+            } catch (error) {
+                showResult('csrf-status', `❌ CSRF Token获取失败: ${error.message}`, 'error');
+            }
+        }
+        
+        // 🔍 检查CSRF状态
+        async function checkCsrfStatus() {
+            try {
+                const response = await fetch('/csrf-status', {
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                if (data.code === 0) {
+                    const status = data.data;
+                    showResult('csrf-status', `📊 CSRF状态信息：
+Token有效: ${status.isValid ? '✅ 是' : '❌ 否'}
+存在Token: ${status.hasToken ? '✅ 是' : '❌ 否'}  
+请求携带Token: ${status.tokenPresent ? '✅ 是' : '❌ 否'}
+状态消息: ${status.message}
+建议操作: ${status.recommendation}`, 'info');
+                } else {
+                    throw new Error('CSRF状态查询失败');
+                }
+            } catch (error) {
+                showResult('csrf-status', `❌ CSRF状态查询失败: ${error.message}`, 'error');
+            }
+        }
+        
+        // ✅ 执行合法请求（带CSRF Token）
+        async function performLegitimateRequest() {
+            try {
+                if (!csrfToken) {
+                    throw new Error('请先获取CSRF Token');
+                }
+                
+                const response = await fetch('/admin-api/test/notification/api/publish-database', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${jwtToken}`,
+                        'tenant-id': '1',
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        title: '✅ CSRF防护测试 - 合法请求',
+                        content: '这是带有正确CSRF Token的合法请求，应该能够成功执行',
+                        level: 4,
+                        targetScope: 'SCHOOL_WIDE',
+                        pushChannels: [1, 5]
+                    })
+                });
+                
+                const data = await response.json();
+                if (response.ok && data.code === 0) {
+                    showResult('legitimate-result', `✅ 合法请求执行成功！
+HTTP状态码: ${response.status}
+响应数据: ${JSON.stringify(data, null, 2)}
+说明: 携带正确CSRF Token的请求被成功处理`, 'success');
+                    updateStatus('legitimate-status', '✅ 请求成功', 'status-protected');
+                } else {
+                    throw new Error(`请求失败: ${response.status} ${data.message || ''}`);
+                }
+            } catch (error) {
+                showResult('legitimate-result', `❌ 合法请求失败: ${error.message}`, 'error');
+                updateStatus('legitimate-status', '❌ 请求失败', 'status-vulnerable');
+            }
+        }
+        
+        // 🚨 模拟CSRF攻击（无CSRF Token）
+        async function performCsrfAttack() {
+            try {
+                if (!jwtToken) {
+                    await getJwtToken();
+                }
+                
+                const response = await fetch('/admin-api/test/notification/api/publish-database', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${jwtToken}`,
+                        'tenant-id': '1',
+                        'Content-Type': 'application/json'
+                        // ❌ 故意不包含CSRF Token
+                    },
+                    body: JSON.stringify({
+                        title: '🚨 恶意通知 - CSRF攻击',
+                        content: '这是模拟的CSRF攻击请求，应该被防护机制阻止',
+                        level: 1,
+                        targetScope: 'SCHOOL_WIDE'
+                    })
+                });
+                
+                const data = await response.json();
+                if (response.status === 403 && (data.type === 'CSRF_TOKEN_INVALID' || data.message.includes('CSRF'))) {
+                    showResult('attack-result', `🛡️ CSRF攻击被成功阻止！
+HTTP状态码: ${response.status} (403 Forbidden)
+错误类型: ${data.type}
+错误消息: ${data.message}
+说明: 缺少CSRF Token的恶意请求被防护机制正确拦截`, 'success');
+                    updateStatus('attack-status', '🛡️ 攻击被阻止', 'status-protected');
+                } else {
+                    showResult('attack-result', `🚨 防护失败！CSRF攻击成功执行
+HTTP状态码: ${response.status}
+响应数据: ${JSON.stringify(data, null, 2)}
+⚠️ 这表明CSRF防护机制可能存在问题`, 'error');
+                    updateStatus('attack-status', '🚨 防护失败', 'status-vulnerable');
+                }
+            } catch (error) {
+                showResult('attack-result', `🛡️ CSRF攻击被网络层阻止: ${error.message}`, 'success');
+                updateStatus('attack-status', '🛡️ 攻击被阻止', 'status-protected');
+            }
+        }
+        
+        // 🎭 尝试伪造Token攻击
+        async function performTokenForgeAttack() {
+            try {
+                if (!jwtToken) {
+                    await getJwtToken();
+                }
+                
+                const response = await fetch('/admin-api/test/notification/api/publish-database', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${jwtToken}`,
+                        'tenant-id': '1',
+                        'X-CSRF-TOKEN': 'fake-csrf-token-12345',  // 🎭 伪造的Token
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        title: '🎭 伪造Token攻击测试',
+                        content: '这个请求使用了伪造的CSRF Token，应该被拒绝',
+                        level: 2,
+                        targetScope: 'SCHOOL_WIDE'
+                    })
+                });
+                
+                const data = await response.json();
+                if (response.status === 403 && (data.type === 'CSRF_TOKEN_INVALID' || data.message.includes('CSRF'))) {
+                    showResult('forge-result', `🛡️ 伪造Token攻击被成功阻止！
+HTTP状态码: ${response.status} (403 Forbidden)
+错误类型: ${data.type}
+错误消息: ${data.message}
+说明: 使用伪造CSRF Token的攻击请求被正确拦截`, 'success');
+                    updateStatus('forge-status', '🛡️ 攻击被阻止', 'status-protected');
+                } else {
+                    showResult('forge-result', `🚨 防护失败！伪造Token攻击成功
+HTTP状态码: ${response.status}
+响应数据: ${JSON.stringify(data, null, 2)}
+⚠️ 这表明CSRF Token验证可能存在问题`, 'error');
+                    updateStatus('forge-status', '🚨 防护失败', 'status-vulnerable');
+                }
+            } catch (error) {
+                showResult('forge-result', `🛡️ 伪造Token攻击被阻止: ${error.message}`, 'success');
+                updateStatus('forge-status', '🛡️ 攻击被阻止', 'status-protected');
+            }
+        }
+        
+        // 📖 执行GET请求（无需CSRF Token）
+        async function performGetRequest() {
+            try {
+                if (!jwtToken) {
+                    await getJwtToken();
+                }
+                
+                const response = await fetch('/admin-api/test/notification/api/list', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${jwtToken}`,
+                        'tenant-id': '1'
+                        // ℹ️ GET请求无需CSRF Token
+                    }
+                });
+                
+                const data = await response.json();
+                if (response.ok && data.code === 0) {
+                    showResult('get-result', `✅ GET请求执行成功！
+HTTP状态码: ${response.status}
+数据条数: ${data.data.list.length}
+说明: GET请求（读操作）无需CSRF Token验证，符合RESTful设计原则`, 'success');
+                    updateStatus('get-status', '✅ 请求成功', 'status-protected');
+                } else {
+                    throw new Error(`GET请求失败: ${response.status}`);
+                }
+            } catch (error) {
+                showResult('get-result', `❌ GET请求失败: ${error.message}`, 'error');
+                updateStatus('get-status', '❌ 请求失败', 'status-vulnerable');
+            }
+        }
+        
+        // 📝 显示结果
+        function showResult(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = `result ${type}`;
+            element.style.display = 'block';
+        }
+        
+        // 🔄 更新状态指示器
+        function updateStatus(elementId, text, className) {
+            const element = document.getElementById(elementId);
+            element.textContent = text;
+            element.className = `status-indicator ${className}`;
+        }
+        
+        // 🚀 页面加载完成后自动获取JWT Token
+        window.addEventListener('load', function() {
+            console.log('🛡️ CSRF防护演示页面加载完成');
+        });
+    </script>
+</body>
+</html>

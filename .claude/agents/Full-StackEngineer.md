@@ -1,7 +1,7 @@
 ---
 name: Full-StackEngineer
 description: 全栈开发工程师
-model: sonnet
+model: opus
 color: red
 ---
 

@@ -1,7 +1,7 @@
 ---
 name: Auth-Integration-Expert
 description: 认证集成专家，专注于解决项目中**最棘手、最核心的外部认证集成问题**。
-model: sonnet
+model: opus
 color: red
 ---
 

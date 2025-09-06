@@ -1,4 +1,8 @@
-<configuration>
+<configuration scan="true" scanPeriod="60 seconds" debug="false">
+    <!-- 开启配置扫描，支持热更新，禁用debug模式提升性能 -->
+    
+    <!-- JMX监控，支持运行时日志级别调整 -->
+    <jmxConfigurator />
     <!-- 参考 org/springframework/boot/logging/logback/defaults.xml 配置，优化 CONSOLE_LOG_PATTERN、FILE_LOG_PATTERN -->
     <!-- 格式化输出：%d 表示日期，%thread 表示线程名，%-5level：级别从左显示 5 个字符宽度，%msg：日志消息，%n是换行符 -->
     <!-- CONSOLE_LOG_PATTERN 相比 FILE_LOG_PATTERN 多了 highlight、cyan 等高亮 -->
@@ -24,13 +28,28 @@
         <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
             <fileNamePattern>${LOG_FILE}.%d{yyyy-MM-dd}.%i.log</fileNamePattern> <!-- 日志文件输出的文件名 -->
             <maxHistory>30</maxHistory> <!-- 日志文件的保留天数 -->
-            <maxFileSize>10MB</maxFileSize> <!-- 日志文件，到达多少容量，进行滚动 -->
+            <maxFileSize>50MB</maxFileSize> <!-- 提升单文件大小限制，减少滚动频率 -->
+            <totalSizeCap>5GB</totalSizeCap> <!-- 总文件大小限制，防止磁盘占满 -->
         </rollingPolicy>
+        <!-- 添加缓冲区优化性能 -->
+        <immediateFlush>false</immediateFlush> <!-- 关闭立即刷新，提升性能 -->
     </appender>
-    <!-- 异步写入日志，提升性能 -->
-    <appender name="ASYNC" class="ch.qos.logback.classic.AsyncAppender">
-        <discardingThreshold>0</discardingThreshold> <!-- 不丢失日志。默认的，如果队列的 80% 已满,则会丢弃 TRACT、DEBUG、INFO 级别的日志 -->
-        <queueSize>512</queueSize> <!-- 更改默认的队列的深度，该值会影响性能。默认值为 256 -->
+    <!-- 异步控制台日志 - 解决死锁问题 -->
+    <appender name="ASYNC_CONSOLE" class="ch.qos.logback.classic.AsyncAppender">
+        <discardingThreshold>20</discardingThreshold> <!-- 队列80%满时丢弃TRACE/DEBUG/INFO，防止阻塞 -->
+        <queueSize>2048</queueSize> <!-- 大幅提升队列容量，支持高并发 -->
+        <maxFlushTime>5000</maxFlushTime> <!-- 5秒刷新超时，防止长时间阻塞 -->
+        <includeCallerData>false</includeCallerData> <!-- 禁用调用者信息，提升性能 -->
+        <appender-ref ref="STDOUT"/>
+    </appender>
+
+    <!-- 异步文件日志 - 完全独立的文件写入 -->
+    <appender name="ASYNC_FILE" class="ch.qos.logback.classic.AsyncAppender">
+        <discardingThreshold>20</discardingThreshold> <!-- 智能丢弃策略，确保关键日志不丢失 -->
+        <queueSize>4096</queueSize> <!-- 超大队列，支持极高并发 -->
+        <maxFlushTime>5000</maxFlushTime> <!-- 5秒刷新超时 -->
+        <includeCallerData>false</includeCallerData> <!-- 性能优先 -->
+        <neverBlock>true</neverBlock> <!-- 队列满时从不阻塞，直接丢弃 -->
         <appender-ref ref="FILE"/>
     </appender>
 
@@ -46,9 +65,10 @@
     -->
 
     <root level="INFO">
-        <appender-ref ref="STDOUT"/>
-        <!-- 本地环境下，如果不想【FILE】打印日志，可以注释掉本行 -->
-        <appender-ref ref="ASYNC"/>
+        <!-- 使用异步控制台，防止死锁 -->
+        <appender-ref ref="ASYNC_CONSOLE"/>
+        <!-- 使用异步文件，完全隔离 -->
+        <appender-ref ref="ASYNC_FILE"/>
         <!-- 如果想接入【SkyWalking 日志服务】，可以取消注释掉本行 -->
         <!-- <appender-ref ref="SKYWALKING"/> -->
     </root>

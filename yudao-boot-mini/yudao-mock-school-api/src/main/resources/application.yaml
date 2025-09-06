@@ -38,11 +38,39 @@ spring:
           useUnicode: true
         # 强制使用utf8
         globally_quoted_identifiers: true
+
+# 🆕 P0-CRITICAL-4: 配置驱动模式切换系统
+school:
+  api:
+    # API模式：MOCK(开发测试) 或 REAL(生产环境)
+    mode: REAL
+    
+    # 是否启用降级机制：Real模式失败时自动切换到Mock模式
+    fallback-enabled: true
+    
+    # Mock模式配置
+    mock:
+      enabled: true
+      delay-ms: 200  # 模拟网络延迟
+    
+    # Real模式配置（真实学校API）
+    real:
+      base-url: https://work.greathiit.com
+      path: /api/user/loginWai
+      method: POST
+      username-field: userNumber
+      password-field: password
+      connect-timeout-ms: 5000
+      read-timeout-ms: 10000
+      max-retries: 2
+      retry-delay-ms: 1000
         
 # 日志配置
 logging:
   level:
     cn.iocoder.yudao.mock.school: INFO
+    cn.iocoder.yudao.mock.school.service.impl.DelegatingSchoolApiClient: DEBUG  # 委托模式详细日志
+    cn.iocoder.yudao.mock.school.config.ModeManager: DEBUG  # 模式切换详细日志
     org.hibernate.SQL: INFO
     org.hibernate.type.descriptor.sql.BasicBinder: INFO
     com.zaxxer.hikari: INFO

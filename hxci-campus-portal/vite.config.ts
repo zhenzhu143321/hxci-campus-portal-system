@@ -39,6 +39,37 @@ export default defineConfig({
     }
   },
   build: {
-    outDir: 'dist'
+    outDir: 'dist',
+    // 🚀 Stage 9性能优化: 生产环境自动移除console日志
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        // 移除所有console输出，提升生产环境性能
+        drop_console: true,
+        drop_debugger: true,
+        // 移除未使用的代码
+        dead_code: true,
+        // 优化条件表达式
+        conditionals: true,
+        // 优化布尔值转换
+        booleans: true
+      }
+    },
+    // 代码分割优化，减少首屏加载时间
+    rollupOptions: {
+      output: {
+        // 分离第三方库到独立chunk
+        manualChunks: {
+          'vendor': ['vue', 'vue-router', 'pinia'],
+          'element-plus': ['element-plus'],
+          'utils': ['axios', 'dayjs']
+        }
+      }
+    }
+  },
+  // 🔧 开发环境优化
+  esbuild: {
+    // 开发环境保留console用于调试
+    drop: process.env.NODE_ENV === 'production' ? ['console', 'debugger'] : []
   }
 })

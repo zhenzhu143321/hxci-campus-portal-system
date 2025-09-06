@@ -178,9 +178,9 @@ const maxDisplayItems = computed(() => props.maxDisplayItems || 5)
 const displayedNotifications = computed(() => {
   let filteredNotifications = props.notifications
   
-  // 首页模式：显示所有待办，包括已完成的（让CSS样式处理显示效果）
-  // 已完成的待办会通过TodoNotificationItem的CSS样式变暗+划横线显示
-  // 不再过滤已完成项，让用户可以看到完成状态直到手动归档
+  // 🔧 P0级修复: 首页模式只显示待处理任务，已完成任务不显示
+  // 原有逻辑错误：显示已完成任务会造成用户困惑
+  // 现在父组件已传入todoStore.pendingTodos，这里直接使用即可
   
   // 管理页模式：显示所有待办（由父组件控制过滤）
   

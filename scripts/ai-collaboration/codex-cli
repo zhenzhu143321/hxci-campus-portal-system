@@ -1,0 +1,148 @@
+#!/bin/bash
+
+# Codex CLI 命令行工具 - 类似Gemini CLI的使用方式
+# 用法: codex-cli -p "任务描述" [选项]
+# 作者：Claude Code AI
+
+# 设置OpenRouter API密钥
+export OPENROUTER_API_KEY="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"
+
+# 项目根目录
+PROJECT_ROOT="/opt/hxci-campus-portal/hxci-campus-portal-system"
+
+# 默认参数
+PROMPT=""
+MODE="analyze"  # 默认只分析
+MODEL="openai/gpt-5"
+OUTPUT_FILE=""
+JSON_MODE=false
+SANDBOX="read-only"
+
+# 解析参数（类似gemini的风格）
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -p|--prompt)
+            PROMPT="$2"
+            shift 2
+            ;;
+        -m|--model)
+            MODEL="$2"
+            shift 2
+            ;;
+        --mode)
+            MODE="$2"  # analyze, fix, refactor, test, docs
+            shift 2
+            ;;
+        --auto)
+            SANDBOX="workspace-write"
+            shift
+            ;;
+        --full-auto)
+            SANDBOX="danger-full-access"
+            shift
+            ;;
+        --json)
+            JSON_MODE=true
+            shift
+            ;;
+        -o|--output)
+            OUTPUT_FILE="$2"
+            shift 2
+            ;;
+        -h|--help)
+            echo "Codex CLI - 非交互式代码助手"
+            echo ""
+            echo "用法: codex-cli -p \"任务描述\" [选项]"
+            echo ""
+            echo "选项:"
+            echo "  -p, --prompt <描述>    任务描述（必需）"
+            echo "  -m, --model <模型>     使用的模型（默认: openai/gpt-4o）"
+            echo "  --mode <模式>          执行模式: analyze|fix|refactor|test|docs"
+            echo "  --auto                 允许修改工作区文件"
+            echo "  --full-auto           完全自动化（包括执行命令）"
+            echo "  --json                 输出JSON格式"
+            echo "  -o, --output <文件>    保存输出到文件"
+            echo ""
+            echo "示例:"
+            echo "  codex-cli -p \"分析项目架构\""
+            echo "  codex-cli -p \"修复认证bug\" --mode fix --auto"
+            echo "  codex-cli -p \"重构通知模块\" --mode refactor --full-auto"
+            echo "  codex-cli -p \"生成API文档\" --mode docs -o api-docs.md"
+            echo ""
+            exit 0
+            ;;
+        *)
+            echo "未知参数: $1"
+            echo "使用 codex-cli --help 查看帮助"
+            exit 1
+            ;;
+    esac
+done
+
+# 检查必需参数
+if [ -z "$PROMPT" ]; then
+    echo "错误: 请提供任务描述"
+    echo "用法: codex-cli -p \"任务描述\""
+    exit 1
+fi
+
+# 切换到项目目录
+cd "$PROJECT_ROOT" || exit 1
+
+# 构建命令 - 配置OpenRouter
+CMD="codex exec"
+CMD="$CMD -c model_provider=openrouter"
+CMD="$CMD -c model_providers.openrouter.name=OpenRouter"
+CMD="$CMD -c model_providers.openrouter.base_url=https://openrouter.ai/api/v1"
+CMD="$CMD -c model_providers.openrouter.env_key=OPENROUTER_API_KEY"
+CMD="$CMD -c model=$MODEL"
+CMD="$CMD --skip-git-repo-check"
+CMD="$CMD --color always"
+
+# 设置沙盒模式
+case $SANDBOX in
+    "read-only")
+        CMD="$CMD --sandbox read-only"
+        ;;
+    "workspace-write")
+        CMD="$CMD --sandbox workspace-write --full-auto"
+        ;;
+    "danger-full-access")
+        CMD="$CMD --dangerously-bypass-approvals-and-sandbox"
+        ;;
+esac
+
+# JSON模式
+if [ "$JSON_MODE" = true ]; then
+    CMD="$CMD --json"
+fi
+
+# 输出文件
+if [ ! -z "$OUTPUT_FILE" ]; then
+    CMD="$CMD --output-last-message \"$OUTPUT_FILE\""
+fi
+
+# 根据模式调整提示词
+case $MODE in
+    "analyze")
+        FULL_PROMPT="分析: $PROMPT"
+        ;;
+    "fix")
+        FULL_PROMPT="修复问题: $PROMPT"
+        ;;
+    "refactor")
+        FULL_PROMPT="重构代码: $PROMPT"
+        ;;
+    "test")
+        FULL_PROMPT="编写测试: $PROMPT"
+        ;;
+    "docs")
+        FULL_PROMPT="生成文档: $PROMPT"
+        ;;
+    *)
+        FULL_PROMPT="$PROMPT"
+        ;;
+esac
+
+# 执行命令
+eval "$CMD \"$FULL_PROMPT\""

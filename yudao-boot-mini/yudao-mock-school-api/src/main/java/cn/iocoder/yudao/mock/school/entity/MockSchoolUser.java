@@ -61,6 +61,18 @@ public class MockSchoolUser {
     @Column(name = "department_name", length = 100)
     private String departmentName;
 
+    /**
+     * 年级ID（学生用户必需）
+     */
+    @Column(name = "grade_id", length = 20)
+    private String gradeId;
+
+    /**
+     * 班级ID（学生用户必需）
+     */
+    @Column(name = "class_id", length = 20)
+    private String classId;
+
     // 注释掉permissions字段，因为数据库表中没有此字段
     // /**
     //  * 权限列表（JSON格式）

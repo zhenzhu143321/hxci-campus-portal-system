@@ -1,0 +1,14 @@
+{
+  "provider": "openrouter",
+  "model": "openai/gpt-5",
+  "providers": {
+    "openrouter": {
+      "name": "OpenRouter",
+      "baseURL": "https://openrouter.ai/api/v1",
+      "envKey": "OPENROUTER_API_KEY"
+    }
+  },
+  "approval_mode": "suggest",
+  "max_tokens": 3000,
+  "temperature": 0.3
+}

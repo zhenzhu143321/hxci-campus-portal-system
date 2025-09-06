@@ -40,6 +40,60 @@ const routes: Array<RouteRecordRaw> = [
       title: 'QWeather图标测试 - 哈信工校园门户',
       requiresAuth: false
     }
+  },
+  {
+    path: '/permission-test',
+    name: 'PermissionTest',
+    component: () => import('@/views/PermissionTest.vue'),
+    meta: {
+      title: 'P0权限缓存系统测试 - 哈信工校园门户',
+      requiresAuth: false  // 测试页面可以无需登录访问，便于调试
+    }
+  },
+  {
+    path: '/test-level4-bug',
+    name: 'TestLevel4Bug',
+    component: () => import('@/views/TestLevel4Bug.vue'),
+    meta: {
+      title: 'Level 4通知Bug修复测试 - 哈信工校园门户',
+      requiresAuth: false  // 测试页面可以无需登录访问，便于调试
+    }
+  },
+  {
+    path: '/test-level4-student-filter',
+    name: 'TestLevel4StudentFilter',
+    component: () => import('@/views/TestLevel4StudentFilter.vue'),
+    meta: {
+      title: '第4层学号过滤逻辑测试 - 哈信工校园门户',
+      requiresAuth: false  // 测试页面可以无需登录访问，便于调试
+    }
+  },
+  {
+    path: '/todo-container-test',
+    name: 'TodoContainerTest',
+    component: () => import('@/views/TodoContainerTest.vue'),
+    meta: {
+      title: 'TodoNotificationContainer第2层测试 - 哈信工校园门户',
+      requiresAuth: false  // 测试页面可以无需登录访问，便于调试
+    }
+  },
+  {
+    path: '/todo-container-layer3-test',
+    name: 'TodoContainerLayer3Test',
+    component: () => import('@/views/TodoContainerLayer3Test.vue'),
+    meta: {
+      title: 'TodoNotificationContainer第3层测试 - 哈信工校园门户',
+      requiresAuth: false  // 测试页面可以无需登录访问，便于调试
+    }
+  },
+  {
+    path: '/test-level5-grade-class-filter',
+    name: 'TestLevel5GradeClassFilter',
+    component: () => import('@/views/TestLevel5GradeClassFilter.vue'),
+    meta: {
+      title: '第5层年级班级过滤逻辑测试 - 哈信工校园门户',
+      requiresAuth: false  // 测试页面可以无需登录访问，便于调试
+    }
   }
 ]
 

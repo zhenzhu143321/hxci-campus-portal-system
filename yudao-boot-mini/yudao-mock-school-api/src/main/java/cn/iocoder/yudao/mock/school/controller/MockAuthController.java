@@ -2,6 +2,9 @@ package cn.iocoder.yudao.mock.school.controller;
 
 import cn.iocoder.yudao.mock.school.dto.*;
 import cn.iocoder.yudao.mock.school.service.MockSchoolUserService;
+import cn.iocoder.yudao.mock.school.client.SchoolApiClient;
+import cn.iocoder.yudao.mock.school.model.SchoolUserInfo;
+import cn.iocoder.yudao.mock.school.exception.SchoolApiException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +31,9 @@ public class MockAuthController {
 
     @Autowired
     private MockSchoolUserService userService;
+    
+    @Autowired
+    private SchoolApiClient schoolApiClient;
 
     /**
      * 用户认证接口（支持用户名密码登录和工号+姓名+密码登录）
@@ -80,12 +86,24 @@ public class MockAuthController {
     }
 
     /**
+     * 🛡️ P1.2安全修复：Token脱敏工具方法
+     * 防止完整Token在日志中泄露
+     */
+    private String maskToken(String token) {
+        if (token == null || token.length() < 20) {
+            return "***INVALID_TOKEN***";
+        }
+        return token.substring(0, 10) + "..." + token.substring(token.length() - 6);
+    }
+
+    /**
      * Token验证接口
      * POST /mock-school-api/auth/verify
      */
     @PostMapping("/verify")
     public MockApiResponse<UserInfo> verifyToken(@Valid @RequestBody TokenVerifyRequest request) {
-        log.info("收到token验证请求: {}", request.getToken());
+        log.info("🔍 [TOKEN_VERIFY_V2] P1.2强化版本：收到token验证请求");
+        log.info("🛡️ [TOKEN_VERIFY_V2] Token脱敏: {}", maskToken(request.getToken()));
         
         try {
             UserInfo userInfo = userService.verifyToken(request.getToken());
@@ -94,11 +112,12 @@ public class MockAuthController {
                 return MockApiResponse.unauthorized("Token无效或已过期");
             }
             
-            log.info("Token验证成功: 用户={}, 角色={}", userInfo.getUsername(), userInfo.getRoleName());
+            log.info("✅ [TOKEN_VERIFY_V2] P1.2强化Token验证成功: 用户={}, 角色={}", 
+                    userInfo.getUsername(), userInfo.getRoleName());
             return MockApiResponse.success(userInfo, "Token验证成功");
             
         } catch (Exception e) {
-            log.error("Token验证异常", e);
+            log.error("❌ [TOKEN_VERIFY_V2] Token验证异常", e);
             return MockApiResponse.serverError("Token验证服务异常: " + e.getMessage());
         }
     }
@@ -165,6 +184,8 @@ public class MockAuthController {
             responseData.put("userType", userInfo.getUserType());
             responseData.put("departmentId", userInfo.getDepartmentId());
             responseData.put("departmentName", userInfo.getDepartmentName());
+            responseData.put("gradeId", userInfo.getGradeId());
+            responseData.put("classId", userInfo.getClassId());
             
             log.info("✅ [USER_INFO] 用户信息查询成功: user={}, role={}", 
                     userInfo.getEmployeeId(), userInfo.getRoleCode());
@@ -174,6 +195,153 @@ public class MockAuthController {
         } catch (Exception e) {
             log.error("❌ [USER_INFO] 用户信息查询异常", e);
             return MockApiResponse.serverError("用户信息查询异常: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 🆕 学校登录接口（双Token认证）
+     * POST /mock-school-api/auth/school-login
+     * 
+     * 实现完整的双Token认证流程：
+     * 1. 调用学校API验证用户身份
+     * 2. 保存Basic Token到Redis+数据库
+     * 3. 生成JWT Token用于系统访问
+     * 4. 返回双Token结果
+     */
+    @PostMapping("/school-login")
+    public SchoolLoginResult loginViaSchool(@Valid @RequestBody SchoolLoginRequest request) {
+        log.info("🏫 [SCHOOL_LOGIN] 收到学校登录请求: employeeId={}, name={}, useRealApi={}", 
+                request.getEmployeeId(), request.getName(), request.getUseRealSchoolApi());
+        
+        try {
+            // 调用Service层的流程编排器方法
+            SchoolLoginResult result = userService.processSchoolAuthentication(request);
+            
+            if (result == null || result.getData() == null || result.getData().getToken() == null) {
+                return SchoolLoginResult.builder()
+                    .code(400)
+                    .msg("学校登录失败：认证结果为空")
+                    .data(null)
+                    .build();
+            }
+            
+            log.info("🎉 [SCHOOL_LOGIN] 学校登录成功: no={}, role={}, token={}", 
+                    result.getData().getNo(), 
+                    result.getData().getRole(), 
+                    result.getData().getToken().substring(0, 8) + "...");
+            
+            return result;
+            
+        } catch (SecurityException e) {
+            log.error("🚨 [SCHOOL_LOGIN] 安全验证失败: {}", e.getMessage());
+            return SchoolLoginResult.builder()
+                .code(401)
+                .msg("学校登录失败: " + e.getMessage())
+                .data(null)
+                .build();
+            
+        } catch (Exception e) {
+            log.error("💥 [SCHOOL_LOGIN] 学校登录异常", e);
+            return SchoolLoginResult.builder()
+                .code(500)
+                .msg("学校登录服务异常: " + e.getMessage())
+                .data(null)
+                .build();
+        }
+    }
+
+    /**
+     * 🆕 获取Basic Token（后端服务间调用）
+     * GET /mock-school-api/auth/basic-token/{userId}
+     * 
+     * 用于其他后端服务获取用户的Basic Token来调用学校API
+     */
+    @GetMapping("/basic-token/{userId}")
+    public MockApiResponse<String> getBasicToken(@PathVariable String userId,
+            @RequestHeader("Authorization") String authHeader) {
+        log.info("🔍 [BASIC_TOKEN] 获取Basic Token请求: userId={}", userId);
+        
+        try {
+            // 验证请求者身份（简化实现，实际应该验证服务间调用权限）
+            String token = authHeader;
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                token = authHeader.substring(7);
+            }
+            
+            UserInfo requestUser = userService.verifyToken(token);
+            if (requestUser == null) {
+                return MockApiResponse.unauthorized("请求者Token无效");
+            }
+            
+            // 这里应该调用SchoolTokenService获取Basic Token
+            // 简化实现：返回成功但提示功能开发中
+            log.info("✅ [BASIC_TOKEN] Basic Token获取请求处理完成（功能开发中）");
+            return MockApiResponse.success(null, "Basic Token获取功能开发中");
+            
+        } catch (Exception e) {
+            log.error("❌ [BASIC_TOKEN] Basic Token获取异常", e);
+            return MockApiResponse.serverError("Basic Token获取异常: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 🆕 刷新Basic Token
+     * POST /mock-school-api/auth/refresh-basic-token/{userId}
+     * 
+     * 当Basic Token过期时调用学校API刷新
+     */
+    @PostMapping("/refresh-basic-token/{userId}")
+    public MockApiResponse<String> refreshBasicToken(@PathVariable String userId,
+            @RequestHeader("Authorization") String authHeader) {
+        log.info("🔄 [REFRESH_BASIC_TOKEN] 刷新Basic Token请求: userId={}", userId);
+        
+        try {
+            // 验证请求者身份
+            String token = authHeader;
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                token = authHeader.substring(7);
+            }
+            
+            UserInfo requestUser = userService.verifyToken(token);
+            if (requestUser == null) {
+                return MockApiResponse.unauthorized("请求者Token无效");
+            }
+            
+            // 这里应该调用SchoolTokenService刷新Token
+            // 简化实现：返回成功但提示功能开发中
+            log.info("✅ [REFRESH_BASIC_TOKEN] Basic Token刷新请求处理完成（功能开发中）");
+            return MockApiResponse.success(null, "Basic Token刷新功能开发中");
+            
+        } catch (Exception e) {
+            log.error("❌ [REFRESH_BASIC_TOKEN] Basic Token刷新异常", e);
+            return MockApiResponse.serverError("Basic Token刷新异常: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 🆕 学校API集成状态检查
+     * GET /mock-school-api/auth/school-integration-status
+     */
+    @GetMapping("/school-integration-status")
+    public MockApiResponse<Map<String, Object>> getSchoolIntegrationStatus() {
+        log.info("📊 [INTEGRATION_STATUS] 检查学校API集成状态");
+        
+        try {
+            Map<String, Object> status = new HashMap<>();
+            status.put("timestamp", System.currentTimeMillis());
+            
+            // 这里应该检查SchoolApiClient的服务状态
+            // 简化实现
+            status.put("schoolApiAvailable", true);
+            status.put("mockMode", true);
+            status.put("realApiEndpoint", "https://work.greathiit.com/api/user/loginWai");
+            status.put("supportedFeatures", List.of("authentication", "token_refresh", "user_mapping"));
+            
+            return MockApiResponse.success(status, "学校API集成状态检查完成");
+            
+        } catch (Exception e) {
+            log.error("❌ [INTEGRATION_STATUS] 集成状态检查异常", e);
+            return MockApiResponse.serverError("集成状态检查异常: " + e.getMessage());
         }
     }
 

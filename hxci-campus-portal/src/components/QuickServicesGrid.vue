@@ -32,9 +32,19 @@
 import { computed } from 'vue'
 import { ElIcon, ElMessage } from 'element-plus'
 import { Setting, Bell, ArrowRight } from '@element-plus/icons-vue'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
 
 // 快捷服务列表
 const quickServices = computed(() => [
+  {
+    id: 'permission-test',
+    name: '🔐 权限缓存测试',
+    desc: 'P0级性能优化验证',
+    color: '#722ED1',
+    available: true  // 测试功能可用
+  },
   {
     id: 'education',
     name: '教务系统',
@@ -81,6 +91,13 @@ const quickServices = computed(() => [
 
 // 处理服务点击
 const handleServiceClick = (service: any) => {
+  // 特殊处理权限缓存测试
+  if (service.id === 'permission-test') {
+    router.push('/permission-test')
+    ElMessage.success('正在打开P0权限缓存系统测试页面...')
+    return
+  }
+  
   if (!service.available) {
     ElMessage.info(`${service.name} 功能即将上线，敬请期待`)
     return

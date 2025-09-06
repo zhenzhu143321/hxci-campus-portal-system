@@ -5,6 +5,9 @@ import cn.iocoder.yudao.framework.tenant.core.aop.TenantIgnore;
 import cn.iocoder.yudao.server.util.NotificationScopeManager;
 import cn.iocoder.yudao.server.util.SafeSQLExecutor;
 import cn.iocoder.yudao.server.util.SecurityEnhancementUtil;
+import cn.iocoder.yudao.server.security.ResourceOwnershipValidator;
+import cn.iocoder.yudao.server.security.IdorProtectionValidator;
+import cn.iocoder.yudao.server.security.AccessControlListManager;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.security.PermitAll;
@@ -39,6 +42,20 @@ public class TempNotificationController {
 
     private static final String MOCK_API_BASE = "http://localhost:48082";
     private final RestTemplate restTemplate = new RestTemplate();
+    
+    // 注入高风险漏洞修复安全验证器
+    private final ResourceOwnershipValidator ownershipValidator;
+    private final IdorProtectionValidator idorValidator;
+    private final AccessControlListManager aclManager;
+    
+    public TempNotificationController(ResourceOwnershipValidator ownershipValidator,
+                                    IdorProtectionValidator idorValidator,
+                                    AccessControlListManager aclManager) {
+        this.ownershipValidator = ownershipValidator;
+        this.idorValidator = idorValidator;
+        this.aclManager = aclManager;
+        log.info("🛡️ [SECURITY_INIT] 高风险漏洞修复安全验证器已初始化完成");
+    }
 
     @GetMapping("/api/ping")
     @Operation(summary = "Ping测试")
@@ -94,13 +111,13 @@ public class TempNotificationController {
 
             // 🔍 Step 2: 验证Token并获取用户信息
             log.info("🔍 [PUBLISH] 验证Token并获取用户信息...");
-            UserInfo userInfo = getUserInfoFromMockApi(authToken);
+            AccessControlListManager.UserInfo userInfo = getUserInfoFromMockApi(authToken);
             if (userInfo == null) {
                 log.warn("❌ [PUBLISH] Token验证失败或用户信息获取失败");
                 return CommonResult.error(401, "Token验证失败");
             }
 
-            log.info("✅ [PUBLISH] 用户认证成功: {} (角色: {})", userInfo.username, userInfo.roleCode);
+            log.info("✅ [PUBLISH] 用户认证成功: {} (角色: {})", userInfo.getUsername(), userInfo.getRoleCode());
 
             // 获取通知参数 - 安全的类型转换
             Integer notificationLevel = null;
@@ -123,6 +140,41 @@ public class TempNotificationController {
             
             if (notificationLevel == null) notificationLevel = 3; // 默认常规通知
             if (targetScope == null) targetScope = "ALL_SCHOOL"; // 默认全校
+
+            // 🛡️ Step 2.5: 高风险安全漏洞修复 - 发布API安全验证
+            log.info("🛡️ [PUBLISH_SECURITY] 开始执行发布API安全验证");
+            
+            // IDOR防护 - 验证通知级别和范围参数
+            if (!idorValidator.validateQueryParam(request.get("title") != null ? request.get("title").toString() : null, 
+                    "title", userInfo)) {
+                log.warn("🚨 [SECURITY_VIOLATION] 通知标题参数不安全: user={}", userInfo.getEmployeeId());
+                return CommonResult.error(400, "通知标题包含不安全内容");
+            }
+            
+            if (!idorValidator.validateQueryParam(request.get("content") != null ? request.get("content").toString() : null, 
+                    "content", userInfo)) {
+                log.warn("🚨 [SECURITY_VIOLATION] 通知内容参数不安全: user={}", userInfo.getEmployeeId());
+                return CommonResult.error(400, "通知内容包含不安全内容");
+            }
+            
+            // ACL权限检查 - 验证用户发布权限
+            String requiredPermission = String.format("NOTIFICATION_CREATE_%s", 
+                    getAccessLevelForScope(targetScope).name());
+            
+            if (!aclManager.hasPermission(userInfo, requiredPermission)) {
+                log.warn("🚨 [SECURITY_VIOLATION] ACL权限检查失败 - 用户无发布权限: user={}, role={}, requiredPermission={}", 
+                        userInfo.getEmployeeId(), userInfo.getRoleCode(), requiredPermission);
+                return CommonResult.error(403, "权限不足，无法发布此范围的通知");
+            }
+            
+            // 通知级别和范围安全检查
+            if (!aclManager.hasNotificationPermission(userInfo, "CREATE", notificationLevel, targetScope)) {
+                log.warn("🚨 [SECURITY_VIOLATION] 通知级别权限检查失败: user={}, role={}, level={}, scope={}", 
+                        userInfo.getEmployeeId(), userInfo.getRoleCode(), notificationLevel, targetScope);
+                return CommonResult.error(403, "权限不足，无法发布此级别的通知");
+            }
+            
+            log.info("✅ [PUBLISH_SECURITY] 发布API安全验证通过 - user={}", userInfo.getEmployeeId());
 
             // 🎯 Step 3: 执行权限验证
             log.info("🎯 [PUBLISH] 执行权限验证 - 级别: {}, 范围: {}", notificationLevel, targetScope);
@@ -165,7 +217,7 @@ public class TempNotificationController {
     /**
      * 从Mock API获取用户信息
      */
-    private UserInfo getUserInfoFromMockApi(String authToken) {
+    private AccessControlListManager.UserInfo getUserInfoFromMockApi(String authToken) {
         try {
             String url = MOCK_API_BASE + "/mock-school-api/auth/user-info";
             
@@ -188,12 +240,13 @@ public class TempNotificationController {
                 
                 if (isSuccess && body.get("data") != null) {
                     Map<String, Object> data = (Map<String, Object>) body.get("data");
-                    UserInfo userInfo = new UserInfo();
-                    userInfo.username = (String) data.get("username");
-                    userInfo.roleCode = (String) data.get("roleCode");
-                    userInfo.roleName = (String) data.get("roleName");
+                    AccessControlListManager.UserInfo userInfo = new AccessControlListManager.UserInfo();
+                    userInfo.setUsername((String) data.get("username"));
+                    userInfo.setRoleCode((String) data.get("roleCode"));
+                    userInfo.setRoleName((String) data.get("roleName"));
+                    userInfo.setEmployeeId((String) data.get("employeeId"));
                     
-                    log.info("✅ [API] 用户信息解析成功: user={}, role={}", userInfo.username, userInfo.roleCode);
+                    log.info("✅ [API] 用户信息解析成功: user={}, role={}", userInfo.getUsername(), userInfo.getRoleCode());
                     return userInfo;
                 } else {
                     log.warn("❌ [API] Mock API响应失败: code={}, success={}", 
@@ -211,16 +264,16 @@ public class TempNotificationController {
     /**
      * 🎯 SCOPE-BATCH-1: 验证权限（包含范围控制）
      */
-    private PermissionResult verifyPermission(UserInfo userInfo, Integer level, String targetScope) {
+    private PermissionResult verifyPermission(AccessControlListManager.UserInfo userInfo, Integer level, String targetScope) {
         PermissionResult result = new PermissionResult();
         result.hasPermission = false;
         result.approvalRequired = false;
         
-        log.info("🎯 [PERMISSION] 开始权限验证 - 用户: {}, 级别: {}, 范围: {}", userInfo.roleCode, level, targetScope);
+        log.info("🎯 [PERMISSION] 开始权限验证 - 用户: {}, 级别: {}, 范围: {}", userInfo.getRoleCode(), level, targetScope);
 
         // 🎯 SCOPE-BATCH-1: 首先验证范围权限
         NotificationScopeManager.ScopePermissionResult scopeResult = 
-            NotificationScopeManager.validateScopePermission(userInfo.roleCode, targetScope, level);
+            NotificationScopeManager.validateScopePermission(userInfo.getRoleCode(), targetScope, level);
         
         if (!scopeResult.hasPermission) {
             result.message = scopeResult.reason;
@@ -229,7 +282,7 @@ public class TempNotificationController {
         }
 
         // 原有的级别权限检查（保持向后兼容）
-        switch (userInfo.roleCode) {
+        switch (userInfo.getRoleCode()) {
             case "SYSTEM_ADMIN":
                 // 系统管理员：拥有最高权限，可以发布1-4级所有通知，无需审批
                 result.hasPermission = true;
@@ -275,22 +328,13 @@ public class TempNotificationController {
         }
 
         if (!result.hasPermission) {
-            result.message = String.format("Role %s has no permission to publish level %d notifications", userInfo.roleCode, level);
+            result.message = String.format("Role %s has no permission to publish level %d notifications", userInfo.getRoleCode(), level);
         } else {
             result.message = "Permission verified (including scope)";
         }
         
         log.info("✅ [PERMISSION] 权限验证完成 - 结果: {}, 需要审批: {}", result.hasPermission, result.approvalRequired);
         return result;
-    }
-
-    /**
-     * 用户信息类
-     */
-    public static class UserInfo {
-        public String username;
-        public String roleCode;
-        public String roleName;
     }
 
     /**
@@ -501,13 +545,13 @@ public class TempNotificationController {
 
             // 🔍 Step 2: 验证Token并获取用户信息
             log.info("🔍 [WORKING] 验证Token并获取用户信息...");
-            UserInfo userInfo = getUserInfoFromMockApi(authToken);
+            AccessControlListManager.UserInfo userInfo = getUserInfoFromMockApi(authToken);
             if (userInfo == null) {
                 log.warn("❌ [WORKING] Token验证失败或用户信息获取失败");
                 return CommonResult.error(401, "Token验证失败");
             }
 
-            log.info("✅ [WORKING] 用户认证成功: {} (角色: {})", userInfo.username, userInfo.roleCode);
+            log.info("✅ [WORKING] 用户认证成功: {} (角色: {})", userInfo.getUsername(), userInfo.getRoleCode());
 
             // 📝 Step 3: 使用标准JSON解析方法 - 修复level参数解析缺陷
             NotificationRequest request = parseJsonRequest(jsonRequest);
@@ -529,9 +573,9 @@ public class TempNotificationController {
             // 📝 Step 5: 处理审批流程
             Map<String, Object> result = new HashMap<>();
             result.put("userInfo", Map.of(
-                    "username", userInfo.username,
-                    "roleCode", userInfo.roleCode,
-                    "roleName", userInfo.roleName
+                    "username", userInfo.getUsername(),
+                    "roleCode", userInfo.getRoleCode(),
+                    "roleName", userInfo.getRoleName()
             ));
             result.put("notificationLevel", notificationLevel);
             result.put("targetScope", targetScope);
@@ -594,7 +638,7 @@ public class TempNotificationController {
             }
 
             // 🔍 Step 2: 验证Token并获取用户信息
-            UserInfo userInfo = getUserInfoFromMockApi(authToken);
+            AccessControlListManager.UserInfo userInfo = getUserInfoFromMockApi(authToken);
             if (userInfo == null) {
                 log.warn("❌ [DATABASE-SECURE] Token验证失败 - IP: {}", httpRequest.getRemoteAddr());
                 SecurityEnhancementUtil.auditSecurityEvent("INVALID_TOKEN", 
@@ -602,7 +646,7 @@ public class TempNotificationController {
                 return CommonResult.error(401, "Token验证失败");
             }
 
-            log.info("✅ [DATABASE-SECURE] 用户认证成功: {} (角色: {})", userInfo.username, userInfo.roleCode);
+            log.info("✅ [DATABASE-SECURE] 用户认证成功: {} (角色: {})", userInfo.getUsername(), userInfo.getRoleCode());
 
             // 📝 Step 3: 使用标准JSON解析方法
             NotificationRequest request = parseJsonRequest(jsonRequest);
@@ -615,7 +659,7 @@ public class TempNotificationController {
             if (!validation.isValid) {
                 log.warn("⛔ [SECURITY-VALIDATE] 输入验证失败: {}", validation.getErrorSummary());
                 SecurityEnhancementUtil.auditSecurityEvent("INPUT_VALIDATION_FAILED", 
-                    userInfo.username, Map.of("errors", validation.errors, "ip", httpRequest.getRemoteAddr()));
+                    userInfo.getUsername(), Map.of("errors", validation.errors, "ip", httpRequest.getRemoteAddr()));
                 
                 String detailedError = SecurityEnhancementUtil.generateDetailedErrorReport(validation.errors, "通知发布");
                 return CommonResult.error(400, detailedError);
@@ -632,9 +676,9 @@ public class TempNotificationController {
             // 🎯 Step 4: 执行权限验证
             PermissionResult permissionResult = verifyPermission(userInfo, level, targetScope);
             if (!permissionResult.hasPermission) {
-                log.warn("⛔ [DATABASE-SECURE] 权限验证失败: {} - 用户: {}", permissionResult.message, userInfo.username);
+                log.warn("⛔ [DATABASE-SECURE] 权限验证失败: {} - 用户: {}", permissionResult.message, userInfo.getUsername());
                 SecurityEnhancementUtil.auditSecurityEvent("PERMISSION_DENIED", 
-                    userInfo.username, Map.of("level", level, "reason", permissionResult.message));
+                    userInfo.getUsername(), Map.of("level", level, "reason", permissionResult.message));
                 return CommonResult.error(403, "权限不足: " + permissionResult.message);
             }
 
@@ -645,7 +689,7 @@ public class TempNotificationController {
             if (permissionResult.approvalRequired) {
                 status = 2; // 待审批
                 statusMessage = "PENDING_APPROVAL";
-                log.info("📋 [DATABASE-SECURE] 需要审批流程 - 级别: {}, 发布者: {}", level, userInfo.username);
+                log.info("📋 [DATABASE-SECURE] 需要审批流程 - 级别: {}, 发布者: {}", level, userInfo.getUsername());
             }
 
             // 💾 Step 6: 安全插入数据库
@@ -653,7 +697,7 @@ public class TempNotificationController {
                 safeTitle, safeContent, level, status, userInfo, targetScope);
             
             if (notificationId == null) {
-                log.error("💥 [DATABASE-SECURE] 数据库插入失败 - 用户: {}", userInfo.username);
+                log.error("💥 [DATABASE-SECURE] 数据库插入失败 - 用户: {}", userInfo.getUsername());
                 return CommonResult.error(500, "数据库插入失败");
             }
 
@@ -664,19 +708,19 @@ public class TempNotificationController {
             result.put("content", safeContent);
             result.put("level", level);
             result.put("status", statusMessage);
-            result.put("publisherName", userInfo.username);
-            result.put("publisherRole", userInfo.roleCode);
+            result.put("publisherName", userInfo.getUsername());
+            result.put("publisherRole", userInfo.getRoleCode());
             result.put("targetScope", targetScope);
             result.put("approvalRequired", permissionResult.approvalRequired);
             result.put("securityValidated", true); // 🛡️ 安全验证标记
             result.put("timestamp", System.currentTimeMillis());
             
             log.info("💾🛡️ [DATABASE-SECURE] 安全通知发布成功 - ID: {}, 标题: {}, 用户: {}", 
-                    notificationId, safeTitle, userInfo.username);
+                    notificationId, safeTitle, userInfo.getUsername());
             
             // 📊 安全审计记录
             SecurityEnhancementUtil.auditSecurityEvent("NOTIFICATION_PUBLISHED", 
-                userInfo.username, Map.of("id", notificationId, "level", level, "status", statusMessage));
+                userInfo.getUsername(), Map.of("id", notificationId, "level", level, "status", statusMessage));
             
             return success(result);
             
@@ -690,15 +734,15 @@ public class TempNotificationController {
      * 🔐 SE-1.2: 插入通知到数据库 - 使用安全参数化SQL
      */
     private Long insertNotificationToDatabase(String title, String content, Integer level, 
-                                            Integer status, UserInfo userInfo, String targetScope) {
+                                            Integer status, AccessControlListManager.UserInfo userInfo, String targetScope) {
         try {
             log.info("🔐 [SECURE-DB] 开始安全插入通知到数据库");
             log.info("🔐 [SECURE-DB] 参数: title={}, level={}, status={}, publisher={}, targetScope={}", 
-                    title, level, status, userInfo.username, targetScope);
+                    title, level, status, userInfo.getUsername(), targetScope);
             
             // 🔐 SE-1.2: 使用安全SQL构建器替代字符串拼接 (包含目标范围)
             SafeSQLExecutor.NotificationInsertSQL sqlBuilder = SafeSQLExecutor.buildInsertSQL()
-                .setBasicValues(title, content, level, status, userInfo.username, userInfo.roleCode, targetScope);
+                .setBasicValues(title, content, level, status, userInfo.getUsername(), userInfo.getRoleCode(), targetScope);
             
             // 根据状态决定是否添加审批字段
             if (status == 2) { // PENDING_APPROVAL
@@ -739,13 +783,13 @@ public class TempNotificationController {
      * 🔐 SE-1.2: 直接插入通知到数据库 - 使用安全参数化SQL (包含范围支持)
      */
     private void insertNotificationDirectly(String title, String content, Integer level, 
-                                          Integer status, UserInfo userInfo, String targetScope) {
+                                          Integer status, AccessControlListManager.UserInfo userInfo, String targetScope) {
         try {
             log.info("🔐 [SECURE-DIRECT] 开始安全直接插入数据库: {}", title);
             
             // 🔐 SE-1.2: 使用安全SQL构建器替代字符串拼接 (包含目标范围)
             SafeSQLExecutor.NotificationInsertSQL sqlBuilder = SafeSQLExecutor.buildInsertSQL()
-                .setBasicValues(title, content, level, status, userInfo.username, userInfo.roleCode, targetScope);
+                .setBasicValues(title, content, level, status, userInfo.getUsername(), userInfo.getRoleCode(), targetScope);
             
             // 如果是待审批状态，添加审批者信息
             if (status == 2) { // PENDING_APPROVAL
@@ -804,14 +848,46 @@ public class TempNotificationController {
 
             // 🔍 Step 2: 验证Token并获取用户信息
             log.info("🔍 [LIST] 验证Token并获取用户信息...");
-            UserInfo userInfo = getUserInfoFromMockApi(authToken);
+            AccessControlListManager.UserInfo userInfo = getUserInfoFromMockApi(authToken);
             if (userInfo == null) {
                 log.warn("❌ [LIST] Token验证失败或用户信息获取失败 - IP: {}", httpRequest.getRemoteAddr());
                 return CommonResult.error(401, "Token无效或已过期");
             }
 
             log.info("✅ [LIST] 用户认证成功: {} (角色: {}) - IP: {}", 
-                    userInfo.username, userInfo.roleCode, httpRequest.getRemoteAddr());
+                    userInfo.getUsername(), userInfo.getRoleCode(), httpRequest.getRemoteAddr());
+
+            // 🛡️ Step 2.5: 高风险安全漏洞修复 - 三重安全验证
+            log.info("🛡️ [SECURITY_CHECK] 开始执行安全验证器检查");
+            
+            // IDOR防护 - 验证分页参数安全性
+            Integer page = null, size = null;
+            String pageStr = httpRequest.getParameter("page");
+            String sizeStr = httpRequest.getParameter("size");
+            if (pageStr != null) {
+                try { page = Integer.parseInt(pageStr); } catch (NumberFormatException e) { /* ignore */ }
+            }
+            if (sizeStr != null) {
+                try { size = Integer.parseInt(sizeStr); } catch (NumberFormatException e) { /* ignore */ }
+            }
+            
+            if (!idorValidator.validatePaginationParams(page, size, userInfo)) {
+                log.warn("🚨 [SECURITY_VIOLATION] IDOR防护 - 分页参数不安全，拒绝访问: user={}", userInfo.getEmployeeId());
+                return CommonResult.error(400, "参数验证失败");
+            }
+            
+            // ACL权限检查 - 验证用户是否有读取通知的权限
+            if (!aclManager.hasPermission(userInfo, "NOTIFICATION_READ_ALL") && 
+                !aclManager.hasPermission(userInfo, "NOTIFICATION_READ_ACADEMIC") &&
+                !aclManager.hasPermission(userInfo, "NOTIFICATION_READ_DEPT") &&
+                !aclManager.hasPermission(userInfo, "NOTIFICATION_READ_CLASS") &&
+                !aclManager.hasPermission(userInfo, "NOTIFICATION_READ_PERSONAL")) {
+                log.warn("🚨 [SECURITY_VIOLATION] ACL权限检查失败 - 用户无读取通知权限: user={}, role={}", 
+                        userInfo.getEmployeeId(), userInfo.getRoleCode());
+                return CommonResult.error(403, "权限不足，无法查看通知列表");
+            }
+            
+            log.info("✅ [SECURITY_CHECK] 安全验证器检查通过 - user={}", userInfo.getEmployeeId());
 
             // 📊 Step 3: 查询数据库获取通知列表
             log.info("📊 [LIST] 开始查询数据库获取通知列表");
@@ -822,19 +898,19 @@ public class TempNotificationController {
                 return CommonResult.error(500, "数据库查询失败");
             }
 
-            // 🔒 Step 3.5: 基于角色过滤通知列表
-            log.info("🔒 [LIST] 开始基于角色过滤通知列表 - 用户角色: {}", userInfo.roleCode);
-            java.util.List<Map<String, Object>> filteredNotifications = filterNotificationsByRole(notifications, userInfo);
-            log.info("🔒 [LIST] 权限过滤完成: 原{}条 -> 过滤后{}条", notifications.size(), filteredNotifications.size());
+            // 🔒 Step 3.5: 基于角色过滤通知列表 + 资源所有权验证
+            log.info("🔒 [LIST] 开始基于角色过滤通知列表 + 安全验证 - 用户角色: {}", userInfo.getRoleCode());
+            java.util.List<Map<String, Object>> filteredNotifications = filterNotificationsByRoleWithSecurity(notifications, userInfo);
+            log.info("🔒 [LIST] 权限过滤+安全验证完成: 原{}条 -> 过滤后{}条", notifications.size(), filteredNotifications.size());
 
             // 📋 Step 4: 构造响应结果
             Map<String, Object> result = new HashMap<>();
             result.put("total", filteredNotifications.size());
             result.put("notifications", filteredNotifications);
             result.put("queryUser", Map.of(
-                "username", userInfo.username,
-                "roleCode", userInfo.roleCode,
-                "roleName", userInfo.roleName
+                "username", userInfo.getUsername(),
+                "roleCode", userInfo.getRoleCode(),
+                "roleName", userInfo.getRoleName()
             ));
             result.put("timestamp", System.currentTimeMillis());
             result.put("pagination", Map.of(
@@ -844,7 +920,7 @@ public class TempNotificationController {
             ));
 
             log.info("📋 [LIST] 通知列表查询成功: 共{}条通知 - 用户: {} ({})", 
-                    filteredNotifications.size(), userInfo.username, userInfo.roleCode);
+                    filteredNotifications.size(), userInfo.getUsername(), userInfo.getRoleCode());
             return success(result);
             
         } catch (Exception e) {
@@ -870,8 +946,8 @@ public class TempNotificationController {
             
             log.info("💾 [MYSQL-EXEC] 执行命令: {}", mysqlCommand);
             
-            // 🔧 FIX: 使用数组形式避免shell转义问题
-            String[] command = {"mysql", "-u", "root", "ruoyi-vue-pro", "--default-character-set=utf8", "-e", sql};
+            // 🔧 FIX: 使用数组形式避免shell转义问题 + 支持emoji (utf8mb4)
+            String[] command = {"mysql", "-u", "root", "ruoyi-vue-pro", "--default-character-set=utf8mb4", "-e", sql};
             Process process = Runtime.getRuntime().exec(command);
             
             // 🚨 CRITICAL-ENCODING-FIX: 修复中文编码 - 使用UTF-8替代GBK
@@ -935,8 +1011,9 @@ public class TempNotificationController {
         try {
             log.info("💾 [DB-QUERY] 开始查询notification_info表");
             
-            // 构造查询SQL - 移除不存在的expired_time字段
+            // 🔧 GRADE-ARCH-FIX: 构造查询SQL - 包含新的目标字段
             String querySql = "SELECT id, title, content, level, status, publisher_name, publisher_role, target_scope, " +
+                "target_grade, target_class, target_department, " +
                 "DATE_FORMAT(create_time, '%Y-%m-%dT%H:%i:%s') as create_time " +
                 "FROM notification_info WHERE deleted=0 ORDER BY create_time DESC LIMIT 20";
             
@@ -975,7 +1052,7 @@ public class TempNotificationController {
                 String[] fields = resultLine.split("\t", -1); // -1保留空字段
                 log.info("💾 [DB-QUERY] 字段数量: {}", fields.length);
                 
-                if (fields.length >= 8) { // 现在需要至少8个字段（包含target_scope）
+                if (fields.length >= 11) { // 🔧 GRADE-ARCH-FIX: 现在需要至少11个字段（包含新的目标字段）
                     try {
                         Map<String, Object> notification = new HashMap<>();
                         notification.put("id", parseIntSafely(fields[0]));
@@ -985,17 +1062,20 @@ public class TempNotificationController {
                         notification.put("status", parseIntSafely(fields[4]));
                         notification.put("publisherName", fields[5]);
                         notification.put("publisherRole", fields[6]);
-                        notification.put("targetScope", fields[7]); // 🎯 SCOPE-BATCH-1: 新增目标范围字段
-                        notification.put("createTime", fields.length > 8 && !"NULL".equals(fields[8]) ? fields[8] : null);
-                        notification.put("expiredTime", fields.length > 9 && !"NULL".equals(fields[9]) ? fields[9] : null);
+                        notification.put("targetScope", fields[7]); // 🎯 SCOPE-BATCH-1: 目标范围字段
+                        notification.put("targetGrade", !"NULL".equals(fields[8]) && !fields[8].trim().isEmpty() ? fields[8] : null); // 🔧 GRADE-ARCH-FIX: 目标年级
+                        notification.put("targetClass", !"NULL".equals(fields[9]) && !fields[9].trim().isEmpty() ? fields[9] : null); // 🔧 目标班级
+                        notification.put("targetDepartment", !"NULL".equals(fields[10]) && !fields[10].trim().isEmpty() ? fields[10] : null); // 🔧 目标部门
+                        notification.put("createTime", fields.length > 11 && !"NULL".equals(fields[11]) ? fields[11] : null);
                         
                         notifications.add(notification);
-                        log.info("💾 [DB-QUERY] 成功解析通知: id={}, title={}, scope={}", fields[0], fields[1], fields[7]);
+                        log.info("💾 [DB-QUERY] 成功解析通知: id={}, title={}, scope={}, grade={}", 
+                                fields[0], fields[1], fields[7], !"NULL".equals(fields[8]) ? fields[8] : "null");
                     } catch (Exception e) {
                         log.warn("💾 [DB-QUERY] 解析行失败: {}, error: {}", resultLine, e.getMessage());
                     }
                 } else {
-                    log.warn("💾 [DB-QUERY] 字段数量不足，跳过行: {} (字段数: {}, 需要至少8个)", resultLine, fields.length);
+                    log.warn("💾 [DB-QUERY] 字段数量不足，跳过行: {} (字段数: {}, 需要至少11个)", resultLine, fields.length);
                 }
             }
             
@@ -1020,37 +1100,128 @@ public class TempNotificationController {
     }
 
     /**
-     * 🔒 基于角色过滤通知列表
-     * 实现查看权限控制逻辑
+     * 🔒 基于角色过滤通知列表 + P0安全修复
+     * 实现查看权限控制逻辑 - 修复学生看不到紧急通知的严重安全漏洞
      */
     private java.util.List<Map<String, Object>> filterNotificationsByRole(
-            java.util.List<Map<String, Object>> notifications, UserInfo userInfo) {
+            java.util.List<Map<String, Object>> notifications, AccessControlListManager.UserInfo userInfo) {
         
         log.info("🔒 [FILTER] 开始权限过滤 - 用户: {} ({}), 原通知数: {}", 
-                userInfo.username, userInfo.roleCode, notifications.size());
-        
-        // 权限过滤规则
-        java.util.Set<String> allowedPublisherRoles = getAllowedPublisherRoles(userInfo.roleCode);
+                userInfo.getUsername(), userInfo.getRoleCode(), notifications.size());
         
         java.util.List<Map<String, Object>> filteredNotifications = new java.util.ArrayList<>();
         
         for (Map<String, Object> notification : notifications) {
             String publisherRole = (String) notification.get("publisherRole");
+            Integer level = (Integer) notification.get("level");
+            String targetScope = (String) notification.get("targetScope");
             
+            // 🚨 P0安全修复: Level 1紧急通知 - 所有人必须看到
+            if (level != null && level == 1) {
+                filteredNotifications.add(notification);
+                log.info("🚨 [P0-SECURITY-FIX] Level 1紧急通知对所有用户可见: ID={}, 用户角色={}", 
+                        notification.get("id"), userInfo.getRoleCode());
+                continue;
+            }
+            
+            // 🚨 P0安全修复: Level 2重要通知 - 相关范围内用户可见
+            if (level != null && level == 2) {
+                // Level 2重要通知按范围过滤，但学生在相关范围内必须能看到
+                boolean canView = canViewNotificationByScope(userInfo.getRoleCode(), targetScope, level);
+                if (canView) {
+                    filteredNotifications.add(notification);
+                    log.info("🚨 [P0-SECURITY-FIX] Level 2重要通知对相关用户可见: ID={}, 用户角色={}, 范围={}", 
+                            notification.get("id"), userInfo.getRoleCode(), targetScope);
+                }
+                continue;
+            }
+            
+            // 原有的发布者角色过滤逻辑（Level 3-4通知）
+            java.util.Set<String> allowedPublisherRoles = getAllowedPublisherRoles(userInfo.getRoleCode());
             if (allowedPublisherRoles.contains(publisherRole)) {
                 filteredNotifications.add(notification);
-                log.debug("🔒 [FILTER] 通知保留: ID={}, 发布者角色={}", 
-                        notification.get("id"), publisherRole);
+                log.debug("🔒 [FILTER] 通知保留: ID={}, 发布者角色={}, 级别={}", 
+                        notification.get("id"), publisherRole, level);
             } else {
-                log.debug("🔒 [FILTER] 通知过滤: ID={}, 发布者角色={}", 
-                        notification.get("id"), publisherRole);
+                log.debug("🔒 [FILTER] 通知过滤: ID={}, 发布者角色={}, 级别={}", 
+                        notification.get("id"), publisherRole, level);
             }
         }
         
         log.info("🔒 [FILTER] 权限过滤完成 - 用户: {}, 过滤前: {}条, 过滤后: {}条", 
-                userInfo.roleCode, notifications.size(), filteredNotifications.size());
+                userInfo.getRoleCode(), notifications.size(), filteredNotifications.size());
         
         return filteredNotifications;
+    }
+
+    /**
+     * 🚨 P0安全修复: 检查用户是否可以查看指定范围的通知
+     * 处理所有级别(Level 1-4)通知的范围访问权限控制
+     */
+    private boolean canViewNotificationByScope(String userRole, String targetScope, Integer level) {
+        // Level 1紧急通知：所有人都能看到，无论范围
+        if (level == 1) {
+            return true;
+        }
+        
+        // Level 2重要通知：按范围和角色进行精确控制
+        if (level == 2) {
+            switch (userRole) {
+                case "SYSTEM_ADMIN":
+                case "PRINCIPAL":
+                    // 管理员可以看到所有范围的重要通知
+                    return true;
+                    
+                case "ACADEMIC_ADMIN":
+                    // 教务主任可以看到除班级私人通知外的重要通知
+                    return !"CLASS".equals(targetScope) || "SCHOOL_WIDE".equals(targetScope) || "DEPARTMENT".equals(targetScope) || "GRADE".equals(targetScope);
+                    
+                case "TEACHER":
+                case "CLASS_TEACHER":
+                    // 教师可以看到学校、部门、年级、班级的重要通知
+                    return "SCHOOL_WIDE".equals(targetScope) || "DEPARTMENT".equals(targetScope) || 
+                           "GRADE".equals(targetScope) || "CLASS".equals(targetScope);
+                    
+                case "STUDENT":
+                    // 🚨 关键修复: 学生必须能看到所有相关的重要通知
+                    // 学校通知、年级通知、班级通知都应该对学生可见
+                    return "SCHOOL_WIDE".equals(targetScope) || "GRADE".equals(targetScope) || "CLASS".equals(targetScope);
+                    
+                default:
+                    return false;
+            }
+        }
+        
+        // Level 3-4通知：常规和提醒通知的范围权限控制
+        if (level == 3 || level == 4) {
+            switch (userRole) {
+                case "SYSTEM_ADMIN":
+                case "PRINCIPAL":
+                    // 管理员可以看到所有范围的通知
+                    return true;
+                    
+                case "ACADEMIC_ADMIN":
+                    // 教务主任可以看到全校、部门、年级的通知
+                    return "SCHOOL_WIDE".equals(targetScope) || "DEPARTMENT".equals(targetScope) || "GRADE".equals(targetScope);
+                    
+                case "TEACHER":
+                case "CLASS_TEACHER":
+                    // 教师可以看到学校、部门、年级、班级的通知
+                    return "SCHOOL_WIDE".equals(targetScope) || "DEPARTMENT".equals(targetScope) || 
+                           "GRADE".equals(targetScope) || "CLASS".equals(targetScope);
+                    
+                case "STUDENT":
+                    // 🚨 关键修复: 学生可以看到学校、年级、班级范围的通知
+                    // 学校通知、年级通知、班级通知都应该对学生可见
+                    return "SCHOOL_WIDE".equals(targetScope) || "GRADE".equals(targetScope) || "CLASS".equals(targetScope);
+                    
+                default:
+                    return false;
+            }
+        }
+        
+        // 其他级别通知使用默认逻辑
+        return true;
     }
 
     /**
@@ -1127,6 +1298,149 @@ public class TempNotificationController {
     }
 
     /**
+     * 🛡️ 高风险安全漏洞修复 - 安全版本的通知过滤方法 + P0安全修复
+     * 集成三重安全验证：IDOR防护 + 资源所有权验证 + ACL权限控制 + 紧急通知可见性修复
+     */
+    private java.util.List<Map<String, Object>> filterNotificationsByRoleWithSecurity(
+            java.util.List<Map<String, Object>> notifications, AccessControlListManager.UserInfo userInfo) {
+        
+        log.info("🛡️ [SECURITY_FILTER] 开始安全过滤 - 用户: {} ({}), 原通知数: {}", 
+                userInfo.getUsername(), userInfo.getRoleCode(), notifications.size());
+        
+        java.util.List<Map<String, Object>> filteredNotifications = new java.util.ArrayList<>();
+        int ownedResourcesCount = 0;
+        int idorBlockedCount = 0;
+        int aclBlockedCount = 0;
+        
+        for (Map<String, Object> notification : notifications) {
+            String publisherRole = (String) notification.get("publisherRole");
+            Integer level = (Integer) notification.get("level");
+            String targetScope = (String) notification.get("targetScope");
+            Long notificationId = null;
+            Long creatorId = null;
+            
+            // 安全的类型转换
+            try {
+                Object idObj = notification.get("id");
+                if (idObj != null) {
+                    notificationId = Long.valueOf(idObj.toString());
+                }
+                
+                Object creatorObj = notification.get("publisherId");
+                if (creatorObj != null) {
+                    creatorId = Long.valueOf(creatorObj.toString());
+                }
+            } catch (NumberFormatException e) {
+                log.warn("🚨 [SECURITY_FILTER] 通知数据格式错误，跳过: id={}", notification.get("id"));
+                continue;
+            }
+            
+            // 🚨 P0安全修复: Level 1紧急通知 - 所有人必须看到，跳过所有其他安全检查
+            if (level != null && level == 1) {
+                filteredNotifications.add(notification);
+                log.info("🚨 [P0-SECURITY-FIX] Level 1紧急通知对所有用户可见，跳过安全检查: ID={}, 用户角色={}", 
+                        notificationId, userInfo.getRoleCode());
+                continue;
+            }
+            
+            // 🚨 P0安全修复: Level 2重要通知 - 相关范围内用户可见，简化安全检查
+            if (level != null && level == 2) {
+                boolean canView = canViewNotificationByScope(userInfo.getRoleCode(), targetScope, level);
+                if (canView) {
+                    filteredNotifications.add(notification);
+                    log.info("🚨 [P0-SECURITY-FIX] Level 2重要通知对相关用户可见，简化安全检查: ID={}, 用户角色={}, 范围={}", 
+                            notificationId, userInfo.getRoleCode(), targetScope);
+                }
+                continue;
+            }
+            
+            // Level 3-4通知执行完整的安全检查流程
+            
+            // Step 1: 原有角色权限检查
+            java.util.Set<String> allowedPublisherRoles = getAllowedPublisherRoles(userInfo.getRoleCode());
+            if (!allowedPublisherRoles.contains(publisherRole)) {
+                log.debug("🔒 [SECURITY_FILTER] 角色权限过滤: ID={}, 发布者角色={}", notificationId, publisherRole);
+                continue;
+            }
+            
+            // Step 1.5: 范围权限检查（关键修复）
+            boolean canViewByScope = canViewNotificationByScope(userInfo.getRoleCode(), targetScope, level);
+            if (!canViewByScope) {
+                log.debug("🔒 [SCOPE_BLOCKED] 范围权限检查失败: notificationId={}, level={}, scope={}", 
+                        notificationId, level, targetScope);
+                continue;
+            }
+            
+            // Step 2: IDOR防护 - 验证通知ID安全性
+            if (notificationId != null && !idorValidator.validateNotificationId(notificationId, userInfo)) {
+                log.warn("🚨 [IDOR_BLOCKED] 通知ID不安全，过滤: notificationId={}", notificationId);
+                idorBlockedCount++;
+                continue;
+            }
+            
+            // Step 3: 资源所有权验证 (对于非管理员用户)
+            if (creatorId != null && !userInfo.getRoleCode().equals("SYSTEM_ADMIN") && !userInfo.getRoleCode().equals("PRINCIPAL")) {
+                // 检查是否有跨用户访问权限
+                if (!ownershipValidator.validateNotificationOwnership(userInfo, creatorId, notificationId)) {
+                    // 如果不是资源所有者，检查是否在ACL权限范围内（如同部门、同班级）
+                    boolean hasAccessPermission = false;
+                    
+                    if (targetScope != null) {
+                        switch (targetScope) {
+                            case "DEPARTMENT":
+                                hasAccessPermission = ownershipValidator.validateDepartmentAccess(userInfo, 
+                                        userInfo.getDepartmentId(), notificationId);
+                                break;
+                            case "CLASS":
+                                hasAccessPermission = ownershipValidator.validateClassAccess(userInfo, 
+                                        userInfo.getClassId(), notificationId);
+                                break;
+                            case "SCHOOL_WIDE":
+                                hasAccessPermission = true; // 全校通知任何人都可查看
+                                break;
+                            case "GRADE":
+                                // 🎓 使用新的年级权限验证方法，支持从通知标题提取年级信息
+                                hasAccessPermission = validateGradeNotificationAccess(userInfo, notification);
+                                break;
+                            default:
+                                hasAccessPermission = false;
+                        }
+                    }
+                    
+                    if (!hasAccessPermission) {
+                        log.debug("🛡️ [OWNERSHIP_BLOCKED] 资源所有权验证失败，过滤: notificationId={}, scope={}", 
+                                notificationId, targetScope);
+                        ownedResourcesCount++;
+                        continue;
+                    }
+                }
+            }
+            
+            // Step 4: ACL权限检查 - 验证通知访问权限
+            if (level != null && targetScope != null) {
+                if (!aclManager.hasNotificationPermission(userInfo, "READ", level, targetScope)) {
+                    log.debug("🛡️ [ACL_BLOCKED] ACL权限检查失败，过滤: notificationId={}, level={}, scope={}", 
+                            notificationId, level, targetScope);
+                    aclBlockedCount++;
+                    continue;
+                }
+            }
+            
+            // 通过所有安全检查，保留此通知
+            filteredNotifications.add(notification);
+            log.debug("✅ [SECURITY_FILTER] 通知通过安全验证: ID={}, 发布者角色={}, level={}, scope={}", 
+                    notificationId, publisherRole, level, targetScope);
+        }
+        
+        log.info("🛡️ [SECURITY_FILTER] 安全过滤完成 - 用户: {}, 过滤前: {}条, 过滤后: {}条", 
+                userInfo.getRoleCode(), notifications.size(), filteredNotifications.size());
+        log.info("🛡️ [SECURITY_STATS] 安全过滤统计 - IDOR阻止: {}条, 所有权阻止: {}条, ACL阻止: {}条", 
+                idorBlockedCount, ownedResourcesCount, aclBlockedCount);
+        
+        return filteredNotifications;
+    }
+
+    /**
      * 🎯 🛡️ SECURITY-BATCH-1: 审批通知接口 - 批准 + 安全增强
      */
     @PostMapping("/api/approve")
@@ -1149,7 +1463,7 @@ public class TempNotificationController {
                 return CommonResult.error(401, "未提供认证Token");
             }
 
-            UserInfo userInfo = getUserInfoFromMockApi(authToken);
+            AccessControlListManager.UserInfo userInfo = getUserInfoFromMockApi(authToken);
             if (userInfo == null) {
                 log.warn("❌ [APPROVE-SECURE] Token验证失败 - IP: {}", httpRequest.getRemoteAddr());
                 SecurityEnhancementUtil.auditSecurityEvent("INVALID_TOKEN_APPROVAL", 
@@ -1157,14 +1471,14 @@ public class TempNotificationController {
                 return CommonResult.error(401, "Token验证失败");
             }
 
-            log.info("✅ [APPROVE-SECURE] 审批者认证成功: {} (角色: {})", userInfo.username, userInfo.roleCode);
+            log.info("✅ [APPROVE-SECURE] 审批者认证成功: {} (角色: {})", userInfo.getUsername(), userInfo.getRoleCode());
 
             // 🎯 Step 2: 验证审批权限
-            if (!"PRINCIPAL".equals(userInfo.roleCode)) {
+            if (!"PRINCIPAL".equals(userInfo.getRoleCode())) {
                 log.warn("⛔ [APPROVE-SECURE] 权限不足: 只有校长可以审批通知 - 用户: {} ({})", 
-                        userInfo.username, userInfo.roleCode);
+                        userInfo.getUsername(), userInfo.getRoleCode());
                 SecurityEnhancementUtil.auditSecurityEvent("UNAUTHORIZED_APPROVAL_ATTEMPT", 
-                    userInfo.username, Map.of("role", userInfo.roleCode, "ip", httpRequest.getRemoteAddr()));
+                    userInfo.getUsername(), Map.of("role", userInfo.getRoleCode(), "ip", httpRequest.getRemoteAddr()));
                 return CommonResult.error(403, "权限不足: 只有校长可以审批通知");
             }
 
@@ -1179,7 +1493,7 @@ public class TempNotificationController {
             if (!validation.isValid) {
                 log.warn("⛔ [APPROVAL-VALIDATE] 审批参数验证失败: {}", validation.getErrorSummary());
                 SecurityEnhancementUtil.auditSecurityEvent("APPROVAL_VALIDATION_FAILED", 
-                    userInfo.username, Map.of("errors", validation.errors, "notificationId", request.notificationId));
+                    userInfo.getUsername(), Map.of("errors", validation.errors, "notificationId", request.notificationId));
                 
                 String detailedError = SecurityEnhancementUtil.generateDetailedErrorReport(validation.errors, "通知审批");
                 return CommonResult.error(400, detailedError);
@@ -1195,7 +1509,7 @@ public class TempNotificationController {
             
             if (!success) {
                 log.error("💥 [APPROVE-SECURE] 审批操作失败 - ID: {}, 审批者: {}", 
-                         request.notificationId, userInfo.username);
+                         request.notificationId, userInfo.getUsername());
                 return CommonResult.error(500, "审批操作失败");
             }
 
@@ -1203,18 +1517,18 @@ public class TempNotificationController {
             Map<String, Object> result = new HashMap<>();
             result.put("notificationId", request.notificationId);
             result.put("action", "APPROVED");
-            result.put("approver", userInfo.username);
-            result.put("approverRole", userInfo.roleCode);
+            result.put("approver", userInfo.getUsername());
+            result.put("approverRole", userInfo.getRoleCode());
             result.put("comment", safeComment);
             result.put("securityValidated", true); // 🛡️ 安全验证标记
             result.put("timestamp", System.currentTimeMillis());
 
             log.info("✅🛡️ [APPROVE-SECURE] 安全通知批准成功 - ID: {}, 审批者: {}", 
-                    request.notificationId, userInfo.username);
+                    request.notificationId, userInfo.getUsername());
             
             // 📊 安全审计记录
             SecurityEnhancementUtil.auditSecurityEvent("NOTIFICATION_APPROVED", 
-                userInfo.username, Map.of("notificationId", request.notificationId, "comment", safeComment));
+                userInfo.getUsername(), Map.of("notificationId", request.notificationId, "comment", safeComment));
             
             return success(result);
             
@@ -1247,7 +1561,7 @@ public class TempNotificationController {
                 return CommonResult.error(401, "未提供认证Token");
             }
 
-            UserInfo userInfo = getUserInfoFromMockApi(authToken);
+            AccessControlListManager.UserInfo userInfo = getUserInfoFromMockApi(authToken);
             if (userInfo == null) {
                 log.warn("❌ [REJECT-SECURE] Token验证失败 - IP: {}", httpRequest.getRemoteAddr());
                 SecurityEnhancementUtil.auditSecurityEvent("INVALID_TOKEN_REJECTION", 
@@ -1255,14 +1569,14 @@ public class TempNotificationController {
                 return CommonResult.error(401, "Token验证失败");
             }
 
-            log.info("❌ [REJECT-SECURE] 审批者认证成功: {} (角色: {})", userInfo.username, userInfo.roleCode);
+            log.info("❌ [REJECT-SECURE] 审批者认证成功: {} (角色: {})", userInfo.getUsername(), userInfo.getRoleCode());
 
             // 🎯 Step 2: 验证审批权限
-            if (!"PRINCIPAL".equals(userInfo.roleCode)) {
+            if (!"PRINCIPAL".equals(userInfo.getRoleCode())) {
                 log.warn("⛔ [REJECT-SECURE] 权限不足: 只有校长可以审批通知 - 用户: {} ({})", 
-                        userInfo.username, userInfo.roleCode);
+                        userInfo.getUsername(), userInfo.getRoleCode());
                 SecurityEnhancementUtil.auditSecurityEvent("UNAUTHORIZED_REJECTION_ATTEMPT", 
-                    userInfo.username, Map.of("role", userInfo.roleCode, "ip", httpRequest.getRemoteAddr()));
+                    userInfo.getUsername(), Map.of("role", userInfo.getRoleCode(), "ip", httpRequest.getRemoteAddr()));
                 return CommonResult.error(403, "权限不足: 只有校长可以审批通知");
             }
 
@@ -1277,7 +1591,7 @@ public class TempNotificationController {
             if (!validation.isValid) {
                 log.warn("⛔ [REJECTION-VALIDATE] 拒绝参数验证失败: {}", validation.getErrorSummary());
                 SecurityEnhancementUtil.auditSecurityEvent("REJECTION_VALIDATION_FAILED", 
-                    userInfo.username, Map.of("errors", validation.errors, "notificationId", request.notificationId));
+                    userInfo.getUsername(), Map.of("errors", validation.errors, "notificationId", request.notificationId));
                 
                 String detailedError = SecurityEnhancementUtil.generateDetailedErrorReport(validation.errors, "通知拒绝");
                 return CommonResult.error(400, detailedError);
@@ -1293,7 +1607,7 @@ public class TempNotificationController {
             
             if (!success) {
                 log.error("💥 [REJECT-SECURE] 拒绝操作失败 - ID: {}, 审批者: {}", 
-                         request.notificationId, userInfo.username);
+                         request.notificationId, userInfo.getUsername());
                 return CommonResult.error(500, "审批操作失败");
             }
 
@@ -1301,18 +1615,18 @@ public class TempNotificationController {
             Map<String, Object> result = new HashMap<>();
             result.put("notificationId", request.notificationId);
             result.put("action", "REJECTED");
-            result.put("approver", userInfo.username);
-            result.put("approverRole", userInfo.roleCode);
+            result.put("approver", userInfo.getUsername());
+            result.put("approverRole", userInfo.getRoleCode());
             result.put("comment", safeComment);
             result.put("securityValidated", true); // 🛡️ 安全验证标记
             result.put("timestamp", System.currentTimeMillis());
 
             log.info("❌🛡️ [REJECT-SECURE] 安全通知拒绝成功 - ID: {}, 审批者: {}", 
-                    request.notificationId, userInfo.username);
+                    request.notificationId, userInfo.getUsername());
             
             // 📊 安全审计记录
             SecurityEnhancementUtil.auditSecurityEvent("NOTIFICATION_REJECTED", 
-                userInfo.username, Map.of("notificationId", request.notificationId, "comment", safeComment));
+                userInfo.getUsername(), Map.of("notificationId", request.notificationId, "comment", safeComment));
             
             return success(result);
             
@@ -1348,15 +1662,15 @@ public class TempNotificationController {
      * 🔐 SE-1.2: 更新通知审批状态 - 使用安全参数化SQL
      */
     private boolean updateNotificationApprovalStatus(Long notificationId, int newStatus, 
-                                                   String approvalStatus, UserInfo approver, String comment) {
+                                                   String approvalStatus, AccessControlListManager.UserInfo approver, String comment) {
         try {
             log.info("🔐 [SECURE-APPROVAL] 开始安全审批状态更新");
             log.info("🔐 [SECURE-APPROVAL] 参数: notificationId={}, newStatus={}, approvalStatus={}, approver={}", 
-                    notificationId, newStatus, approvalStatus, approver.username);
+                    notificationId, newStatus, approvalStatus, approver.getUsername());
             
             // 🔐 SE-1.2: 使用安全SQL构建器替代字符串拼接
             String updateSql = SafeSQLExecutor.buildUpdateSQL()
-                .setApprovalUpdate(notificationId, newStatus, approvalStatus, approver.username, comment)
+                .setApprovalUpdate(notificationId, newStatus, approvalStatus, approver.getUsername(), comment)
                 .build();
             
             // 🔐 SE-1.2: 安全性验证
@@ -1429,15 +1743,15 @@ public class TempNotificationController {
                 return CommonResult.error(401, "未提供认证Token");
             }
 
-            UserInfo userInfo = getUserInfoFromMockApi(authToken);
+            AccessControlListManager.UserInfo userInfo = getUserInfoFromMockApi(authToken);
             if (userInfo == null) {
                 return CommonResult.error(401, "Token验证失败");
             }
 
-            log.info("📋 [PENDING] 用户认证成功: {} (角色: {})", userInfo.username, userInfo.roleCode);
+            log.info("📋 [PENDING] 用户认证成功: {} (角色: {})", userInfo.getUsername(), userInfo.getRoleCode());
 
             // 🎯 Step 2: 验证查看权限
-            if (!"PRINCIPAL".equals(userInfo.roleCode)) {
+            if (!"PRINCIPAL".equals(userInfo.getRoleCode())) {
                 log.warn("⛔ [PENDING] 权限不足: 只有校长可以查看待审批通知");
                 return CommonResult.error(403, "权限不足: 只有校长可以查看待审批通知");
             }
@@ -1454,9 +1768,9 @@ public class TempNotificationController {
             result.put("total", pendingNotifications.size());
             result.put("pendingNotifications", pendingNotifications);
             result.put("approver", Map.of(
-                "username", userInfo.username,
-                "roleCode", userInfo.roleCode,
-                "roleName", userInfo.roleName
+                "username", userInfo.getUsername(),
+                "roleCode", userInfo.getRoleCode(),
+                "roleName", userInfo.getRoleName()
             ));
             result.put("timestamp", System.currentTimeMillis());
 
@@ -1739,30 +2053,30 @@ public class TempNotificationController {
                 return CommonResult.error(401, "未提供认证Token");
             }
 
-            UserInfo userInfo = getUserInfoFromMockApi(authToken);
+            AccessControlListManager.UserInfo userInfo = getUserInfoFromMockApi(authToken);
             if (userInfo == null) {
                 return CommonResult.error(401, "Token验证失败");
             }
 
-            log.info("🎯 [SCOPE-OPTIONS] 用户认证成功: {} (角色: {})", userInfo.username, userInfo.roleCode);
+            log.info("🎯 [SCOPE-OPTIONS] 用户认证成功: {} (角色: {})", userInfo.getUsername(), userInfo.getRoleCode());
 
             // 🎯 Step 2: 获取可用范围选项
             java.util.List<NotificationScopeManager.ScopeOption> availableScopes = 
-                NotificationScopeManager.getAvailableScopes(userInfo.roleCode);
+                NotificationScopeManager.getAvailableScopes(userInfo.getRoleCode());
 
             // 📋 Step 3: 构造响应结果
             Map<String, Object> result = new HashMap<>();
             result.put("userInfo", Map.of(
-                "username", userInfo.username,
-                "roleCode", userInfo.roleCode,
-                "roleName", userInfo.roleName
+                "username", userInfo.getUsername(),
+                "roleCode", userInfo.getRoleCode(),
+                "roleName", userInfo.getRoleName()
             ));
             result.put("availableScopes", availableScopes);
             result.put("scopeCount", availableScopes.size());
             result.put("timestamp", System.currentTimeMillis());
 
             log.info("🎯 [SCOPE-OPTIONS] 范围选项查询成功: 用户 {} 可用范围 {} 个", 
-                    userInfo.roleCode, availableScopes.size());
+                    userInfo.getRoleCode(), availableScopes.size());
             return success(result);
             
         } catch (Exception e) {
@@ -1928,13 +2242,36 @@ public class TempNotificationController {
                 return CommonResult.error(401, "未提供认证Token");
             }
 
-            UserInfo userInfo = getUserInfoFromMockApi(authToken);
+            AccessControlListManager.UserInfo userInfo = getUserInfoFromMockApi(authToken);
             if (userInfo == null) {
                 log.warn("🗑️ [DELETE-NOTIFICATION] Token验证失败");
                 return CommonResult.error(401, "Token验证失败");
             }
 
-            log.info("🗑️ [DELETE-NOTIFICATION] 用户认证成功: {} ({})", userInfo.username, userInfo.roleCode);
+            log.info("🗑️ [DELETE-NOTIFICATION] 用户认证成功: {} ({})", userInfo.getUsername(), userInfo.getRoleCode());
+
+            // 🛡️ Step 1.5: 高风险安全漏洞修复 - 删除API安全验证
+            log.info("🛡️ [DELETE_SECURITY] 开始执行删除API安全验证");
+            
+            // IDOR防护 - 验证通知ID参数安全性
+            if (!idorValidator.validateNotificationId(id, userInfo)) {
+                log.warn("🚨 [SECURITY_VIOLATION] IDOR防护 - 通知ID不安全，拒绝删除: id={}, user={}", 
+                        id, userInfo.getEmployeeId());
+                return CommonResult.error(400, "无效的通知ID");
+            }
+            
+            // ACL权限检查 - 验证用户删除权限
+            if (!aclManager.hasPermission(userInfo, "NOTIFICATION_DELETE_ALL") && 
+                !aclManager.hasPermission(userInfo, "NOTIFICATION_DELETE_SCHOOL") &&
+                !aclManager.hasPermission(userInfo, "NOTIFICATION_DELETE_ACADEMIC") &&
+                !aclManager.hasPermission(userInfo, "NOTIFICATION_DELETE_DEPT") &&
+                !aclManager.hasPermission(userInfo, "NOTIFICATION_DELETE_CLASS")) {
+                log.warn("🚨 [SECURITY_VIOLATION] ACL权限检查失败 - 用户无删除权限: user={}, role={}", 
+                        userInfo.getEmployeeId(), userInfo.getRoleCode());
+                return CommonResult.error(403, "权限不足，无法删除通知");
+            }
+            
+            log.info("✅ [DELETE_SECURITY] 删除API安全验证通过 - user={}", userInfo.getEmployeeId());
 
             // 2. 查询通知信息，获取发布者
             String queryNotificationSql = String.format(
@@ -1959,11 +2296,23 @@ public class TempNotificationController {
             String publisherName = parts[2];
             log.info("🗑️ [DELETE-NOTIFICATION] 通知发布者: {}", publisherName);
 
+            // 🛡️ Step 2.5: 资源所有权验证 - 删除权限验证
+            // 获取通知创建者ID（简单映射，生产环境应该从数据库获取）
+            Long creatorId = getCreatorIdFromPublisherName(publisherName);
+            if (creatorId != null && !ownershipValidator.validateNotificationOwnership(userInfo, creatorId, id)) {
+                // 如果不是资源所有者，检查是否有管理权限
+                if (!userInfo.getRoleCode().equals("SYSTEM_ADMIN") && !userInfo.getRoleCode().equals("PRINCIPAL")) {
+                    log.warn("🚨 [OWNERSHIP_VIOLATION] 资源所有权验证失败 - 用户尝试删除他人通知: user={}, creator={}, notificationId={}", 
+                            userInfo.getEmployeeId(), publisherName, id);
+                    return CommonResult.error(403, "权限不足：无法删除他人发布的通知");
+                }
+            }
+
             // 3. 权限验证：校长可删除任何通知，其他人只能删除自己的通知
-            boolean canDelete = canDeleteNotification(userInfo.roleCode, userInfo.username, publisherName);
+            boolean canDelete = canDeleteNotification(userInfo.getRoleCode(), userInfo.getUsername(), publisherName);
             if (!canDelete) {
                 log.warn("🗑️ [DELETE-NOTIFICATION] 权限不足: {} 无法删除 {} 发布的通知", 
-                        userInfo.username, publisherName);
+                        userInfo.getUsername(), publisherName);
                 return CommonResult.error(403, "权限不足：只能删除自己发布的通知");
             }
 
@@ -1979,7 +2328,7 @@ public class TempNotificationController {
                 return CommonResult.error(500, "通知删除失败");
             }
 
-            log.info("🗑️ [DELETE-NOTIFICATION] 通知删除成功: ID={}, 删除者: {}", id, userInfo.username);
+            log.info("🗑️ [DELETE-NOTIFICATION] 通知删除成功: ID={}, 删除者: {}", id, userInfo.getUsername());
             return success("通知删除成功");
             
         } catch (Exception e) {
@@ -2073,5 +2422,172 @@ public class TempNotificationController {
             errorInfo.put("errorClass", e.getClass().getSimpleName());
             return CommonResult.error(500, "调试异常: " + e.getMessage());
         }
+    }
+    
+    /**
+     * 🛡️ 安全辅助方法 - 根据范围获取访问级别
+     */
+    private AccessControlListManager.AccessLevel getAccessLevelForScope(String targetScope) {
+        if (targetScope == null) {
+            return AccessControlListManager.AccessLevel.PERSONAL;
+        }
+        
+        switch (targetScope.toUpperCase()) {
+            case "SCHOOL_WIDE":
+            case "ALL_SCHOOL":
+                return AccessControlListManager.AccessLevel.SCHOOL;
+            case "DEPARTMENT":
+                return AccessControlListManager.AccessLevel.DEPARTMENT;
+            case "GRADE":
+            case "CLASS":
+                return AccessControlListManager.AccessLevel.CLASS;
+            default:
+                return AccessControlListManager.AccessLevel.PERSONAL;
+        }
+    }
+    
+    /**
+     * 🛡️ 安全辅助方法 - 根据发布者名称获取创建者ID
+     * 简单映射，生产环境应该从数据库查询
+     */
+    private Long getCreatorIdFromPublisherName(String publisherName) {
+        if (publisherName == null) {
+            return null;
+        }
+        
+        // 简单的名称到ID映射（生产环境应该查询用户表）
+        Map<String, Long> publisherIdMap = new HashMap<>();
+        publisherIdMap.put("系统管理员", 1L);
+        publisherIdMap.put("校长张明", 2L);
+        publisherIdMap.put("Principal-Zhang", 2L);
+        publisherIdMap.put("教务主任", 3L);
+        publisherIdMap.put("Director-Li", 3L);
+        publisherIdMap.put("教师王老师", 4L);
+        publisherIdMap.put("Teacher-Wang", 4L);
+        publisherIdMap.put("班主任刘老师", 5L);
+        publisherIdMap.put("ClassTeacher-Liu", 5L);
+        publisherIdMap.put("学生张三", 6L);
+        publisherIdMap.put("Student-Zhang", 6L);
+        
+        Long creatorId = publisherIdMap.get(publisherName);
+        if (creatorId == null) {
+            // 如果找不到映射，尝试从工号格式解析
+            try {
+                if (publisherName.contains("_")) {
+                    String[] parts = publisherName.split("_");
+                    if (parts.length >= 2 && parts[1].matches("\\d+")) {
+                        creatorId = Long.valueOf(parts[1]);
+                    }
+                }
+            } catch (NumberFormatException e) {
+                log.debug("无法解析创建者ID: {}", publisherName);
+                return 999L; // 默认返回一个ID，避免null
+            }
+        }
+        
+        return creatorId != null ? creatorId : 999L;
+    }
+    
+    /**
+     * 🎓 从通知标题中提取年级信息
+     * 支持格式: 【2023级】、【2024级】、【2025级】等
+     * 
+     * @param title 通知标题
+     * @return 提取的年级字符串，如"2023"；如果提取失败返回null
+     */
+    private String extractGradeFromTitle(String title) {
+        if (title == null || title.trim().isEmpty()) {
+            log.debug("🎓 [GRADE_EXTRACT] 标题为空，无法提取年级信息");
+            return null;
+        }
+        
+        try {
+            // 匹配【YYYY级】格式
+            java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("【(\\d{4})级】");
+            java.util.regex.Matcher matcher = pattern.matcher(title);
+            
+            if (matcher.find()) {
+                String grade = matcher.group(1);
+                log.debug("✅ [GRADE_EXTRACT] 成功从标题提取年级: title='{}', grade='{}'", title, grade);
+                return grade;
+            }
+            
+            log.debug("🔍 [GRADE_EXTRACT] 标题中未找到年级信息: title='{}'", title);
+            return null;
+        } catch (Exception e) {
+            log.warn("⚠️ [GRADE_EXTRACT] 年级提取异常: title='{}', error='{}'", title, e.getMessage());
+            return null;
+        }
+    }
+    
+    /**
+     * 🎯 🔧 GRADE-ARCH-FIX: 验证学生年级通知访问权限
+     * 优先使用数据库target_grade字段，标题解析作为fallback
+     * 
+     * @param userInfo 用户信息
+     * @param notification 通知对象
+     * @return true如果有权限访问，false否则
+     */
+    private boolean validateGradeNotificationAccess(AccessControlListManager.UserInfo userInfo, 
+                                                   Map<String, Object> notification) {
+        if (userInfo == null || notification == null) {
+            log.warn("🚨 [GRADE_ACCESS] 参数为空，拒绝访问");
+            return false;
+        }
+        
+        // 系统管理员、校长和教务主任可以访问所有年级通知
+        String roleCode = userInfo.getRoleCode();
+        if ("SYSTEM_ADMIN".equals(roleCode) || "PRINCIPAL".equals(roleCode) || "ACADEMIC_ADMIN".equals(roleCode)) {
+            log.debug("✅ [GRADE_ACCESS] 管理员权限通过: user={}, role={}", userInfo.getEmployeeId(), roleCode);
+            return true;
+        }
+        
+        // 🔧 GRADE-ARCH-FIX: 优先使用数据库target_grade字段
+        String notificationGrade = null;
+        Object targetGradeObj = notification.get("targetGrade");
+        if (targetGradeObj != null && !targetGradeObj.toString().trim().isEmpty()) {
+            notificationGrade = targetGradeObj.toString().trim();
+            log.debug("✅ [GRADE_ACCESS] 使用数据库target_grade字段: grade='{}'", notificationGrade);
+        } else {
+            // Fallback: 从通知标题中提取年级信息
+            String title = (String) notification.get("title");
+            notificationGrade = extractGradeFromTitle(title);
+            if (notificationGrade != null) {
+                log.debug("🔄 [GRADE_ACCESS] Fallback使用标题解析年级: title='{}', grade='{}'", title, notificationGrade);
+            } else {
+                log.debug("⚠️ [GRADE_ACCESS] 数据库和标题都无法获取年级信息，采用宽松策略允许访问: title='{}'", title);
+                return true;
+            }
+        }
+        
+        // 获取用户年级信息
+        String userGradeId = userInfo.getGradeId();
+        if (userGradeId == null) {
+            log.warn("🚨 [GRADE_ACCESS] 用户年级信息为空，拒绝访问: user={}", userInfo.getEmployeeId());
+            return false;
+        }
+        
+        // 年级匹配验证
+        boolean hasAccess = userGradeId.equals(notificationGrade);
+        
+        Long notificationId = null;
+        try {
+            Object idObj = notification.get("id");
+            if (idObj != null) {
+                notificationId = Long.valueOf(idObj.toString());
+            }
+        } catch (NumberFormatException e) {
+            // 忽略ID转换错误
+        }
+        
+        if (hasAccess) {
+            log.info("✅ [GRADE_ACCESS] 年级权限验证通过: user={}, userGrade={}, notificationGrade={}, notificationId={}", 
+                    userInfo.getEmployeeId(), userGradeId, notificationGrade, notificationId);
+        } else {
+            log.warn("🚨 [GRADE_ACCESS] 年级权限验证失败: user={}, userGrade={}, notificationGrade={}, notificationId={}", 
+                    userInfo.getEmployeeId(), userGradeId, notificationGrade, notificationId);
+        }
+        
+        return hasAccess;
     }
 }

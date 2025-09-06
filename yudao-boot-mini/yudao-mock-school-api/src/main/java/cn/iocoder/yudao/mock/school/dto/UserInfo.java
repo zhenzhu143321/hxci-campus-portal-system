@@ -34,6 +34,11 @@ public class UserInfo {
     private String employeeId;
 
     /**
+     * 学号字段（学生专用 - 与employeeId保持同步）
+     */
+    private String studentId;
+
+    /**
      * 用户真实姓名
      */
     private String realName;
@@ -57,6 +62,21 @@ public class UserInfo {
      * 部门名称
      */
     private String departmentName;
+
+    /**
+     * 年级ID（学生专用字段）
+     */
+    private String gradeId;
+
+    /**
+     * 班级ID（学生专用字段）
+     */
+    private String classId;
+
+    /**
+     * 部门ID字符串（主服务期望的字符串格式）
+     */
+    private String departmentIdStr;
 
     // 🚫 [REFACTORED] 移除权限列表字段 - 权限验证转移到主服务
     // 原 permissions 字段已删除，Mock API 只负责身份认证
