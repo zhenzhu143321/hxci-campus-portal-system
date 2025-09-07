@@ -449,30 +449,56 @@ cx -p "修复安全漏洞的具体代码"            # GPT-5安全修复
 
 ## 🔬 Gemini CLI代码分析系统 (✅ OpenRouter代理无限额度)
 
-### 🚀 **极简使用方法** (所有智能体必会!)
+### 🚀 **AI工具极简使用指南** (🔥 所有智能体5秒学会!)
 
-#### **步骤1: 设置环境变量** (🚨 每次新终端必须执行!)
+#### **1️⃣ Gemini (gm) - 项目分析扫描** 
 ```bash
-# 设置代理地址和密钥
-export GOOGLE_GEMINI_BASE_URL='http://127.0.0.1:8888'
-export GEMINI_API_KEY='test'
+# 一行搞定
+gm "分析项目架构"           # 架构分析
+gm "扫描安全风险"           # 安全扫描
+gm "评估代码质量"           # 代码审查
+gm "找出性能瓶颈"           # 性能分析
+gm --help                   # 查看帮助
+
+# 高级用法
+gm "深度分析" --model gemini-2.5-pro  # 使用更强大模型
+
+# 原理: 自动设置 GOOGLE_GEMINI_BASE_URL='http://127.0.0.1:8888' GEMINI_API_KEY='test'
 ```
 
-#### **步骤2: 直接使用Gemini命令**
+#### **2️⃣ CodeX (cx) - 代码审查建议**
 ```bash
-# 基础使用 - 分析当前项目
-gemini -p "分析项目架构"                    # 简单查询
-gemini -p "分析三重Token认证实现"           # 具体功能分析
+# 一行搞定
+cx -p "审查安全配置"         # 默认GPT-5分析
+cx -p "修复Bug" --mode fix  # 修复模式
+cx -p "重构代码" --mode refactor  # 重构模式
+cx --help                   # 查看帮助
 
-# 指定模型 (推荐gemini-2.5-pro)
-gemini -p "查看Controller类" --model gemini-2.5-pro
-
-# 切换到特定目录分析
-cd /opt/hxci-campus-portal/hxci-campus-portal-system
-gemini -p "分析当前目录的Java代码结构"
-
-# ⚠️ 重要: 避免使用--all-files (会超过1M token限制导致失败!)
+# 工作模式
+- analyze: 分析模式（默认）
+- fix: 修复模式
+- refactor: 重构模式
+- test: 测试模式
+- docs: 文档模式
 ```
+
+#### **3️⃣ AI协作工作流程**
+```bash
+1. gm "分析项目问题"    # Gemini扫描发现问题
+2. cx -p "审查代码"     # CodeX提供修复建议
+3. Claude实施修改       # Claude执行代码修改
+```
+
+#### **⚠️ 注意事项**
+- ✅ gm和cx都是简化命令，直接使用
+- ✅ 两个工具都支持 --help 查看帮助
+- ❌ 避免gm使用--all-files (超过token限制)
+- 💡 cx只提供建议，Claude负责实施
+- 🚨 **Gemini特别注意**: 
+  - Gemini是"交互式CLI代理"，会执行系统命令
+  - 使用分析性词汇："分析"、"评估"、"说明"
+  - 避免执行性词汇："测试"、"检查"、"执行"
+  - 测试连接专用命令: `gm-test`
 
 ### 📋 **实战分析示例** (智能体必看!)
 

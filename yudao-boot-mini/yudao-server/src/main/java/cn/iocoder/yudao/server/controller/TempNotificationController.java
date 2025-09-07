@@ -6,6 +6,7 @@ import cn.iocoder.yudao.server.util.NotificationScopeManager;
 import cn.iocoder.yudao.server.util.SafeSQLExecutor;
 import cn.iocoder.yudao.server.util.SecurityEnhancementUtil;
 import cn.iocoder.yudao.server.security.ResourceOwnershipValidator;
+import java.util.Arrays;
 import cn.iocoder.yudao.server.security.IdorProtectionValidator;
 import cn.iocoder.yudao.server.security.AccessControlListManager;
 import io.swagger.v3.oas.annotations.Operation;
@@ -1012,10 +1013,23 @@ public class TempNotificationController {
             log.info("💾 [DB-QUERY] 开始查询notification_info表");
             
             // 🔧 GRADE-ARCH-FIX: 构造查询SQL - 包含新的目标字段
-            String querySql = "SELECT id, title, content, level, status, publisher_name, publisher_role, target_scope, " +
+            // 使用新的安全SQL API构建查询
+            String baseSql = "SELECT id, title, content, level, status, publisher_name, publisher_role, target_scope, " +
                 "target_grade, target_class, target_department, " +
                 "DATE_FORMAT(create_time, '%Y-%m-%dT%H:%i:%s') as create_time " +
-                "FROM notification_info WHERE deleted=0 ORDER BY create_time DESC LIMIT 20";
+                "FROM notification_info";
+            
+            // 使用安全API添加deleted条件
+            String safeQuery = SafeSQLExecutor.ensureNotDeleted(baseSql);
+            
+            // 使用安全API添加ORDER BY
+            String orderBy = SafeSQLExecutor.buildSafeOrderBy(
+                "create_time desc",
+                Arrays.asList("id", "create_time", "level", "status"),
+                "create_time DESC"
+            );
+            
+            String querySql = safeQuery + orderBy + " LIMIT 20";
             
             // 🔧 FIX-1.4: 使用统一MySQL执行方式
             MySQLExecutionResult result = executeMySQL(querySql, true);
@@ -1791,10 +1805,24 @@ public class TempNotificationController {
             log.info("🔧 [PENDING-QUERY] 开始待审批通知查询");
             
             // 构造MySQL查询命令 - 查询status=2的待审批通知
-            String querySql = "SELECT id, title, content, level, status, publisher_name, publisher_role, " +
+            // 使用新的安全SQL API构建查询
+            String baseSql = "SELECT id, title, content, level, status, publisher_name, publisher_role, " +
                 "approver_id, approver_name, " +
                 "DATE_FORMAT(create_time, '%Y-%m-%dT%H:%i:%s') as create_time " +
-                "FROM notification_info WHERE deleted=0 AND status=2 ORDER BY create_time DESC LIMIT 20";
+                "FROM notification_info";
+            
+            // 使用安全API添加条件
+            String withDeleted = SafeSQLExecutor.ensureNotDeleted(baseSql);
+            String withStatus = SafeSQLExecutor.appendCondition(withDeleted, "status = 2");
+            
+            // 使用安全API添加ORDER BY
+            String orderBy = SafeSQLExecutor.buildSafeOrderBy(
+                "create_time desc",
+                Arrays.asList("id", "create_time", "level", "status"),
+                "create_time DESC"
+            );
+            
+            String querySql = withStatus + orderBy + " LIMIT 20";
             
             log.info("🔧 [PENDING-QUERY] 查询SQL: {}", querySql);
             

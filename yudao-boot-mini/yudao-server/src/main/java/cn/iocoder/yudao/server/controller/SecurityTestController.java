@@ -7,6 +7,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import jakarta.annotation.security.PermitAll;
+import cn.iocoder.yudao.framework.tenant.core.aop.TenantIgnore;
 
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.HashMap;
@@ -33,6 +35,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/admin-api/test/security")
+@TenantIgnore  // 绕过yudao租户认证系统，允许@PermitAll生效
 public class SecurityTestController {
 
     private static final Logger log = LoggerFactory.getLogger(SecurityTestController.class);
@@ -51,6 +54,8 @@ public class SecurityTestController {
      * GET /admin-api/test/security/encryption-test
      */
     @GetMapping("/encryption-test")
+    @PermitAll
+    @TenantIgnore
     public Map<String, Object> testEncryption(@RequestParam(defaultValue = "test_basic_token_12345") String testToken) {
         log.info("🔐 [ENCRYPTION_TEST] 开始测试AES-256-GCM加密解密功能");
         
@@ -109,6 +114,8 @@ public class SecurityTestController {
      * GET /admin-api/test/security/key-config-test
      */
     @GetMapping("/key-config-test")
+    @PermitAll
+    @TenantIgnore
     public Map<String, Object> testKeyConfig() {
         log.info("🔑 [KEY_CONFIG_TEST] 开始测试密钥配置管理功能");
         
@@ -159,6 +166,8 @@ public class SecurityTestController {
      * POST /admin-api/test/security/audit-test
      */
     @PostMapping("/audit-test")
+    @PermitAll
+    @TenantIgnore
     public Map<String, Object> testSecurityAudit(@RequestBody Map<String, String> params, HttpServletRequest request) {
         log.info("📝 [AUDIT_TEST] 开始测试安全审计日志功能");
         
@@ -214,6 +223,8 @@ public class SecurityTestController {
      * POST /admin-api/test/security/attack-detection-test
      */
     @PostMapping("/attack-detection-test")
+    @PermitAll
+    @TenantIgnore
     public Map<String, Object> testAttackDetection(@RequestBody Map<String, String> params, HttpServletRequest request) {
         log.info("🚨 [ATTACK_TEST] 开始测试攻击检测功能");
         
@@ -280,6 +291,8 @@ public class SecurityTestController {
      * GET /admin-api/test/security/status
      */
     @GetMapping("/status")
+    @PermitAll
+    @TenantIgnore
     public Map<String, Object> getSecurityStatus() {
         Map<String, Object> status = new HashMap<>();
         status.put("timestamp", System.currentTimeMillis());

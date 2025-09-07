@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.mock.school.service.impl;
 
+import cn.iocoder.yudao.mock.school.config.JwtSecurityConfig;
 import cn.iocoder.yudao.mock.school.dto.SchoolLoginRequest;
 import cn.iocoder.yudao.mock.school.dto.SchoolLoginResult;
 import cn.iocoder.yudao.mock.school.dto.SchoolUserDTO;
@@ -68,28 +69,15 @@ public class MockSchoolUserServiceImpl implements MockSchoolUserService {
 
     @Autowired
     private UserMappingService userMappingService;
+    
+    @Autowired
+    private JwtSecurityConfig jwtSecurityConfig;
 
-    // 🚨 P1.2安全修复：强化JWT配置
-    private static final String JWT_SECRET = generateSecureKey(); // 动态生成安全密钥
-    private static final Algorithm JWT_ALGORITHM = Algorithm.HMAC256(JWT_SECRET);
-    private static final long JWT_EXPIRATION_MS = 10 * 60 * 1000; // 10分钟 (进一步缩短有效期)
-    private static final String JWT_ISSUER = "hxci-campus-portal-v2";
+    // 🚨 P0-SEC-02安全修复：使用安全配置替代硬编码
+    // JWT配置现在从JwtSecurityConfig中获取，支持环境变量和安全密钥生成
     private static final String JWT_AUDIENCE = "school-api-secure";
 
-    /**
-     * 🔐 P1.2安全修复：动态生成安全密钥
-     * 防止硬编码密钥泄露，每次启动生成新的安全密钥
-     */
-    private static String generateSecureKey() {
-        // 基于系统参数和时间戳生成唯一密钥
-        String baseSecret = "hxci-campus-portal-dynamic-key";
-        String systemInfo = System.getProperty("java.version") + System.getProperty("os.name");
-        String timeStamp = String.valueOf(System.currentTimeMillis() / 1000 / 3600); // 每小时变化
-        
-        // 使用简单的混合算法生成256位密钥
-        String combinedSecret = baseSecret + systemInfo + timeStamp;
-        return Base64.getEncoder().encodeToString(combinedSecret.getBytes()).substring(0, 64);
-    }
+    // 🔐 P0-SEC-02修复：已移除弱密钥生成方法，使用JwtSecurityConfig提供的安全密钥
 
     /**
      * 🛡️ P1.2安全修复：Token脱敏工具方法
@@ -125,36 +113,36 @@ public class MockSchoolUserServiceImpl implements MockSchoolUserService {
             }
 
             Date now = new Date();
-            Date expiresAt = new Date(now.getTime() + JWT_EXPIRATION_MS); // 10分钟有效期
+            Date expiresAt = new Date(now.getTime() + jwtSecurityConfig.getJwtExpiration()); // 使用配置的有效期
             
             // 🆕 P1.2强化：生成更安全的JWT ID
             String jwtId = "jwt_v2_" + userInfo.getUserId() + "_" + 
                           System.currentTimeMillis() + "_" + 
                           Integer.toHexString(Objects.hash(userInfo.getEmployeeId(), now.getTime()));
 
-            // 🔐 P1.2强化：使用动态密钥的HS256算法生成JWT (极简载荷)
+            // 🔐 P0-SEC-02强化：使用安全配置的密钥和参数生成JWT
             String jwtToken = JWT.create()
                     .withSubject(userInfo.getUserId())
-                    .withIssuer(JWT_ISSUER) // 使用新的签发者标识
+                    .withIssuer(jwtSecurityConfig.getJwtIssuer()) // 使用配置的签发者
                     .withAudience(JWT_AUDIENCE) // 使用安全的受众标识
                     .withIssuedAt(now)
                     .withExpiresAt(expiresAt)
                     .withJWTId(jwtId) // 🆕 强化的JWT ID
                     
-                    // 🎯 P1.2极简载荷：只保留认证和授权绝对必需信息
+                    // 🎯 P0-SEC-02极简载荷：只保留认证和授权绝对必需信息
                     .withClaim("userId", userInfo.getUserId())
                     .withClaim("empId", userInfo.getEmployeeId()) // 缩短claim名称
                     .withClaim("role", userInfo.getRoleCode()) // 缩短claim名称
                     .withClaim("type", userInfo.getUserType()) // 缩短claim名称
                     .withClaim("ver", "2.0") // 🆕 Token版本标识
                     
-                    // 🚫 P1.2绝对禁止：任何可识别个人身份的信息
+                    // 🚫 P0-SEC-02绝对禁止：任何可识别个人身份的信息
                     // 包括：真实姓名、部门名称、年级班级具体信息、邮箱、电话等
                     
-                    // 🛡️ P1.2强化：使用动态密钥的HS256算法签名
-                    .sign(JWT_ALGORITHM);
+                    // 🛡️ P0-SEC-02强化：使用安全配置的算法签名
+                    .sign(jwtSecurityConfig.getJwtAlgorithm());
             
-            log.info("✅ [JWT_GENERATE_V2] P1.2强化JWT生成成功，算法: HS256动态密钥，有效期: 10分钟");
+            log.info("✅ [JWT_GENERATE_V2] P0-SEC-02强化JWT生成成功，算法: HS256安全密钥，有效期: {}分钟", jwtSecurityConfig.getJwtExpiration() / 60000);
             log.info("🔒 [SECURITY_V2] JWT载荷极简化：移除所有个人身份信息，只保留认证必需数据");
             log.info("🛡️ [SECURITY_V2] Token脱敏日志: {}", maskToken(jwtToken));
             
@@ -192,9 +180,9 @@ public class MockSchoolUserServiceImpl implements MockSchoolUserService {
                 throw new SecurityException("JWT Token为空");
             }
 
-            // 🚨 P1.2安全修复：创建强化JWT验证器，使用动态密钥
-            JWTVerifier verifier = JWT.require(JWT_ALGORITHM) // 使用动态密钥
-                    .withIssuer(JWT_ISSUER) // 验证新的签发者
+            // 🚨 P0-SEC-02安全修复：创建强化JWT验证器，使用安全配置
+            JWTVerifier verifier = JWT.require(jwtSecurityConfig.getJwtAlgorithm()) // 使用安全配置的密钥
+                    .withIssuer(jwtSecurityConfig.getJwtIssuer()) // 验证配置的签发者
                     .withAudience(JWT_AUDIENCE) // 验证安全受众
                     .acceptLeeway(30) // 允许30秒时钟偏移
                     .build();

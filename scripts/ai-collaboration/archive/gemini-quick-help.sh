@@ -1,0 +1,62 @@
+#!/bin/bash
+
+# Gemini CLI 快速使用指南脚本
+# 用法: ./gemini-quick-help.sh 或 gemini-help
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+echo -e "${GREEN}            Gemini CLI 快速使用指南 (5秒掌握)${NC}"
+echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+echo ""
+echo -e "${YELLOW}🚀 一行命令模板 (复制即用):${NC}"
+echo -e "${GREEN}GOOGLE_GEMINI_BASE_URL='http://127.0.0.1:8888' GEMINI_API_KEY='test' gemini -p \"你的问题\"${NC}"
+echo ""
+echo -e "${YELLOW}📋 实用示例:${NC}"
+echo ""
+echo "# 1. 架构分析"
+echo -e "${GREEN}GOOGLE_GEMINI_BASE_URL='http://127.0.0.1:8888' GEMINI_API_KEY='test' gemini -p \"分析项目架构\"${NC}"
+echo ""
+echo "# 2. 安全扫描"  
+echo -e "${GREEN}GOOGLE_GEMINI_BASE_URL='http://127.0.0.1:8888' GEMINI_API_KEY='test' gemini -p \"扫描代码安全风险\"${NC}"
+echo ""
+echo "# 3. 性能分析"
+echo -e "${GREEN}GOOGLE_GEMINI_BASE_URL='http://127.0.0.1:8888' GEMINI_API_KEY='test' gemini -p \"找出性能瓶颈\"${NC}"
+echo ""
+echo "# 4. 代码审查"
+echo -e "${GREEN}GOOGLE_GEMINI_BASE_URL='http://127.0.0.1:8888' GEMINI_API_KEY='test' gemini -p \"审查EnhancedCsrfSecurityConfig的代码质量\"${NC}"
+echo ""
+echo -e "${YELLOW}⚠️ 关键要点:${NC}"
+echo "1. 必须在同一行设置环境变量和执行gemini命令"
+echo "2. 环境变量不会持久化，每次都要重新设置"
+echo "3. 使用 --model gemini-2.5-pro 指定更强大的模型"
+echo "4. 避免使用 --all-files (会超过token限制)"
+echo ""
+echo -e "${YELLOW}🔧 服务管理:${NC}"
+echo "# 检查代理服务状态"
+echo "cd /opt/hxci-campus-portal/hxci-campus-portal-system/scripts/ai-collaboration/"
+echo "./start-gemini-proxy.sh status"
+echo ""
+echo "# 重启代理服务(如遇问题)"
+echo "./start-gemini-proxy.sh restart"
+echo ""
+echo -e "${YELLOW}💡 Pro技巧:${NC}"
+echo "# 创建别名简化调用(添加到~/.bashrc)"
+echo "alias gemini-ai='GOOGLE_GEMINI_BASE_URL=\"http://127.0.0.1:8888\" GEMINI_API_KEY=\"test\" gemini'"
+echo "# 使用: gemini-ai -p \"你的问题\""
+echo ""
+echo -e "${RED}❌ 常见错误:${NC}"
+echo "# 错误方式(环境变量不持久):"
+echo "export GOOGLE_GEMINI_BASE_URL='http://127.0.0.1:8888'"
+echo "gemini -p \"test\"  # 失败！环境变量丢失"
+echo ""
+echo -e "${GREEN}✅ 正确方式(一行命令):${NC}"
+echo "GOOGLE_GEMINI_BASE_URL='http://127.0.0.1:8888' GEMINI_API_KEY='test' gemini -p \"test\""
+echo ""
+echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+echo -e "${YELLOW}记住: 复制绿色命令，替换问题内容，直接运行！${NC}"
+echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"

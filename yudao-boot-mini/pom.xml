@@ -177,4 +177,47 @@
         </repository>
     </repositories>
 
+    <!-- 使用 huawei / aliyun 的 Maven 插件源，提升插件下载速度 -->
+    <pluginRepositories>
+        <pluginRepository>
+            <id>huaweicloud-plugin</id>
+            <name>huawei plugin</name>
+            <url>https://mirrors.huaweicloud.com/repository/maven/</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </pluginRepository>
+        <pluginRepository>
+            <id>aliyunmaven-plugin</id>
+            <name>aliyun plugin</name>
+            <url>https://maven.aliyun.com/repository/public</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </pluginRepository>
+
+        <pluginRepository>
+            <id>spring-milestones-plugin</id>
+            <name>Spring Milestones Plugin</name>
+            <url>https://repo.spring.io/milestone</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </pluginRepository>
+        <pluginRepository>
+            <id>spring-snapshots-plugin</id>
+            <name>Spring Snapshots Plugin</name>
+            <url>https://repo.spring.io/snapshot</url>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+        </pluginRepository>
+    </pluginRepositories>
+
 </project>

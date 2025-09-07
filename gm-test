@@ -1,0 +1,25 @@
+#!/bin/bash
+
+# Gemini快速测试工具 - 专门用于测试连接
+# 避免触发Gemini的命令执行模式
+
+echo "测试Gemini代理连接..."
+
+# 直接测试代理健康检查端点
+if curl -s http://127.0.0.1:8888/health > /dev/null 2>&1; then
+    echo "✅ Gemini代理服务正常运行"
+    
+    # 发送一个简单的问题，避免触发命令执行
+    echo "发送测试请求..."
+    GOOGLE_GEMINI_BASE_URL='http://127.0.0.1:8888' GEMINI_API_KEY='test' \
+        timeout 10 gemini -p "说'连接成功'" 2>/dev/null
+    
+    if [ $? -eq 0 ]; then
+        echo "✅ Gemini连接测试成功"
+    else
+        echo "⚠️ Gemini响应超时（10秒），但代理服务正常"
+    fi
+else
+    echo "❌ Gemini代理服务未运行"
+    echo "请运行: cd scripts/ai-collaboration && ./start-gemini-proxy.sh start"
+fi

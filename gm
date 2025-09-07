@@ -1,0 +1,36 @@
+#!/bin/bash
+
+# Gemini CLI 超简化包装器
+# 用法: gm "你的问题"
+# 相当于: GOOGLE_GEMINI_BASE_URL='http://127.0.0.1:8888' GEMINI_API_KEY='test' gemini -p "你的问题"
+
+# 显示帮助函数
+show_help() {
+    echo "Gemini AI 快速工具 (gm)"
+    echo ""
+    echo "用法: gm \"你的问题\" [选项]"
+    echo ""
+    echo "选项:"
+    echo "  --help                显示此帮助信息"
+    echo "  --model <模型>        指定模型 (默认: gemini-2.5-flash)"
+    echo ""
+    echo "示例:"
+    echo "  gm \"分析项目架构\""
+    echo "  gm \"扫描安全风险\""
+    echo "  gm \"评估代码质量\""
+    echo "  gm \"找出性能瓶颈\""
+    echo "  gm \"深度分析\" --model gemini-2.5-pro"
+    echo ""
+    echo "查看帮助:"
+    echo "  gm --help"
+    echo ""
+}
+
+# 检查参数
+if [ $# -eq 0 ] || [ "$1" == "--help" ] || [ "$1" == "-h" ]; then
+    show_help
+    exit 0
+fi
+
+# 执行gemini命令
+GOOGLE_GEMINI_BASE_URL='http://127.0.0.1:8888' GEMINI_API_KEY='test' gemini -p "$@"

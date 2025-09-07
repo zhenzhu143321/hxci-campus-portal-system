@@ -2,7 +2,13 @@ package cn.iocoder.yudao.server.util;
 
 import lombok.extern.slf4j.Slf4j;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -16,10 +22,22 @@ import java.util.regex.Pattern;
 @Slf4j
 public class SafeSQLExecutor {
     
-    // SQL注入风险字符模式
+    // SQL注入风险字符模式 - 只检测真正的注入原语和注释符号
     private static final Pattern DANGEROUS_PATTERN = Pattern.compile(
-        "(?i)(;\\s*--|/\\*.*?\\*/|\\b(union\\s+select|select\\s+\\*|insert\\s+into|update\\s+\\w+\\s+set|delete\\s+from|drop\\s+table|exec\\s*\\(|execute\\s*\\(|sp_\\w+|xp_\\w+))",
-        Pattern.CASE_INSENSITIVE | Pattern.DOTALL
+        "(?is)(/\\*.*?\\*/|(?m)(^|\\s)(?:--|#)|\\bunion\\s+(?:all\\s+)?select\\b|\\binto\\s+(?:outfile|dumpfile)\\b|\\bload_file\\b|\\bsleep\\s*\\(|\\bbenchmark\\s*\\(|\\bxp_\\w+\\b|\\bexec(?:ute)?\\b|\\binformation_schema\\b)"
+    );
+    
+    // 用于检测SQL子句边界的模式
+    private static final Pattern CLAUSE_BOUNDARY = Pattern.compile(
+        "(?i)\\b(GROUP\\s+BY|ORDER\\s+BY|HAVING|LIMIT|OFFSET|FETCH|FOR\\s+UPDATE)\\b"
+    );
+    
+    // 预编译的WHERE模式 - 性能优化
+    private static final Pattern WHERE_PATTERN = Pattern.compile("(?i)\\bWHERE\\b");
+    
+    // 用于验证安全条件的模式
+    private static final Pattern SAFE_CONDITION_PATTERN = Pattern.compile(
+        "^[a-zA-Z0-9_\\.\\s]+(=|<|>|<=|>=|<>|!=|\\s+IN\\s+|\\s+LIKE\\s+|\\s+BETWEEN\\s+|\\s+IS\\s+(?:NOT\\s+)?NULL)[\\s\\S]+$"
     );
     
     // 最大字符串长度限制
@@ -228,7 +246,128 @@ public class SafeSQLExecutor {
     }
     
     /**
-     * 🔐 验证SQL语句安全性
+     * 🔐 查找SQL中第一个子句边界的位置（已被findTopLevelBoundary替代）
+     * @deprecated 使用 findTopLevelBoundary 以正确处理子查询
+     */
+    @Deprecated
+    private static int findFirstBoundary(String upperSql) {
+        Matcher m = CLAUSE_BOUNDARY.matcher(upperSql);
+        return m.find() ? m.start() : -1;
+    }
+    
+    /**
+     * 🔐 检查SQL是否已包含WHERE子句 - 使用预编译模式
+     */
+    private static boolean hasWhere(String upperSql) {
+        return WHERE_PATTERN.matcher(upperSql).find();
+    }
+    
+    /**
+     * 🔐 安全地追加条件：在正确的位置注入WHERE或AND
+     * 将条件放置在ORDER BY/GROUP BY/HAVING/LIMIT/FOR UPDATE之前
+     */
+    public static String appendCondition(String sql, String condition) {
+        if (sql == null || condition == null || condition.trim().isEmpty()) {
+            return sql;
+        }
+        
+        // 验证条件是否安全
+        String trimmedCondition = condition.trim();
+        if (!isValidCondition(trimmedCondition)) {
+            log.error("🚨 [SECURITY] 检测到不安全的SQL条件: {}", trimmedCondition);
+            throw new SecurityException("Invalid SQL condition format");
+        }
+        
+        String trimmed = sql.trim();
+        // 移除尾部分号
+        if (trimmed.endsWith(";")) {
+            trimmed = trimmed.substring(0, trimmed.length() - 1).trim();
+        }
+        
+        String upper = trimmed.toUpperCase(Locale.ROOT);
+        int boundaryPos = findTopLevelBoundary(trimmed);
+        boolean whereExists = hasWhere(upper);
+
+        String injector = whereExists ? " AND " : " WHERE ";
+        String toInsert = injector + "(" + trimmedCondition + ")";
+
+        if (boundaryPos >= 0) {
+            return trimmed.substring(0, boundaryPos) + toInsert + " " + trimmed.substring(boundaryPos);
+        } else {
+            return trimmed + toInsert;
+        }
+    }
+    
+    /**
+     * 🔐 验证条件是否安全
+     */
+    private static boolean isValidCondition(String condition) {
+        // 基础验证：不允许分号、注释、UNION等危险关键字
+        if (condition.contains(";") || 
+            condition.contains("--") || 
+            condition.contains("/*") || 
+            condition.contains("*/") ||
+            condition.toUpperCase().contains("UNION") ||
+            condition.toUpperCase().contains("SELECT") ||
+            condition.toUpperCase().contains("INSERT") ||
+            condition.toUpperCase().contains("UPDATE") ||
+            condition.toUpperCase().contains("DELETE") ||
+            condition.toUpperCase().contains("DROP")) {
+            return false;
+        }
+        
+        // 验证基本格式：列名 操作符 值
+        return SAFE_CONDITION_PATTERN.matcher(condition).find();
+    }
+    
+    /**
+     * 🔐 查找顶层SQL子句边界（忽略子查询）
+     */
+    private static int findTopLevelBoundary(String sql) {
+        int parenLevel = 0;
+        boolean inSingleQuote = false;
+        boolean inDoubleQuote = false;
+        String upper = sql.toUpperCase(Locale.ROOT);
+        
+        for (int i = 0; i < sql.length(); i++) {
+            char c = sql.charAt(i);
+            
+            // 处理字符串
+            if (c == '\'' && !inDoubleQuote && (i == 0 || sql.charAt(i-1) != '\\')) {
+                inSingleQuote = !inSingleQuote;
+            } else if (c == '\"' && !inSingleQuote && (i == 0 || sql.charAt(i-1) != '\\')) {
+                inDoubleQuote = !inDoubleQuote;
+            }
+            
+            // 跳过字符串内容
+            if (inSingleQuote || inDoubleQuote) continue;
+            
+            // 处理括号
+            if (c == '(') parenLevel++;
+            else if (c == ')') parenLevel--;
+            
+            // 只在顶层查找边界
+            if (parenLevel == 0) {
+                // 检查是否匹配边界关键字
+                Matcher m = CLAUSE_BOUNDARY.matcher(upper.substring(i));
+                if (m.find() && m.start() == 0) {
+                    return i;
+                }
+            }
+        }
+        
+        return -1;
+    }
+
+    /**
+     * 🔐 确保软删除保护
+     */
+    public static String ensureNotDeleted(String sql) {
+        return appendCondition(sql, "deleted = 0");
+    }
+
+    /**
+     * 🔐 验证SQL语句安全性 - 改进版
      */
     public static boolean isSecureSQL(String sql) {
         if (sql == null || sql.trim().isEmpty()) {
@@ -237,21 +376,40 @@ public class SafeSQLExecutor {
         
         // 检查是否包含多个语句 (分号分隔)
         String[] statements = sql.split(";");
-        if (statements.length > 3) { // 允许INSERT + SELECT 或 UPDATE + SELECT
+        if (statements.length > 3) { // 允许DML + SELECT LAST_INSERT_ID()模式
             log.warn("🚨 [SECURITY] SQL包含过多语句: {}", statements.length);
             return false;
         }
-        
-        // 检查每个语句的安全性
+
         for (String statement : statements) {
-            String trimmed = statement.trim().toUpperCase();
-            if (trimmed.startsWith("DROP") || trimmed.startsWith("DELETE FROM") || 
-                trimmed.startsWith("TRUNCATE") || trimmed.contains("INTO OUTFILE")) {
-                log.error("🚨 [SECURITY] 检测到危险SQL操作: {}", statement);
+            String s = statement.trim();
+            if (s.isEmpty()) continue;
+
+            String upper = s.toUpperCase(Locale.ROOT);
+
+            // 阻止DDL和导出操作
+            if (upper.startsWith("DROP ") || upper.startsWith("TRUNCATE ") || upper.contains(" INTO OUTFILE")) {
+                log.error("🚨 [SECURITY] 检测到危险SQL操作: {}", s);
                 return false;
             }
+
+            // DELETE和UPDATE需要WHERE或LIMIT - 使用正则匹配
+            if (upper.startsWith("DELETE ")) {
+                boolean hasWhere = WHERE_PATTERN.matcher(upper).find();
+                boolean hasLimit = Pattern.compile("\\bLIMIT\\b", Pattern.CASE_INSENSITIVE).matcher(upper).find();
+                if (!hasWhere && !hasLimit) {
+                    log.warn("🚨 [SECURITY] DELETE缺少WHERE或LIMIT: {}", s);
+                    return false;
+                }
+            }
+            if (upper.startsWith("UPDATE ")) {
+                boolean hasWhere = WHERE_PATTERN.matcher(upper).find();
+                if (!hasWhere) {
+                    log.warn("🚨 [SECURITY] UPDATE缺少WHERE: {}", s);
+                    return false;
+                }
+            }
         }
-        
         return true;
     }
     
@@ -267,5 +425,88 @@ public class SafeSQLExecutor {
      */
     public static NotificationUpdateSQL buildUpdateSQL() {
         return new NotificationUpdateSQL();
+    }
+    
+    /**
+     * 🔐 构建安全的ORDER BY子句
+     * - 支持逗号分隔："col1 asc, col2 desc"
+     * - 每个列必须在白名单中；方向必须是ASC/DESC
+     * - 拒绝函数、子查询、表达式
+     * 如果没有有效排序则返回空字符串
+     */
+    public static String buildSafeOrderBy(String orderByRaw, Collection<String> allowedColumns, String defaultOrder) {
+        if (orderByRaw == null || orderByRaw.trim().isEmpty()) {
+            return (defaultOrder != null && !defaultOrder.isEmpty()) ? " ORDER BY " + defaultOrder : "";
+        }
+        if (allowedColumns == null || allowedColumns.isEmpty()) {
+            log.warn("🔐 [ORDER-BY] 未提供白名单，忽略排序");
+            return (defaultOrder != null && !defaultOrder.isEmpty()) ? " ORDER BY " + defaultOrder : "";
+        }
+
+        Set<String> whitelist = new LinkedHashSet<>();
+        for (String c : allowedColumns) {
+            if (c != null) whitelist.add(c.trim());
+        }
+
+        String[] parts = orderByRaw.split(",");
+        List<String> safeParts = new ArrayList<>();
+        Pattern token = Pattern.compile("(?i)^[a-zA-Z0-9_\\.]+(?:\\s+(ASC|DESC))?$");
+
+        for (String p : parts) {
+            String item = p.trim();
+            if (item.isEmpty()) continue;
+            if (!token.matcher(item).matches()) {
+                log.warn("🔐 [ORDER-BY] 非法排序片段，已忽略: {}", item);
+                continue;
+            }
+
+            // 分离列名和方向
+            String[] seg = item.split("\\s+");
+            String col = seg[0];
+            String dir = (seg.length > 1) ? seg[1].toUpperCase(Locale.ROOT) : "ASC";
+            if (!"ASC".equals(dir) && !"DESC".equals(dir)) {
+                dir = "ASC";
+            }
+
+            // 白名单检查：大小写不敏感比较
+            String colLower = col.toLowerCase(Locale.ROOT);
+            boolean found = false;
+            String matchedCol = col;
+            
+            for (String whiteCol : whitelist) {
+                if (whiteCol.toLowerCase(Locale.ROOT).equals(colLower)) {
+                    found = true;
+                    matchedCol = whiteCol; // 使用白名单中的形式
+                    break;
+                }
+            }
+            
+            if (!found && col.contains(".")) {
+                // 尝试非限定匹配
+                String unqualified = col.substring(col.lastIndexOf('.') + 1);
+                String unqualifiedLower = unqualified.toLowerCase(Locale.ROOT);
+                for (String whiteCol : whitelist) {
+                    if (whiteCol.toLowerCase(Locale.ROOT).equals(unqualifiedLower)) {
+                        found = true;
+                        matchedCol = whiteCol;
+                        break;
+                    }
+                }
+            }
+            
+            if (!found) {
+                log.warn("🔐 [ORDER-BY] 不在白名单，已忽略: {}", col);
+                continue;
+            }
+            
+            col = matchedCol;
+
+            safeParts.add(col + " " + dir);
+        }
+
+        if (safeParts.isEmpty()) {
+            return (defaultOrder != null && !defaultOrder.isEmpty()) ? " ORDER BY " + defaultOrder : "";
+        }
+        return " ORDER BY " + String.join(", ", safeParts);
     }
 }

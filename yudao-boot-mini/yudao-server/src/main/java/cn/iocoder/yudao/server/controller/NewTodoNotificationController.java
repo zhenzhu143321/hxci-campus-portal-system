@@ -1,9 +1,12 @@
 package cn.iocoder.yudao.server.controller;
 
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
+import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.tenant.core.aop.TenantIgnore;
 import cn.iocoder.yudao.server.annotation.RequiresPermission;
 import cn.iocoder.yudao.server.service.NotificationPermissionValidator;
+import cn.iocoder.yudao.server.service.todo.TodoNotificationService;
+import cn.iocoder.yudao.server.dal.dataobject.todo.TodoNotificationDO;
 import cn.iocoder.yudao.server.util.SecurityEnhancementUtil;
 import cn.iocoder.yudao.server.security.ResourceOwnershipValidator;
 import cn.iocoder.yudao.server.security.IdorProtectionValidator;
@@ -55,6 +58,10 @@ public class NewTodoNotificationController {
     // 🚨 P0安全修复：注入权限验证器
     @Autowired
     private NotificationPermissionValidator permissionValidator;
+    
+    // 🔧 SQL注入修复：注入MyBatis Plus服务
+    @Autowired
+    private TodoNotificationService todoNotificationService;
     
     // 🛡️ 高风险安全漏洞修复：注入安全验证器
     private final ResourceOwnershipValidator ownershipValidator;
@@ -145,52 +152,45 @@ public class NewTodoNotificationController {
             
             log.info("✅ [TODO_LIST_SECURITY] 待办列表安全验证通过 - user={}", userInfo.getUsername());
 
-            // 🔍 Step 2: 构建查询条件 - 使用独立的todo_notifications表
-            StringBuilder whereClause = new StringBuilder();
-            whereClause.append("WHERE deleted = 0"); // 基础条件
-            
-            // 添加状态过滤
-            if (status != null) {
-                Integer statusCode = getStatusCode(status);
-                if (statusCode != null) {
-                    whereClause.append(" AND status = ").append(statusCode);
-                }
-            }
-            
-            // 添加优先级过滤
-            if (priority != null) {
-                Integer priorityCode = getPriorityCode(priority);
-                if (priorityCode != null) {
-                    whereClause.append(" AND priority = ").append(priorityCode);
-                }
-            }
-            
-            // 🔐 添加范围权限过滤 - 基于用户角色和详细信息 (安全修复)
-            whereClause.append(buildScopeFilter(userInfo));
+            // 🔍 Step 2: 使用MyBatis Plus安全查询（自动处理 deleted = 0）
+            Integer statusCode = getStatusCode(status);
+            Integer priorityCode = getPriorityCode(priority);
 
-            // 📋 Step 3: 查询待办列表数据
-            String countSql = "SELECT COUNT(*) as total FROM todo_notifications " + whereClause;
-            
-            String dataSql = String.format(
-                "SELECT id, title, content, summary, priority, " +
-                "DATE_FORMAT(deadline, '%%Y-%%m-%%d %%H:%%i:%%s') as due_date, " +
-                "status, publisher_name as assigner_name, target_scope, target_student_ids, " +
-                "target_grade_ids, target_class_ids, " +
-                "DATE_FORMAT(create_time, '%%Y-%%m-%%d %%H:%%i:%%s') as create_time " +
-                "FROM todo_notifications %s " +
-                "ORDER BY priority DESC, deadline ASC " +
-                "LIMIT %d OFFSET %d",
-                whereClause, pageSize, (page - 1) * pageSize
-            );
+            log.info("🔍 [NEW-TODO-LIST] 使用MyBatis Plus安全查询: statusCode={}, priorityCode={}", 
+                    statusCode, priorityCode);
 
-            log.info("🔍 [NEW-TODO-LIST] 执行查询SQL: {}", dataSql);
+            // 📋 Step 3: 执行安全的分页查询
+            PageResult<TodoNotificationDO> pageResult = todoNotificationService.getMyTodos(
+                    page, pageSize, statusCode, priorityCode, userInfo);
 
-            // 🎯 Step 4: 执行数据库查询
-            List<Map<String, Object>> todos = executeQueryAndReturnList(dataSql);
-            Map<String, Object> countResult = executeQueryAndReturnSingle(countSql);
-            
-            int total = countResult != null ? 
-                Integer.parseInt(countResult.get("total").toString()) : 0;
+            log.info("🔍 [NEW-TODO-LIST] MyBatis Plus查询完成: 总数={}, 当前页数据={}", 
+                    pageResult.getTotal(), pageResult.getList().size());
+
+            // 🎯 Step 4: 转换为前端所需的Map格式
+            List<Map<String, Object>> todos = pageResult.getList().stream()
+                .map(todoRecord -> {
+                    Map<String, Object> todo = new HashMap<>();
+                    todo.put("id", todoRecord.getId());
+                    todo.put("title", todoRecord.getTitle());
+                    todo.put("content", todoRecord.getContent());
+                    todo.put("summary", todoRecord.getSummary());
+                    todo.put("priority", getPriorityName(todoRecord.getPriority()));
+                    todo.put("due_date", todoRecord.getDeadline() != null ? 
+                        todoRecord.getDeadline().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")) : null);
+                    todo.put("status", getStatusName(todoRecord.getStatus()));
+                    todo.put("assigner_name", todoRecord.getPublisherName());
+                    todo.put("target_scope", todoRecord.getTargetScope());
+                    todo.put("target_student_ids", todoRecord.getTargetStudentIds());
+                    todo.put("target_grade_ids", todoRecord.getTargetGradeIds());
+                    todo.put("target_class_ids", todoRecord.getTargetClassIds());
+                    todo.put("create_time", todoRecord.getCreateTime() != null ?
+                        todoRecord.getCreateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")) : null);
+                    todo.put("level", 5); // 待办通知固定为level 5
+                    return todo;
+                })
+                .collect(java.util.stream.Collectors.toList());
+
+            long total = pageResult.getTotal();
 
             // 🔄 Step 5: 检查每个待办的个人完成状态
             for (Map<String, Object> todo : todos) {
@@ -288,11 +288,8 @@ public class NewTodoNotificationController {
             
             log.info("✅ [TODO_COMPLETE_SECURITY] 待办完成安全验证通过 - user={}", userInfo.getUsername());
 
-            // 🔍 Step 2: 检查待办是否存在且有效
-            String checkSql = "SELECT id, title, status FROM todo_notifications " +
-                             "WHERE id = " + id + " AND deleted = 0";
-            
-            Map<String, Object> todoInfo = executeQueryAndReturnSingle(checkSql);
+            // 🔍 Step 2: 使用MyBatis Plus安全检查待办是否存在（自动处理 deleted = 0）
+            TodoNotificationDO todoInfo = todoNotificationService.getTodoById(id);
             if (todoInfo == null) {
                 log.warn("❌ [NEW-TODO-COMPLETE] 待办不存在或无效: {}", id);
                 return CommonResult.error(404, "待办任务不存在");
@@ -325,7 +322,7 @@ public class NewTodoNotificationController {
             // ✅ Step 5: 构建响应结果
             Map<String, Object> result = new HashMap<>();
             result.put("todoId", id);
-            result.put("title", todoInfo.get("title"));
+            result.put("title", todoInfo.getTitle());
             result.put("completedBy", userInfo.getUsername());
             result.put("completedTime", LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
             result.put("isCompleted", true);
@@ -626,18 +623,23 @@ public class NewTodoNotificationController {
 
             log.info("✅ [NEW-TODO-STATS] 用户认证成功: {} (角色: {})", userInfo.getUsername(), userInfo.getRoleCode());
 
-            // 🔍 Step 2: 检查待办是否存在
-            String checkSql = "SELECT id, title, publisher_name, target_scope, " +
-                             "DATE_FORMAT(create_time, '%Y-%m-%d %H:%i:%s') as create_time, " +
-                             "DATE_FORMAT(deadline, '%Y-%m-%d %H:%i:%s') as due_date " +
-                             "FROM todo_notifications " +
-                             "WHERE id = " + id + " AND deleted = 0";
-            
-            Map<String, Object> todoInfo = executeQueryAndReturnSingle(checkSql);
-            if (todoInfo == null) {
+            // 🔍 Step 2: 使用MyBatis Plus安全检查待办是否存在（自动处理 deleted = 0）
+            TodoNotificationDO todoRecord = todoNotificationService.getTodoById(id);
+            if (todoRecord == null) {
                 log.warn("❌ [NEW-TODO-STATS] 待办不存在: {}", id);
                 return CommonResult.error(404, "待办任务不存在");
             }
+            
+            // 转换为Map格式以保持现有API兼容性
+            Map<String, Object> todoInfo = new HashMap<>();
+            todoInfo.put("id", todoRecord.getId());
+            todoInfo.put("title", todoRecord.getTitle());
+            todoInfo.put("publisher_name", todoRecord.getPublisherName());
+            todoInfo.put("target_scope", todoRecord.getTargetScope());
+            todoInfo.put("create_time", todoRecord.getCreateTime() != null ?
+                todoRecord.getCreateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")) : null);
+            todoInfo.put("due_date", todoRecord.getDeadline() != null ?
+                todoRecord.getDeadline().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")) : null);
 
             // 📊 Step 3: 统计完成情况
             String statsSql = String.format(

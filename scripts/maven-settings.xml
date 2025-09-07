@@ -1,0 +1,24 @@
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd">
+
+    <!-- 指向共享的本地仓库，避免用户差异 -->
+    <localRepository>/opt/hxci-campus-portal/maven-repo</localRepository>
+
+    <!-- 使用阿里云镜像，提升下载速度 -->
+    <mirrors>
+        <mirror>
+            <id>aliyun-maven</id>
+            <name>Alibaba Cloud Maven Mirror</name>
+            <url>https://maven.aliyun.com/repository/public</url>
+            <mirrorOf>*</mirrorOf>
+        </mirror>
+    </mirrors>
+
+    <!-- 插件仓库镜像 -->
+    <pluginGroups>
+        <pluginGroup>org.apache.maven.plugins</pluginGroup>
+        <pluginGroup>org.codehaus.mojo</pluginGroup>
+    </pluginGroups>
+
+</settings>

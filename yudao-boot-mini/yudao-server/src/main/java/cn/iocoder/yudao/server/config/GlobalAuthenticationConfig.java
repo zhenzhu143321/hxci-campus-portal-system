@@ -76,7 +76,19 @@ public class GlobalAuthenticationConfig implements WebMvcConfigurer {
                 "/mock-school-api/auth/register",     // 用户注册（如果需要）
                 "/mock-school-api/health",            // 健康检查
                 "/admin-api/test/health",             // 主服务健康检查
-                "/admin-api/actuator/health"          // Actuator健康检查
+                "/admin-api/actuator/health",         // Actuator健康检查
+                
+                // 🔒 P0级安全测试API（标记为@PermitAll的公开端点）
+                "/admin-api/test/security/status",                  // P0安全修复状态
+                "/admin-api/test/security/encryption-test",         // AES-256-GCM加密测试
+                "/admin-api/test/security/key-config-test",         // 密钥配置测试
+                "/admin-api/test/security/audit-test",              // 安全审计测试
+                "/admin-api/test/security/attack-detection-test",   // 攻击检测测试
+                
+                // 📢 通知系统测试API（标记为@PermitAll的公开端点）
+                "/admin-api/test/notification/api/ping",            // 通知服务ping测试
+                "/admin-api/test/notification/api/health",          // 通知服务健康检查
+                "/admin-api/test/notification/api/simple-test"      // 通知服务简单测试
         ));
 
         // 🛡️ 允许的HTTP方法白名单

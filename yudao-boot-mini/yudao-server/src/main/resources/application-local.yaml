@@ -235,6 +235,7 @@ yudao:
       - /admin-api/system/notification-test/**
       - /admin-api/mock-school/**             # Mock School API接口
       - /admin-api/server/notification/**     # 保留备用
+      - /admin-api/test/security/**           # 🔒 P0级安全测试API（添加白名单修复401问题）
 
 --- #################### Mock School API 集成配置 ####################
 # Mock School API 配置
@@ -272,6 +273,21 @@ yudao:
   wxa-subscribe-message:
     miniprogram-state: developer # 跳转小程序类型：开发版为 “developer”；体验版为 “trial”为；正式版为 “formal”
   tencent-lbs-key: TVDBZ-TDILD-4ON4B-PFDZA-RNLKH-VVF6E # QQ 地图的密钥 https://lbs.qq.com/service/staticV2/staticGuide/staticDoc
+
+--- #################### P0-SEC-03 CSRF防护增强配置 ####################
+# 增强CSRF安全配置
+security:
+  csrf:
+    allowed-origins:                   # 允许的跨域来源（生产环境严格限制）
+      - "http://localhost:3000"        # Vue开发服务器
+      - "http://localhost:3001"        # Vue备用端口
+      - "http://localhost:8080"        # Demo展示服务
+    token-expiry: 1800                 # CSRF Token有效期（30分钟）
+    rate-limit-enabled: true           # 启用速率限制
+    trust-proxy-headers: false        # 🚨 生产环境禁用代理头信任，防止IP伪造
+    security-logging:
+      enabled: true                    # 启用安全事件日志
+      incident-threshold: 5            # 安全事件阈值
 
 justauth:
   enabled: true

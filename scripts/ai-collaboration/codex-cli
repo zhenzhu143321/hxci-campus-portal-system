@@ -89,13 +89,14 @@ fi
 # 切换到项目目录
 cd "$PROJECT_ROOT" || exit 1
 
-# 构建命令 - 配置OpenRouter
+# 构建命令 - 配置OpenRouter + 启用Streaming
 CMD="codex exec"
 CMD="$CMD -c model_provider=openrouter"
 CMD="$CMD -c model_providers.openrouter.name=OpenRouter"
 CMD="$CMD -c model_providers.openrouter.base_url=https://openrouter.ai/api/v1"
 CMD="$CMD -c model_providers.openrouter.env_key=OPENROUTER_API_KEY"
 CMD="$CMD -c model=$MODEL"
+CMD="$CMD -c stream=true"
 CMD="$CMD --skip-git-repo-check"
 CMD="$CMD --color always"
 
@@ -144,5 +145,15 @@ case $MODE in
         ;;
 esac
 
-# 执行命令
-eval "$CMD \"$FULL_PROMPT\""
+# 执行命令（添加10分钟超时）
+# 使用timeout命令设置10分钟（600秒）超时
+timeout 600 bash -c "eval \"$CMD \\\"$FULL_PROMPT\\\"\""
+RESULT=$?
+
+# 检查是否超时
+if [ $RESULT -eq 124 ]; then
+    echo "⚠️ 命令执行超时（超过10分钟）"
+    exit 124
+fi
+
+exit $RESULT

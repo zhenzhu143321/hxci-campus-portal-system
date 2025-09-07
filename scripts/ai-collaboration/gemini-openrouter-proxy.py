@@ -359,6 +359,86 @@ def count_tokens(model):
             }
         }), 500
 
+@app.route('/v1beta/models/<model>:generateJson', methods=['POST'])
+@app.route('/v1/models/<model>:generateJson', methods=['POST'])
+@app.route('/v1beta/models/<model>/generateJson', methods=['POST'])
+@app.route('/v1/models/<model>/generateJson', methods=['POST'])
+def generate_json(model):
+    """
+    处理Gemini CLI的generateJson请求
+    根据CodeX分析，CLI期望真正的模型响应，而不仅仅是nextSpeaker决定
+    """
+    try:
+        logger.info(f"Received generateJson request for model: {model}")
+        
+        # 获取请求数据
+        gemini_request = request.get_json()
+        logger.debug(f"GenerateJson request: {json.dumps(gemini_request, ensure_ascii=False)[:300]}")
+        
+        # 调用真正的模型生成JSON响应
+        # 转换为OpenRouter格式
+        openrouter_request = convert_gemini_to_openrouter(gemini_request, model)
+        logger.info(f"Converted generateJson to OpenRouter format: {json.dumps(openrouter_request, ensure_ascii=False)[:500]}")
+        
+        # 调用OpenRouter API
+        headers = {
+            'Authorization': f'Bearer {OPENROUTER_API_KEY}',
+            'Content-Type': 'application/json',
+            'HTTP-Referer': 'https://github.com/hxci-campus-portal',
+            'X-Title': 'Gemini CLI Proxy'
+        }
+        
+        response = requests.post(
+            f'{OPENROUTER_BASE_URL}/chat/completions',
+            headers=headers,
+            json=openrouter_request,
+            timeout=60
+        )
+        
+        logger.info(f"OpenRouter generateJson response status: {response.status_code}")
+        
+        if response.status_code != 200:
+            logger.error(f"OpenRouter generateJson error: {response.text}")
+            # 返回默认的nextSpeaker响应
+            return jsonify({
+                "nextSpeaker": "user"
+            })
+        
+        # 转换响应格式并提取nextSpeaker决定
+        openrouter_response = response.json()
+        
+        # 从OpenRouter响应中提取文本
+        next_speaker = "user"  # 默认值
+        if 'choices' in openrouter_response and len(openrouter_response['choices']) > 0:
+            choice = openrouter_response['choices'][0]
+            if 'message' in choice and 'content' in choice['message']:
+                content = choice['message']['content'].strip().lower()
+                
+                # 根据模型响应内容决定下一个发言者
+                if any(keyword in content for keyword in ['user', '用户', 'user should', 'should be user']):
+                    next_speaker = "user"
+                elif any(keyword in content for keyword in ['model', '模型', 'assistant', 'model should', 'should be model']):
+                    next_speaker = "model"
+                else:
+                    # 如果无法判断，根据上下文决定
+                    # 如果模型刚刚回应，通常下一个应该是user
+                    next_speaker = "user"
+        
+        # 返回CLI期望的格式
+        response_data = {
+            "nextSpeaker": next_speaker
+        }
+        
+        logger.info(f"GenerateJson extracted nextSpeaker decision: {response_data}")
+        return jsonify(response_data)
+        
+    except Exception as e:
+        logger.error(f"Error in generateJson endpoint: {str(e)}", exc_info=True)
+        # 返回默认nextSpeaker响应避免CLI报错
+        return jsonify({
+            "nextSpeaker": "user"
+        })
+
 @app.route('/health', methods=['GET'])
 def health_check():
     """
@@ -369,6 +449,30 @@ def health_check():
         'service': 'Gemini to OpenRouter Proxy',
         'openrouter_model': OPENROUTER_MODEL
     })
+
+@app.before_request
+def log_request_info():
+    """
+    记录所有请求信息以帮助调试
+    """
+    if request.path not in ['/health']:
+        logger.info(f"Incoming request: {request.method} {request.path}")
+        logger.debug(f"Headers: {dict(request.headers)}")
+        if request.is_json and request.get_json():
+            logger.debug(f"Body: {str(request.get_json())[:200]}")
+
+@app.errorhandler(404)
+def not_found(error):
+    """
+    处理404错误，返回详细信息
+    """
+    logger.error(f"404 Not Found: {request.method} {request.path}")
+    return jsonify({
+        'error': {
+            'message': f'Endpoint not found: {request.method} {request.path}',
+            'code': 404
+        }
+    }), 404
 
 if __name__ == '__main__':
     logger.info(f"Starting Gemini to OpenRouter Proxy on {PROXY_HOST}:{PROXY_PORT}")
