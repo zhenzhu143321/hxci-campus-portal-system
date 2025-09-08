@@ -160,7 +160,7 @@
               <div class="todo-meta">
                 <span class="todo-creator">{{ todo.createdBy }}</span>
                 <span class="todo-time" v-if="todo.dueDate">
-                  截止: {{ formatDate(todo.dueDate) }}
+                  截止: {{ formatDateLocale(todo.dueDate) }}
                 </span>
               </div>
             </div>
@@ -205,6 +205,7 @@ import {
 } from '@element-plus/icons-vue'
 import type { TodoFilterParams, UserRole, TodoDisplayMode, TodoItem } from '@/types/todo'
 import { useTodoData } from '@/composables/useTodoData'
+import { formatDateLocale } from '@/utils'
 
 /**
  * Props接口定义 - 基于第1层的TodoFilterParams类型
@@ -425,22 +426,7 @@ const getStatusTagType = (status: string): string => {
   return typeMap[status] || 'info'
 }
 
-/**
- * 格式化日期
- */
-const formatDate = (dateStr: string): string => {
-  try {
-    const date = new Date(dateStr)
-    return date.toLocaleDateString('zh-CN', {
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  } catch {
-    return dateStr
-  }
-}
+// formatDate函数已迁移到 @/utils，使用formatDateLocale替代
 
 // ================ 生命周期 ================
 

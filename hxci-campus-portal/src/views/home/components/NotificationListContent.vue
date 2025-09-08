@@ -68,7 +68,7 @@
               >
                 {{ getLevelText(notification.level) }}
               </el-tag>
-              <span class="notification-time">{{ formatTime(notification.createTime) }}</span>
+              <span class="notification-time">{{ formatTimeIntelligent(notification.createTime) }}</span>
             </div>
           </div>
           
@@ -139,6 +139,7 @@
 import { computed } from 'vue'
 import { Bell, User, Location, Message, Check, Refresh, View } from '@element-plus/icons-vue'
 import type { NotificationItem } from '@/api/types/notification'
+import { formatTimeIntelligent } from '@/utils'
 import { useNotificationStore } from '@/stores/notification'
 
 // =====================================================
@@ -214,26 +215,7 @@ const getLevelTagType = (level: number): string => {
   return typeMap[level as keyof typeof typeMap] || 'info'
 }
 
-const formatTime = (timeStr: string): string => {
-  const date = new Date(timeStr)
-  const now = new Date()
-  const diffMs = now.getTime() - date.getTime()
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
-  
-  if (diffDays === 0) {
-    return `今天 ${date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}`
-  } else if (diffDays === 1) {
-    return `昨天 ${date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}`
-  } else if (diffDays < 7) {
-    return `${diffDays}天前`
-  } else {
-    return date.toLocaleDateString('zh-CN', { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric' 
-    })
-  }
-}
+// formatTime函数已迁移到 @/utils，使用formatTimeIntelligent替代
 
 const getContentSummary = (content: string): string => {
   if (!content) return ''

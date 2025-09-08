@@ -212,6 +212,7 @@ import IntelligentNotificationWorkspace from '@/views/home/components/Intelligen
 import type { TodoNotificationItem } from '@/types/todo'
 import { useTodoStore } from '@/stores/todo'
 import dayjs from 'dayjs'
+import { formatDate } from '@/utils'
 
 // 🚀 Stage 9性能优化: 防抖工具函数
 const debounce = <T extends (...args: any[]) => any>(
@@ -715,18 +716,7 @@ const getAnnouncementType = (level: number): string => {
   }
 }
 
-// 格式化日期
-const formatDate = (dateStr: string): string => {
-  if (!dateStr) return ''
-  try {
-    const date = new Date(dateStr)
-    if (isNaN(date.getTime())) return dateStr
-    return dayjs(date).format('YYYY-MM-DD')
-  } catch (error) {
-    console.error('日期格式化错误:', error)
-    return dateStr
-  }
-}
+// formatDate函数已迁移到 @/utils
 
 // 处理紧急通知点击（兼容性保留）
 const handleEmergencyClick = (notification: NotificationItem) => {

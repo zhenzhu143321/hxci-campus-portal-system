@@ -88,7 +88,11 @@ public class GlobalAuthenticationConfig implements WebMvcConfigurer {
                 // 📢 通知系统测试API（标记为@PermitAll的公开端点）
                 "/admin-api/test/notification/api/ping",            // 通知服务ping测试
                 "/admin-api/test/notification/api/health",          // 通知服务健康检查
-                "/admin-api/test/notification/api/simple-test"      // 通知服务简单测试
+                "/admin-api/test/notification/api/simple-test",     // 通知服务简单测试
+                
+                // 🛡️ 垂直越权防护测试API（P0-SEC-04功能）
+                "/admin-api/test/vertical-privilege/api/ping",          // 垂直越权防护系统ping测试
+                "/admin-api/test/vertical-privilege/api/protection-status" // 防护状态检查
         ));
 
         // 🛡️ 允许的HTTP方法白名单

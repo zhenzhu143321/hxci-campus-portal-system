@@ -320,3 +320,12 @@ justauth:
 pf4j:
 #  pluginsDir: /tmp/
   pluginsDir: ../plugins
+
+--- #################### 数据权限相关配置 ####################
+yudao:
+  data-permission:
+    user-rule:
+      # 需要应用用户数据权限的表名列表
+      tables: notification_info,todo_notification,notification_approval
+      # 可以通过修改此配置添加更多需要权限控制的表，无需修改代码
+

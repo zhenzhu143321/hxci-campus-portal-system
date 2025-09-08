@@ -4,7 +4,20 @@
       "Bash(systemctl:*)",
       "Bash(mysql:*)",
       "Bash(redis-cli:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(git:*)",
+      "Bash(grep:*)",
+      "Bash(find:*)",
+      "Bash(ls:*)",
+      "Bash(netstat:*)",
+      "mcp__thinking__sequentialthinking",
+      "Read(//home/ecs-assist-user/.codex/**)",
+      "Bash(export:*)",
+      "Bash(export GEMINI_API_KEY='test')",
+      "Bash(/opt/hxci-campus-portal/hxci-campus-portal-system/gm \"审查重构后的PriorityNotificationList组件代码质量，请从以下维度评分（总分10分）：\n1. TypeScript类型安全（0-2分）\n2. 组件架构设计（0-2分）  \n3. 性能优化水平（0-2分）\n4. 代码可维护性（0-2分）\n5. 用户体验和样式（0-2分）\n\n重点关注：\n- 是否成功消除了v-if链条，直接使用BaseNotificationWidget\n- TypeScript类型定义是否完整安全\n- 组件结构是否清晰合理\n- CSS样式是否保持了原有的视觉效果\n- 响应式设计是否完善\n\n请给出具体评分和改进建议。\" --model gemini-2.5-pro)",
+      "Bash(npm run type-check:*)",
+      "Bash(npm run build:*)",
+      "Bash(npx tsc:*)"
     ],
     "deny": [],
     "ask": []

@@ -147,6 +147,7 @@ import { computed, watch } from 'vue'
 import { Check, CircleCheck } from '@element-plus/icons-vue'
 import type { NotificationItem } from '@/api/notification'
 import dayjs from 'dayjs'
+import { formatDateTime } from '@/utils'
 
 // ================== Props定义 ==================
 
@@ -247,10 +248,7 @@ const getScopeText = (scope: string): string => {
   return scopeMap[scope] || scope
 }
 
-/** 格式化日期时间 */
-const formatDateTime = (dateStr: string): string => {
-  return dayjs(dateStr).format('YYYY-MM-DD HH:mm:ss')
-}
+// formatDateTime函数已迁移到 @/utils
 
 /** 格式化通知内容 */
 const formatNotificationContent = (content: string): string => {

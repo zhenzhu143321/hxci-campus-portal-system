@@ -123,6 +123,10 @@ if [ ! -z "$OUTPUT_FILE" ]; then
     CMD="$CMD --output-last-message \"$OUTPUT_FILE\""
 fi
 
+# 增强超时和流配置
+CMD="$CMD -c http_timeout=600"  # HTTP请求超时10分钟
+CMD="$CMD -c stream_buffer_size=8192"  # 增大流缓冲区
+
 # 根据模式调整提示词
 case $MODE in
     "analyze")

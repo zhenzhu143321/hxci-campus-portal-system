@@ -96,6 +96,7 @@
 import { computed, onMounted, onUnmounted } from 'vue'
 import { Clock } from '@element-plus/icons-vue'
 import dayjs from 'dayjs'
+import { formatTimeOnly } from '@/utils'
 
 // ================== 类型定义 ==================
 
@@ -235,9 +236,7 @@ const getStatusText = (status: CourseStatus): string => {
 }
 
 /** 格式化时间 */
-const formatTime = (timeStr: string): string => {
-  return dayjs(`2024-01-01 ${timeStr}`).format('HH:mm')
-}
+// formatTime函数已迁移到 @/utils，使用formatTimeOnly替代
 
 // ================== 事件处理器 ==================
 

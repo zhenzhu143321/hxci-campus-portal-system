@@ -1,4 +1,5 @@
 import api from '@/utils/request'
+import { timeAgo } from '@/utils'
 
 // 通知数据接口类型定义
 export interface NotificationItem {
@@ -96,7 +97,7 @@ export const notificationAPI = {
           levelColor: this.getLevelColor(item.level),
           publisherName: item.publisherName,
           publisherRole: item.publisherRole, // 🔧 新增：映射发布者角色
-          createTime: this.formatTime(item.createTime),
+          createTime: timeAgo(item.createTime),
           scope: item.targetScope || item.scope, // 适配真实API字段名
           status: item.status,
           summary: item.summary,              // 🔧 新增：映射摘要字段
@@ -202,29 +203,7 @@ export const notificationAPI = {
     }
   },
 
-  /**
-   * 格式化时间显示
-   */
-  formatTime(timeStr: string): string {
-    try {
-      const time = new Date(timeStr)
-      const now = new Date()
-      const diffMs = now.getTime() - time.getTime()
-      const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
-      const diffDays = Math.floor(diffHours / 24)
-      
-      if (diffDays > 0) {
-        return `${diffDays}天前`
-      } else if (diffHours > 0) {
-        return `${diffHours}小时前`
-      } else {
-        const diffMinutes = Math.floor(diffMs / (1000 * 60))
-        return diffMinutes > 0 ? `${diffMinutes}分钟前` : '刚刚'
-      }
-    } catch (error) {
-      return timeStr
-    }
-  },
+  // formatTime函数已迁移到 @/utils，使用timeAgo替代
 
   /**
    * 获取默认通知数据 (降级方案)

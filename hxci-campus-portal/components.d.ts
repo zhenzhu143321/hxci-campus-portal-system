@@ -7,6 +7,7 @@ export {}
 
 declare module 'vue' {
   export interface GlobalComponents {
+    BaseNotificationWidget: typeof import('./src/components/BaseNotificationWidget.vue')['default']
     ElAlert: typeof import('element-plus/es')['ElAlert']
     ElBadge: typeof import('element-plus/es')['ElBadge']
     ElButton: typeof import('element-plus/es')['ElButton']
@@ -21,7 +22,6 @@ declare module 'vue' {
     ElIcon: typeof import('element-plus/es')['ElIcon']
     ElInput: typeof import('element-plus/es')['ElInput']
     ElInputNumber: typeof import('element-plus/es')['ElInputNumber']
-    ElLoadingSpinner: typeof import('element-plus/es')['ElLoadingSpinner']
     ElOption: typeof import('element-plus/es')['ElOption']
     ElPagination: typeof import('element-plus/es')['ElPagination']
     ElRow: typeof import('element-plus/es')['ElRow']
@@ -32,12 +32,15 @@ declare module 'vue' {
     ElTabs: typeof import('element-plus/es')['ElTabs']
     ElTag: typeof import('element-plus/es')['ElTag']
     ElTooltip: typeof import('element-plus/es')['ElTooltip']
+    EmergencyNotificationWidget: typeof import('./src/components/EmergencyNotificationWidget.vue')['default']
     HeaderNavigation: typeof import('./src/components/HeaderNavigation.vue')['default']
+    ImportantNotificationWidget: typeof import('./src/components/ImportantNotificationWidget.vue')['default']
     NotificationArchiveIndicator: typeof import('./src/components/notification/NotificationArchiveIndicator.vue')['default']
     NotificationArchivePanel: typeof import('./src/components/notification/NotificationArchivePanel.vue')['default']
     PermissionCacheDemo: typeof import('./src/components/PermissionCacheDemo.vue')['default']
     PriorityTestComponent: typeof import('./src/components/PriorityTestComponent.vue')['default']
     QuickServicesGrid: typeof import('./src/components/QuickServicesGrid.vue')['default']
+    RegularNotificationWidget: typeof import('./src/components/RegularNotificationWidget.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     TodoNotificationContainer: typeof import('./src/components/todo/TodoNotificationContainer.vue')['default']

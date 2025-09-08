@@ -46,7 +46,7 @@
         <!-- 消息内容 -->
         <div class="level4-content">
           <div class="level4-title">{{ message.title }}</div>
-          <div class="level4-time">{{ formatDate(message.createTime) }}</div>
+          <div class="level4-time">{{ formatTime(message.createTime) }}</div>
         </div>
         
         <!-- 操作按钮 -->
@@ -101,6 +101,7 @@ import { computed } from 'vue'
 import { Bell, Check, CircleCheck } from '@element-plus/icons-vue'
 import type { NotificationItem } from '@/api/notification'
 import dayjs from 'dayjs'
+import { formatTime } from '@/utils'
 
 // ================== Props定义 ==================
 
@@ -151,10 +152,7 @@ const hasMore = computed(() => {
 
 // ================== 工具函数 ==================
 
-/** 格式化日期 */
-const formatDate = (dateStr: string): string => {
-  return dayjs(dateStr).format('MM-DD HH:mm')
-}
+// formatDate函数已迁移到 @/utils，使用formatTime替代
 
 /** 检查消息是否已读 */
 const isMessageRead = (messageId: number): boolean => {

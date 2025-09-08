@@ -111,7 +111,7 @@
                 </div>
                 <div class="detail-row">
                   <span class="label">截止时间:</span>
-                  <span class="value">{{ formatDate(todo.dueDate) }}</span>
+                  <span class="value">{{ formatDateTimeLocale(todo.dueDate) }}</span>
                 </div>
                 <div class="detail-row">
                   <span class="label">目标学生:</span>
@@ -194,6 +194,7 @@ import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { User } from '@element-plus/icons-vue'
 import { useTodoStore } from '@/stores/todo'
 import type { TodoNotificationItem, TodoFilterOptions } from '@/types/todo'
+import { formatDateTimeLocale } from '@/utils'
 
 // ================ 响应式数据 ================
 
@@ -400,9 +401,7 @@ const getStatusLabel = (status: string) => {
   }
 }
 
-const formatDate = (dateStr: string) => {
-  return new Date(dateStr).toLocaleString()
-}
+// formatDate函数已迁移到 @/utils，使用formatDateTimeLocale替代
 
 const getTargetStudentsList = (targetStudentIds: any) => {
   if (!targetStudentIds) return '未设置'
