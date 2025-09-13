@@ -174,6 +174,10 @@ public class NewTodoNotificationController {
                     todo.put("title", todoRecord.getTitle());
                     todo.put("content", todoRecord.getContent());
                     todo.put("summary", todoRecord.getSummary());
+                    // 保存原始的Integer值，用于后续处理
+                    todo.put("priorityCode", todoRecord.getPriority());
+                    todo.put("statusCode", todoRecord.getStatus());
+                    // 转换为String格式
                     todo.put("priority", getPriorityName(todoRecord.getPriority()));
                     todo.put("due_date", todoRecord.getDeadline() != null ? 
                         todoRecord.getDeadline().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")) : null);
@@ -199,9 +203,13 @@ public class NewTodoNotificationController {
                 
                 // 📊 构建前端所需的数据格式
                 todo.put("level", 5); // 固定Level 5
-                todo.put("priority", getPriorityName(Integer.parseInt(todo.get("priority").toString())));
+                // priority已经是String了，不需要再转换
+                // todo.put("priority", todo.get("priority")); // 已经是String
                 todo.put("dueDate", todo.get("due_date"));
-                todo.put("status", isCompleted ? "completed" : getStatusName(Integer.parseInt(todo.get("status").toString())));
+                // 如果已完成，覆盖status为"completed"
+                if (isCompleted) {
+                    todo.put("status", "completed");
+                }
                 todo.put("assignerName", todo.get("assigner_name"));
                 todo.put("isCompleted", isCompleted);
                 todo.put("targetStudentIds", todo.get("target_student_ids")); // 第4层：学号过滤字段
@@ -1000,10 +1008,13 @@ public class NewTodoNotificationController {
     // ========================= 工具方法 =========================
 
     private Integer getStatusCode(String status) {
+        if (status == null) {
+            return null;  // 返回null表示不过滤
+        }
         Map<String, Integer> statusMap = Map.of(
             "pending", 0, "in_progress", 1, "completed", 2, "overdue", 3
         );
-        return statusMap.get(status);
+        return statusMap.getOrDefault(status, 0);
     }
 
     private String getStatusName(Integer code) {
@@ -1014,6 +1025,9 @@ public class NewTodoNotificationController {
     }
 
     private Integer getPriorityCode(String priority) {
+        if (priority == null) {
+            return null;  // 返回null表示不过滤
+        }
         Map<String, Integer> priorityMap = Map.of(
             "low", 1, "medium", 2, "high", 3
         );

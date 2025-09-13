@@ -107,7 +107,7 @@ public class AccessControlListManager {
         ),
         "STUDENT", Set.of(
             // 学生 - 基础权限
-            "NOTIFICATION_CREATE_PERSONAL", "NOTIFICATION_READ_PERSONAL", "TODO_READ_PERSONAL", "PROFILE_UPDATE_SELF"
+            "NOTIFICATION_CREATE_PERSONAL", "NOTIFICATION_READ_PERSONAL", "TODO_READ_PERSONAL", "TODO_UPDATE_PERSONAL", "PROFILE_UPDATE_SELF"
         )
     );
 

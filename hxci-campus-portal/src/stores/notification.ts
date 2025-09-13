@@ -63,25 +63,27 @@ export const useNotificationStore = defineStore('notification', () => {
       }
       
       // 🔧 防御性编程：安全访问readNotificationIds
-      const readIds = manager.readNotificationIds
-      if (!readIds) {
-        console.warn('⚠️ [NotificationStore] readNotificationIds未初始化，所有Level1-3通知视为未读')
-        // 如果没有已读状态，返回所有Level 1-3通知
-        const allPriority = notifications.value.filter(n => n && n.level >= 1 && n.level <= 3) || []
-        return allPriority.sort((a, b) => {
-          if (a.level !== b.level) {
-            return a.level - b.level
-          }
-          return new Date(b.createTime).getTime() - new Date(a.createTime).getTime()
-        })
-      }
-      
-      // 🔧 防御性访问readIds.value.size - 修正：readIds是ref，需要.value访问
       let readCount = 0
       try {
-        readCount = readIds.value.size || 0
+        // 直接检查manager.readNotificationIds是否是有效的Ref<Set>
+        if (manager.readNotificationIds && manager.readNotificationIds.value instanceof Set) {
+          readCount = manager.readNotificationIds.value.size
+        } else if (!manager.readNotificationIds) {
+          console.debug('⚠️ [NotificationStore] readNotificationIds未初始化，所有Level1-3通知视为未读')
+          // 如果没有已读状态，返回所有Level 1-3通知
+          const allPriority = notifications.value.filter(n => n && n.level >= 1 && n.level <= 3) || []
+          return allPriority.sort((a, b) => {
+            if (a.level !== b.level) {
+              return a.level - b.level
+            }
+            return new Date(b.createTime).getTime() - new Date(a.createTime).getTime()
+          })
+        } else {
+          console.debug('⚠️ [NotificationStore] readNotificationIds.value不是Set对象')
+          readCount = 0
+        }
       } catch (sizeError) {
-        console.error('❌ [NotificationStore] 访问readIds.size失败:', sizeError)
+        console.error('❌ [NotificationStore] 访问readNotificationIds失败:', sizeError)
         readCount = 0
       }
       
@@ -148,8 +150,8 @@ export const useNotificationStore = defineStore('notification', () => {
       }
       
       // 🔧 防御性编程：安全访问readNotificationIds
-      const readIds = manager.readNotificationIds
-      if (!readIds) {
+      // 使用直接访问，避免类型推导问题
+      if (!manager.readNotificationIds) {
         console.warn('⚠️ [NotificationStore] readNotificationIds未初始化，使用默认值')
         // 仍然可以计算公告，只是不依赖已读状态
       }
@@ -173,17 +175,18 @@ export const useNotificationStore = defineStore('notification', () => {
         return isSystemNotification
       })
       
-      // 🔧 核心修复：安全访问size属性，防止undefined错误 
+      // 🔧 核心修复：安全访问size属性，防止undefined错误
       let readCount = 0
       try {
-        // 🚀 直接访问修复：避免复杂类型推导问题
-        if (readIds && readIds.value instanceof Set) {
-          readCount = readIds.value.size
+        // 直接安全访问，确保是有效的Set对象
+        if (manager.readNotificationIds && manager.readNotificationIds.value instanceof Set) {
+          readCount = manager.readNotificationIds.value.size
         } else {
+          console.debug('⚠️ [NotificationStore] readNotificationIds不是有效的Set对象')
           readCount = 0
         }
       } catch (sizeError) {
-        console.error('❌ [NotificationStore] 系统公告-访问readIds.size失败:', sizeError)
+        console.error('❌ [NotificationStore] 系统公告-访问readNotificationIds失败:', sizeError)
         readCount = 0
       }
       
@@ -223,8 +226,8 @@ export const useNotificationStore = defineStore('notification', () => {
       }
       
       // 🔧 防御性编程：安全访问readNotificationIds
-      const readIds = manager.readNotificationIds
-      if (!readIds) {
+      // 使用直接访问，避免类型推导问题
+      if (!manager.readNotificationIds) {
         console.warn('⚠️ [NotificationStore] readNotificationIds未初始化，返回空归档列表')
         return []
       }
@@ -237,14 +240,15 @@ export const useNotificationStore = defineStore('notification', () => {
       // 🔧 核心修复：安全访问size属性，防止undefined错误
       let readCount = 0
       try {
-        // 🚀 直接访问修复：避免复杂类型推导问题
-        if (readIds && readIds.value instanceof Set) {
-          readCount = readIds.value.size
+        // 直接安全访问，确保是有效的Set对象
+        if (manager.readNotificationIds && manager.readNotificationIds.value instanceof Set) {
+          readCount = manager.readNotificationIds.value.size
         } else {
+          console.debug('⚠️ [NotificationStore] readNotificationIds不是有效的Set对象')
           readCount = 0
         }
       } catch (sizeError) {
-        console.error('❌ [NotificationStore] 已读归档-访问readIds.size失败:', sizeError)
+        console.error('❌ [NotificationStore] 已读归档-访问readNotificationIds失败:', sizeError)
         readCount = 0
       }
       
@@ -280,8 +284,8 @@ export const useNotificationStore = defineStore('notification', () => {
       }
       
       // 🔧 核心修复：安全访问readNotificationIds，避免TypeScript类型错误
-      const readIds = manager.readNotificationIds
-      if (!readIds) {
+      // 使用直接访问，避免类型推导问题
+      if (!manager.readNotificationIds) {
         console.warn('⚠️ [NotificationStore] readNotificationIds未初始化，所有Level4作为未读')
         const allLevel4 = notifications.value.filter(n => n && n.level === 4) || []
         return allLevel4.slice(0, 4)
@@ -372,8 +376,8 @@ export const useNotificationStore = defineStore('notification', () => {
       }
       
       // 🔧 防御性编程：安全访问readNotificationIds，防止size访问错误
-      const readIds = manager.readNotificationIds
-      if (!readIds) {
+      // 使用直接访问，避免类型推导问题
+      if (!manager.readNotificationIds) {
         console.warn('⚠️ [NotificationStore] readNotificationIds未初始化，无法统计未读数量')
         // 如果没有已读状态，所有通知都算未读
         const allNotifications = notifications.value.filter(n => n)
@@ -388,18 +392,21 @@ export const useNotificationStore = defineStore('notification', () => {
       // 🔧 防御性访问size属性，增加多层安全检查
       let readCount = 0
       try {
-        // 🚀 直接访问修复：避免复杂类型推导问题
-        if (readIds && readIds.value instanceof Set) {
-          readCount = readIds.value.size
-        } else {
-          console.warn('⚠️ [NotificationStore] readIds.value不是Set对象:', {
-            readIds存在: !!readIds,
-            readIds_value类型: readIds && readIds.value ? readIds.value.constructor.name : 'null/undefined'
+        // 直接安全访问，确保是有效的Set对象
+        if (manager.readNotificationIds && manager.readNotificationIds.value instanceof Set) {
+          readCount = manager.readNotificationIds.value.size
+        } else if (manager.readNotificationIds && manager.readNotificationIds.value) {
+          console.debug('⚠️ [NotificationStore] readNotificationIds.value不是Set对象:', {
+            readNotificationIds存在: true,
+            value类型: manager.readNotificationIds.value.constructor.name
           })
+          readCount = 0
+        } else {
+          console.debug('⚠️ [NotificationStore] readNotificationIds未初始化')
           readCount = 0
         }
       } catch (sizeError) {
-        console.error('❌ [NotificationStore] 未读统计-访问readIds.size失败:', sizeError)
+        console.error('❌ [NotificationStore] 未读统计-访问readNotificationIds失败:', sizeError)
         readCount = 0
       }
       

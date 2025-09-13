@@ -35,9 +35,9 @@ public class SafeSQLExecutor {
     // 预编译的WHERE模式 - 性能优化
     private static final Pattern WHERE_PATTERN = Pattern.compile("(?i)\\bWHERE\\b");
     
-    // 用于验证安全条件的模式
+    // 用于验证安全条件的模式 - 修复支持标准SQL条件如"deleted = 0"
     private static final Pattern SAFE_CONDITION_PATTERN = Pattern.compile(
-        "^[a-zA-Z0-9_\\.\\s]+(=|<|>|<=|>=|<>|!=|\\s+IN\\s+|\\s+LIKE\\s+|\\s+BETWEEN\\s+|\\s+IS\\s+(?:NOT\\s+)?NULL)[\\s\\S]+$"
+        "^[a-zA-Z_][a-zA-Z0-9_\\.]*\\s*(=|<|>|<=|>=|<>|!=|\\s+IN\\s+|\\s+LIKE\\s+|\\s+BETWEEN\\s+|\\s+IS\\s+(?:NOT\\s+)?NULL)\\s*[a-zA-Z0-9_\\.'\"\\s,\\(\\)]+$"
     );
     
     // 最大字符串长度限制
@@ -302,22 +302,23 @@ public class SafeSQLExecutor {
      * 🔐 验证条件是否安全
      */
     private static boolean isValidCondition(String condition) {
-        // 基础验证：不允许分号、注释、UNION等危险关键字
+        // 基础验证：不允许分号、注释、UNION等危险关键字（使用单词边界匹配避免误伤）
+        String upperCondition = condition.toUpperCase();
         if (condition.contains(";") || 
             condition.contains("--") || 
             condition.contains("/*") || 
             condition.contains("*/") ||
-            condition.toUpperCase().contains("UNION") ||
-            condition.toUpperCase().contains("SELECT") ||
-            condition.toUpperCase().contains("INSERT") ||
-            condition.toUpperCase().contains("UPDATE") ||
-            condition.toUpperCase().contains("DELETE") ||
-            condition.toUpperCase().contains("DROP")) {
+            upperCondition.matches(".*\\bUNION\\b.*") ||
+            upperCondition.matches(".*\\bSELECT\\b.*") ||
+            upperCondition.matches(".*\\bINSERT\\b.*") ||
+            upperCondition.matches(".*\\bUPDATE\\b.*") ||
+            upperCondition.matches(".*\\bDELETE\\b.*") ||
+            upperCondition.matches(".*\\bDROP\\b.*")) {
             return false;
         }
         
         // 验证基本格式：列名 操作符 值
-        return SAFE_CONDITION_PATTERN.matcher(condition).find();
+        return SAFE_CONDITION_PATTERN.matcher(condition).matches();
     }
     
     /**

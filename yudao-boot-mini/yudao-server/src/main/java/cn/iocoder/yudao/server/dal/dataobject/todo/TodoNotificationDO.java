@@ -8,7 +8,9 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 /**
  * 待办通知数据对象
@@ -17,7 +19,7 @@ import java.time.LocalDateTime;
  */
 @TableName("todo_notifications")
 @Data
-@EqualsAndHashCode(callSuper = true)
+@EqualsAndHashCode(callSuper = false)
 public class TodoNotificationDO extends BaseDO {
 
     /**
@@ -103,5 +105,32 @@ public class TodoNotificationDO extends BaseDO {
      */
     @TableField("tenant_id")
     private Long tenantId;
+
+    /**
+     * 重写hashCode方法，处理id为null的情况
+     */
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(id);
+    }
+
+    /**
+     * 重写equals方法，处理id为null的情况
+     */
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof TodoNotificationDO)) return false;
+        TodoNotificationDO that = (TodoNotificationDO) o;
+        return Objects.equals(this.id, that.id);
+    }
+
+    /**
+     * 提供主键访问方法，避免TransPojo接口导致的NPE
+     * MyBatis Plus可能会调用此方法
+     */
+    public Serializable getPk() {
+        return this.id;
+    }
 
 }
