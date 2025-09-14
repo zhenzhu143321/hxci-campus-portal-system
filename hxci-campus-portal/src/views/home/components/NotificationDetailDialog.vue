@@ -22,9 +22,8 @@
 -->
 
 <template>
-  <el-dialog 
-    v-model="dialogVisible" 
-    :title="notification?.title || '通知详情'" 
+  <el-dialog
+    v-model="dialogVisible"
     width="60%"
     class="notification-detail-dialog"
     :close-on-click-modal="false"
@@ -32,64 +31,64 @@
     append-to-body
     @close="handleClose"
   >
-    <!-- 通知详情内容 -->
-    <div v-if="notification" class="notification-detail" v-loading="isLoading">
-      <!-- 通知元数据 -->
-      <div class="notification-meta">
-        <div class="meta-row">
-          <span class="meta-label">级别：</span>
-          <el-tag 
-            :type="getLevelTagType(notification.level)" 
-            effect="plain" 
+    <!-- 自定义对话框头部 -->
+    <template #header>
+      <div class="dialog-header">
+        <div class="title-row">
+          <el-tag
+            :type="getLevelTagType(notification?.level || 0)"
+            effect="dark"
             size="small"
-            class="level-tag-detail"
+            class="level-chip"
           >
-            {{ getLevelText(notification.level) }}
+            {{ getLevelText(notification?.level || 0) }}
           </el-tag>
+          <h3 class="dialog-title">{{ notification?.title || '通知详情' }}</h3>
         </div>
-        
-        <div class="meta-row">
-          <span class="meta-label">发布者：</span>
-          <span class="meta-value">{{ notification.publisherName }}</span>
-        </div>
-        
-        <div class="meta-row">
-          <span class="meta-label">发布角色：</span>
-          <el-tag size="small" type="info">{{ getRoleText(notification.publisherRole) }}</el-tag>
-        </div>
-        
-        <div class="meta-row">
-          <span class="meta-label">发布范围：</span>
-          <el-tag size="small" type="info">{{ getScopeText(notification.targetScope) }}</el-tag>
-        </div>
-        
-        <div class="meta-row">
-          <span class="meta-label">发布时间：</span>
-          <span class="meta-value">{{ formatDateTime(notification.createTime) }}</span>
-        </div>
-        
-        <div v-if="notification.summary" class="meta-row">
-          <span class="meta-label">摘要：</span>
-          <span class="meta-value meta-summary">{{ notification.summary }}</span>
-        </div>
-        
-        <div class="meta-row">
-          <span class="meta-label">状态：</span>
-          <el-tag 
-            :type="isNotificationRead ? 'success' : 'warning'" 
+        <div v-if="notification" class="subtitle">
+          发布时间：{{ formatDateTime(notification.createTime) }}
+          <el-divider direction="vertical" />
+          状态：
+          <el-tag
+            :type="isNotificationRead ? 'success' : 'warning'"
             size="small"
           >
             {{ isNotificationRead ? '已读' : '未读' }}
           </el-tag>
         </div>
       </div>
+    </template>
+    <!-- 通知详情内容 -->
+    <div v-if="notification" class="notification-detail" v-loading="isLoading">
+      <!-- 元数据：使用描述表组件 -->
+      <el-descriptions
+        class="meta-descriptions"
+        :column="2"
+        border
+        size="small"
+      >
+        <el-descriptions-item label="发布者">
+          {{ notification.publisherName }}
+        </el-descriptions-item>
+        <el-descriptions-item label="发布角色">
+          <el-tag size="small" type="info">{{ getRoleText(notification.publisherRole) }}</el-tag>
+        </el-descriptions-item>
+        <el-descriptions-item label="发布范围">
+          <el-tag size="small" type="info">{{ getScopeText(notification.targetScope || 'SCHOOL_WIDE') }}</el-tag>
+        </el-descriptions-item>
+        <el-descriptions-item label="通知级别">
+          <el-tag :type="getLevelTagType(notification.level)" effect="plain" size="small">
+            {{ getLevelText(notification.level) }}
+          </el-tag>
+        </el-descriptions-item>
+        <el-descriptions-item v-if="notification.summary" label="摘要" :span="2">
+          <span class="meta-summary">{{ notification.summary }}</span>
+        </el-descriptions-item>
+      </el-descriptions>
       
-      <!-- 通知内容 -->
+      <!-- 通知内容：使用增强版Markdown渲染 -->
       <div class="notification-content-detail">
-        <h4>通知内容：</h4>
-        <div class="content-text formatted-content">
-          {{ formatNotificationContent(notification.content) }}
-        </div>
+        <div class="markdown-body" v-html="sanitizedHtml"></div>
       </div>
       
       <!-- 附加信息 -->
@@ -148,6 +147,7 @@ import { Check, CircleCheck } from '@element-plus/icons-vue'
 import type { NotificationItem } from '@/api/notification'
 import dayjs from 'dayjs'
 import { formatDateTime } from '@/utils'
+import { renderNotificationDialog } from '@/utils/markdown'
 
 // ================== Props定义 ==================
 
@@ -197,6 +197,14 @@ const dialogVisible = computed({
 /** 通知是否已读 */
 const isNotificationRead = computed(() => {
   return props.notification ? props.readStatusChecker(props.notification.id) : false
+})
+
+/** 使用增强版渲染器处理通知内容 */
+const sanitizedHtml = computed(() => {
+  if (!props.notification?.content) {
+    return '<p class="empty-content">暂无内容</p>'
+  }
+  return renderNotificationDialog(props.notification.content)
 })
 
 // ================== 工具函数 ==================
@@ -249,17 +257,7 @@ const getScopeText = (scope: string): string => {
 }
 
 // formatDateTime函数已迁移到 @/utils
-
-/** 格式化通知内容 */
-const formatNotificationContent = (content: string): string => {
-  if (!content) return '暂无内容'
-  
-  // 简单的格式化处理
-  return content
-    .replace(/\n/g, '<br>')  // 换行处理
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')  // 粗体处理
-    .replace(/\*(.*?)\*/g, '<em>$1</em>')  // 斜体处理
-}
+// formatNotificationContent函数已由renderNotificationDialog替代
 
 // ================== 事件处理器 ==================
 
@@ -298,16 +296,41 @@ watch(() => props.notification, (newNotification) => {
   --el-dialog-border-radius: 12px;
 }
 
+/* 自定义对话框头部 */
 :deep(.notification-detail-dialog .el-dialog__header) {
-  background: linear-gradient(135deg, #f8f9ff 0%, #ffffff 100%);
-  border-bottom: 1px solid #e4e7ed;
-  border-radius: 12px 12px 0 0;
+  background: linear-gradient(135deg, #ffffff 0%, #f7f9fc 100%);
+  border-bottom: 1px solid #e9ecef;
+  margin-right: 0;
+  padding: 16px 20px;
 }
 
-:deep(.notification-detail-dialog .el-dialog__title) {
-  font-size: 16px;
-  font-weight: 600;
-  color: #303133;
+.dialog-header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.level-chip {
+  font-weight: 700;
+  letter-spacing: .5px;
+}
+
+.dialog-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.subtitle {
+  font-size: 12px;
+  color: #6b7280;
 }
 
 /* 通知详情容器 */
@@ -320,45 +343,17 @@ watch(() => props.notification, (newNotification) => {
   padding-right: 8px;
 }
 
-/* 通知元数据 */
-.notification-meta {
-  background: #f8f9fa;
+/* 元数据描述表 */
+.meta-descriptions {
+  background: #fff;
   border: 1px solid #e9ecef;
   border-radius: 8px;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.meta-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-}
-
-.meta-label {
-  font-size: 14px;
-  font-weight: 600;
-  color: #495057;
-  min-width: 80px;
-  flex-shrink: 0;
-}
-
-.meta-value {
-  font-size: 14px;
-  color: #212529;
-  flex: 1;
-  line-height: 1.5;
+  padding: 8px;
 }
 
 .meta-summary {
   font-style: italic;
   color: #6c757d;
-}
-
-.level-tag-detail {
-  font-weight: 600;
 }
 
 /* 通知内容 */
@@ -369,35 +364,112 @@ watch(() => props.notification, (newNotification) => {
   padding: 20px;
 }
 
-.notification-content-detail h4 {
-  margin: 0 0 16px 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: #212529;
-  padding-bottom: 8px;
-  border-bottom: 2px solid #e9ecef;
-}
-
-.content-text {
+/* GitHub风格的Markdown样式 */
+.markdown-body {
+  color: #374151;
+  line-height: 1.7;
   font-size: 15px;
-  color: #495057;
-  line-height: 1.6;
-  white-space: pre-wrap;
   word-wrap: break-word;
 }
 
-.formatted-content {
-  /* 支持富文本内容 */
+.markdown-body :deep(h1),
+.markdown-body :deep(h2),
+.markdown-body :deep(h3) {
+  font-weight: 700;
+  color: #111827;
+  margin: 18px 0 10px;
 }
 
-.formatted-content :deep(strong) {
+.markdown-body :deep(h1) { font-size: 24px; }
+.markdown-body :deep(h2) { font-size: 20px; }
+.markdown-body :deep(h3) { font-size: 18px; }
+
+.markdown-body :deep(p) { margin: 10px 0; }
+
+.markdown-body :deep(ul),
+.markdown-body :deep(ol) {
+  margin: 8px 0 8px 22px;
+}
+
+.markdown-body :deep(li) { margin: 4px 0; }
+
+.markdown-body :deep(a) {
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.markdown-body :deep(a:hover) {
+  text-decoration: underline;
+}
+
+.markdown-body :deep(code) {
+  background: #f3f4f6;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: .9em;
+  color: #b91c1c;
+}
+
+.markdown-body :deep(pre) {
+  background: #111827;
+  color: #e5e7eb;
+  padding: 12px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 12px 0;
+}
+
+.markdown-body :deep(pre code) {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+}
+
+.markdown-body :deep(blockquote) {
+  border-left: 4px solid #d1d5db;
+  margin: 12px 0;
+  padding: 6px 12px;
+  color: #6b7280;
+  background: #f9fafb;
+  border-radius: 4px;
+}
+
+.markdown-body :deep(hr) {
+  border: none;
+  border-top: 1px solid #e5e7eb;
+  margin: 20px 0;
+}
+
+.markdown-body :deep(table) {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0;
+  font-size: 14px;
+}
+
+.markdown-body :deep(th),
+.markdown-body :deep(td) {
+  border: 1px solid #e5e7eb;
+  padding: 8px 10px;
+}
+
+.markdown-body :deep(th) {
+  background: #f3f4f6;
   font-weight: 600;
-  color: #212529;
 }
 
-.formatted-content :deep(em) {
+.empty-content {
+  color: #9ca3af;
   font-style: italic;
-  color: #6c757d;
+}
+
+.fallback-content {
+  background: #fef3c7;
+  border: 1px solid #f59e0b;
+  border-radius: 6px;
+  padding: 12px;
+  color: #92400e;
 }
 
 /* 附加信息 */
@@ -465,42 +537,42 @@ watch(() => props.notification, (newNotification) => {
     background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
     border-bottom-color: #3a3a3a;
   }
-  
-  :deep(.notification-detail-dialog .el-dialog__title) {
-    color: #e0e0e0;
-  }
-  
-  .notification-meta {
-    background: #2a2a2a;
+
+  .dialog-title { color: #e5e7eb; }
+  .subtitle { color: #9ca3af; }
+
+  .meta-descriptions {
     border-color: #3a3a3a;
   }
-  
-  .meta-label {
-    color: #e0e0e0;
-  }
-  
-  .meta-value {
-    color: #d0d0d0;
-  }
-  
+
   .meta-summary {
     color: #9ca3af;
   }
-  
+
   .notification-content-detail {
     background: #2a2a2a;
     border-color: #3a3a3a;
   }
-  
-  .notification-content-detail h4 {
-    color: #e0e0e0;
-    border-bottom-color: #3a3a3a;
+
+  .markdown-body { color: #d1d5db; }
+  .markdown-body :deep(a) { color: #60a5fa; }
+  .markdown-body :deep(code) {
+    background: #1f2937;
+    color: #fca5a5;
   }
-  
-  .content-text {
-    color: #d0d0d0;
+  .markdown-body :deep(pre) {
+    background: #0b0f16;
+    color: #d1d5db;
   }
-  
+  .markdown-body :deep(blockquote) {
+    background: #1f2937;
+    border-left-color: #374151;
+    color: #9ca3af;
+  }
+  .markdown-body :deep(th) {
+    background: #1f2937;
+  }
+
   .dialog-footer {
     border-top-color: #3a3a3a;
   }

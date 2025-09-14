@@ -126,12 +126,43 @@ const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
 // 🔥 内容摘要逻辑：解决信息过载问题 + 换行符修复
-const MAX_SUMMARY_LENGTH = 80
+const MAX_SUMMARY_LENGTH = 150  // 增加到150字符，提供更多内容预览
+
+// 增强的HTML实体解码函数 - 处理多次转义
+const decodeHtmlEntities = (str: string): string => {
+  if (!str) return str
+
+  // 多次解码，处理多层转义的情况
+  let decoded = str
+  let previousDecoded = ''
+  let maxIterations = 3  // 最多解码3次，避免无限循环
+
+  while (decoded !== previousDecoded && maxIterations > 0) {
+    previousDecoded = decoded
+    // 使用正则替换常见的HTML实体
+    decoded = decoded
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#039;/g, "'")
+      .replace(/&#x27;/g, "'")
+      .replace(/&#x2F;/g, '/')
+      .replace(/&#47;/g, '/')
+      .replace(/&nbsp;/g, ' ')
+    maxIterations--
+  }
+
+  return decoded
+}
 
 const summaryContent = computed(() => {
   let content = props.notification.content || ''
 
-  // 🚀 核心修复：将转义的 \\n 转换为真实换行符
+  // 🚀 核心修复1：解码HTML实体（如&amp;gt;转为>）
+  content = decodeHtmlEntities(content)
+
+  // 🚀 核心修复2：将转义的 \\n 转换为真实换行符
   content = content.replace(/\\n/g, '\n')
 
   if (content.length <= MAX_SUMMARY_LENGTH) {
@@ -212,9 +243,9 @@ const handleViewDetails = () => {
   background: var(--widget-bg-color);
   border: 1px solid var(--widget-border-color);
   border-left: 4px solid var(--widget-accent-color);
-  border-radius: 8px;
-  padding: 16px;
-  margin-bottom: 12px;
+  border-radius: 6px;  /* 减小圆角 */
+  padding: 10px;  /* 进一步减小padding到10px */
+  margin-bottom: 6px;  /* 进一步减小margin到6px */
   cursor: pointer;
   transition: all 0.2s ease;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -269,8 +300,8 @@ const handleViewDetails = () => {
 .notification-header {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: 6px;  /* 进一步减小gap到6px */
+  margin-bottom: 6px;  /* 进一步减小margin到6px */
 }
 
 .notification-icon {
@@ -284,17 +315,18 @@ const handleViewDetails = () => {
 }
 
 .notification-title {
-  margin: 0 0 4px 0;
-  font-size: 14px;
+  margin: 0;
+  font-size: 13px;  /* 减小标题字体 */
   font-weight: 600;
   color: var(--widget-text-color);
-  line-height: 1.4;
+  line-height: 1.2;  /* 进一步减小行高 */
 }
 
 .notification-publisher {
   margin: 0;
-  font-size: 12px;
+  font-size: 11px;  /* 减小发布者字体 */
   color: #6b7280;
+  line-height: 1.2;
 }
 
 .notification-time {
@@ -305,19 +337,21 @@ const handleViewDetails = () => {
 
 /* 内容样式 */
 .notification-content {
-  margin-bottom: 12px;
+  margin-bottom: 6px;  /* 进一步减小margin到6px */
 }
 
 .content-text {
   margin: 0;
-  font-size: 13px;
-  line-height: 1.6;
+  font-size: 12px;  /* 减小字体到12px */
+  line-height: 1.4;  /* 进一步减小行高 */
   color: var(--widget-text-color);
   /* 🔥 核心修复：正确处理换行符和文本截断 */
   white-space: pre-line;      /* 保留\n换行，折叠多余空格 */
   overflow-wrap: anywhere;     /* 长URL/单词自动换行 */
   word-break: break-word;      /* 兼容性兜底 */
   hyphens: auto;              /* 自动断词优化 */
+  max-height: 2.8em;          /* 限制最大高度为2行 */
+  overflow: hidden;           /* 隐藏超出内容 */
 }
 
 /* 底部样式 */
@@ -325,8 +359,8 @@ const handleViewDetails = () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 12px;
-  padding-top: 12px;
+  margin-top: 6px;  /* 进一步减小margin到6px */
+  padding-top: 6px;  /* 进一步减小padding到6px */
   border-top: 1px solid #f3f4f6;
 }
 
@@ -344,8 +378,8 @@ const handleViewDetails = () => {
 }
 
 .action-button {
-  font-size: 12px;
-  padding: 4px 8px;
+  font-size: 11px;  /* 减小按钮字体 */
+  padding: 3px 6px;  /* 减小按钮padding */
   border: 1px solid #d1d5db;
   border-radius: 4px;
   background: #ffffff;

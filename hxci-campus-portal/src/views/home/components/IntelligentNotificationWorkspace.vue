@@ -227,8 +227,8 @@ const todayCourses = ref([
 
 // ================== 事件处理器 ==================
 
-/** 处理通知点击 */
-const handleNotificationClick = (notification: NotificationItem, markAsRead = true) => {
+/** 处理通知点击 - 修复：默认不自动标记已读，避免查看详情时通知消失 */
+const handleNotificationClick = (notification: NotificationItem, markAsRead = false) => {
   emit('notification-click', notification, markAsRead)
 }
 

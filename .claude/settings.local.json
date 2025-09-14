@@ -58,7 +58,8 @@
       "Bash(./publish_level1_emergency_fixed.sh:*)",
       "Bash(./publish_level1_emergency.sh:*)",
       "Bash(./publish_level2_important.sh:*)",
-      "Bash(./publish_level3_regular.sh:*)"
+      "Bash(./publish_level3_regular.sh:*)",
+      "Bash(npm run dev:*)"
     ],
     "deny": [],
     "ask": []

@@ -294,8 +294,8 @@ const handleShowAllPriority = () => {
 .priority-workspace-section {
   background: linear-gradient(135deg, #fafafa 0%, #ffffff 100%);
   border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 20px;
+  border-radius: 10px;
+  padding: 12px;  /* 进一步减小padding到12px */
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
@@ -303,13 +303,13 @@ const handleShowAllPriority = () => {
 .priority-components-container {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 12px;  /* 进一步减小gap到12px */
 }
 
 /* 优先级别区块样式 */
 .priority-level-section {
-  border-radius: 12px;
-  padding: 16px;
+  border-radius: 8px;
+  padding: 10px;  /* 进一步减小padding到10px */
   position: relative;
   overflow: hidden;
 }
@@ -351,8 +351,8 @@ const handleShowAllPriority = () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
-  padding-bottom: 12px;
+  margin-bottom: 8px;  /* 进一步减小到8px */
+  padding-bottom: 6px;  /* 进一步减小到6px */
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
 }
 
@@ -364,7 +364,7 @@ const handleShowAllPriority = () => {
 
 .level-title h4 {
   margin: 0;
-  font-size: 16px;
+  font-size: 14px;  /* 减小标题字体 */
   font-weight: 700;
 }
 
@@ -425,8 +425,8 @@ const handleShowAllPriority = () => {
 .notification-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin-bottom: 16px;
+  gap: 6px;  /* 进一步减小gap到6px */
+  margin-bottom: 8px;  /* 进一步减小到8px */
 }
 
 /* 查看更多按钮区域 */
@@ -497,8 +497,8 @@ const handleShowAllPriority = () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
-  padding-bottom: 12px;
+  margin-bottom: 12px;  /* 减小从16px到12px */
+  padding-bottom: 8px;  /* 减小从12px到8px */
   border-bottom: 1px solid #e5e7eb;
 }
 

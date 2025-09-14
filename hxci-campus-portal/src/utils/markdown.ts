@@ -1,5 +1,6 @@
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
+import MarkdownIt from 'markdown-it'
 
 /**
  * Markdown渲染工具函数
@@ -228,5 +229,137 @@ export const extractPlainText = (markdownText: string | null | undefined): strin
       .replace(/[*_`#>\[\]()]/g, '')
       .replace(/\s+/g, ' ')
       .trim()
+  }
+}
+
+// ========== 新增：专用于通知详情对话框的增强版渲染器 ==========
+
+// 创建专用的MarkdownIt实例，用于通知详情对话框
+const mdAdvanced = new MarkdownIt({
+  html: false,        // 禁用HTML标签，防止XSS
+  linkify: true,      // 自动转换URL为链接
+  breaks: true,       // 换行符转为<br>
+  typographer: true   // 启用排版优化
+})
+
+// 配置链接安全属性
+mdAdvanced.renderer.rules.link_open = (tokens, idx, options, env, self) => {
+  const token = tokens[idx]
+
+  // 添加target="_blank"
+  const targetIndex = token.attrIndex('target')
+  if (targetIndex < 0) {
+    token.attrPush(['target', '_blank'])
+  } else {
+    token.attrs![targetIndex][1] = '_blank'
+  }
+
+  // 添加rel="noopener nofollow"
+  const relIndex = token.attrIndex('rel')
+  if (relIndex < 0) {
+    token.attrPush(['rel', 'noopener nofollow'])
+  } else {
+    token.attrs![relIndex][1] = 'noopener nofollow'
+  }
+
+  return self.renderToken(tokens, idx, options)
+}
+
+/**
+ * 解码转义字符
+ * 处理 \\n \\t \\r \" 等转义序列，以及HTML实体
+ */
+export const decodeEscapes = (text: string): string => {
+  if (!text) return ''
+
+  let result = text
+
+  // 检测并处理JSON转义序列
+  if (/(\\n|\\t|\\r|\\u[0-9a-fA-F]{4}|\\\\|\\")/.test(text)) {
+    try {
+      // 尝试作为JSON字符串解析
+      result = JSON.parse('"' + text.replace(/"/g, '\\"') + '"')
+    } catch {
+      // 如果JSON解析失败，手动替换常见转义字符
+      result = text
+        .replace(/\\\\/g, '\\')
+        .replace(/\\n/g, '\n')
+        .replace(/\\r/g, '\r')
+        .replace(/\\t/g, '\t')
+        .replace(/\\"/g, '"')
+    }
+  }
+
+  // 解码HTML实体（&amp; &lt; &gt; 等）
+  if (result.includes('&')) {
+    const textarea = document.createElement('textarea')
+    textarea.innerHTML = result
+    result = textarea.value
+  }
+
+  return result.trim()
+}
+
+/**
+ * 专用于通知详情对话框的增强版Markdown渲染
+ * 解决转义字符显示、正确渲染Markdown格式
+ *
+ * @param rawContent 原始内容（可能包含转义字符）
+ * @returns 安全的HTML字符串
+ */
+export const renderNotificationDialog = (rawContent: string): string => {
+  if (!rawContent) {
+    return '<p class="empty-content">暂无内容</p>'
+  }
+
+  console.debug('🔍 [renderNotificationDialog] 原始内容:', rawContent.substring(0, 100) + '...')
+
+  try {
+    // 1. 解码转义字符
+    const normalizedContent = decodeEscapes(rawContent)
+    console.debug('🔧 [renderNotificationDialog] 转义解码后:', normalizedContent.substring(0, 100) + '...')
+
+    // 2. 处理特殊的通知内容格式
+    let processedContent = normalizedContent
+      .replace(/\\n\\n\\n+/g, '\n\n')  // 处理多余的换行符
+      .replace(/&gt;/g, '>')          // 处理转义的大于号
+      .replace(/&lt;/g, '<')          // 处理转义的小于号
+      .replace(/&amp;/g, '&')         // 处理转义的&符号
+
+    // 3. 使用MarkdownIt渲染
+    const renderedHtml = mdAdvanced.render(processedContent)
+    console.debug('📝 [renderNotificationDialog] Markdown渲染后长度:', renderedHtml.length)
+
+    // 4. 使用DOMPurify清理HTML，防止XSS攻击
+    const sanitizedHtml = DOMPurify.sanitize(renderedHtml, {
+      ALLOWED_TAGS: [
+        'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+        'p', 'br', 'hr',
+        'ul', 'ol', 'li',
+        'strong', 'b', 'em', 'i',
+        'code', 'pre',
+        'blockquote',
+        'table', 'thead', 'tbody', 'tr', 'th', 'td',
+        'a', 'span'
+      ],
+      ALLOWED_ATTR: ['href', 'target', 'rel', 'class'],
+      ADD_ATTR: ['target']
+    })
+
+    console.debug('✅ [renderNotificationDialog] 最终HTML长度:', sanitizedHtml.length)
+    return sanitizedHtml
+
+  } catch (error) {
+    console.error('❌ [renderNotificationDialog] 渲染失败:', error)
+    console.error('输入内容:', rawContent)
+
+    // 降级处理：返回纯文本（保留换行）
+    const fallbackHtml = rawContent
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/\n/g, '<br>')
+      .replace(/\\n/g, '<br>')  // 处理转义的换行符
+
+    return `<div class="fallback-content">${DOMPurify.sanitize(fallbackHtml)}</div>`
   }
 }

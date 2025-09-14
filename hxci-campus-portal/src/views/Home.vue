@@ -496,9 +496,24 @@ const notificationPagination = uiStore.notificationPagination
 // 🎯 Stage 7: 待办统计使用todoStore
 const pendingTodoCount = computed(() => todoStore.pendingCount)
 
-// 通知点击处理 - 使用notifications composable
+// 通知点击处理 - 修复：使用uiStore打开详情对话框
 const handleNotificationClick = async (notification: NotificationItem, autoMarkRead: boolean = false) => {
-  await notifications.onClick(notification, autoMarkRead)
+  try {
+    // 获取通知详情（如果可能的话）
+    const detail = await notificationStore.getNotificationDetail(notification.id).catch(() => null)
+
+    // 使用uiStore打开详情对话框（这是对话框绑定的状态）
+    uiStore.openNotificationDetail(detail || notification)
+
+    // 如果需要，标记为已读
+    if (autoMarkRead) {
+      notificationStore.markAsRead(notification.id)
+    }
+  } catch (error) {
+    console.error('打开通知详情失败:', error)
+    // 即使出错，仍然尝试打开对话框
+    uiStore.openNotificationDetail(notification)
+  }
 }
 
 // 🚀 Stage 9性能优化: 防抖版本的通知点击处理 (强化版)
