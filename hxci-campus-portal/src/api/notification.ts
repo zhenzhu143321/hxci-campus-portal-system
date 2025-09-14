@@ -97,7 +97,7 @@ export const notificationAPI = {
           levelColor: this.getLevelColor(item.level),
           publisherName: item.publisherName,
           publisherRole: item.publisherRole, // 🔧 新增：映射发布者角色
-          createTime: timeAgo(item.createTime),
+          createTime: item.createTime, // 🔧 核心修复：保持原始日期格式，让前端组件决定显示方式
           scope: item.targetScope || item.scope, // 适配真实API字段名
           status: item.status,
           summary: item.summary,              // 🔧 新增：映射摘要字段

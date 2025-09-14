@@ -471,6 +471,19 @@ cx -p "修复安全漏洞的具体代码"            # GPT-5安全修复
 
 ## 🚀 快速启动
 
+### 📋 通知发布脚本 (集成缓存清理)
+```bash
+# 位置: scripts/notifications/
+./publish_level1_emergency.sh     # Level 1 紧急通知 (校长权限)
+./publish_level2_important.sh     # Level 2 重要通知 (校长权限)
+./publish_level3_regular.sh       # Level 3 常规通知 (教务主任权限)
+./publish_level4_complete_fixed.sh # Level 4 提醒通知 (校长权限)
+
+# 缓存清理工具
+./cache_clear_utils.sh            # 缓存清理工具函数库
+./cache_clear_server.sh           # HTTP清理页面服务器
+```
+
 ### 后端服务启动 (Java)
 ```bash
 # 一键启动脚本 (仅在用户授权时使用)
@@ -1212,6 +1225,7 @@ find . -type f -name "*.java" | xargs grep "pattern"
 | 问题 | 现象 | 解决方案 |
 |------|------|----------|
 | **🚨 代码修改不生效** | **Java代码修改后API行为无变化** | **🛑 重启服务! (最常见错误)** |
+| **🚨 前端显示"时间未知"** | **通知日期显示为"时间未知"而非具体时间** | **🔍 检查API层是否过早转换日期格式 (见前端显示异常调试法)** |
 | **🚨 401错误** | 账号未登录 | 检查 `Authorization: Bearer {token}` + `tenant-id: 1` |
 | **🚨 404错误** | API路径不存在 | 检查路径 `/admin-api/test/notification/` |
 | **🚨 编译错误** | Maven启动失败 | 检查Maven配置和Java版本 |
@@ -1251,6 +1265,75 @@ sudo pkill -f java
 4. **验证修复**: 重启Vue服务后检查天气显示是否为真实数据(哈尔滨 22°C)
 
 **预期效果**: 从默认数据(-5°C) → 真实天气数据(22°C)
+
+### 🔍 **前端显示异常调试法** (🚨 企业级调试铁律)
+
+**问题特征**: 前端显示"时间未知"、"无效日期"等异常，数据库有正确日期
+
+**🎯 逆向追踪调试法** (✅ 2025-09-13验证成功):
+
+#### **第一步：确认问题症状**
+```typescript
+// 症状：通知列表显示"时间未知"而非具体时间
+<span class="notification-time">{{ formatApiDate(notification.createTime, { fallback: '时间未知' }) }}</span>
+```
+
+#### **第二步：前端组件调试追踪**
+```typescript
+// 在NotificationListContent.vue中添加临时调试代码
+watch(
+  () => props.notifications,
+  (newNotifications) => {
+    console.log('🔍 [组件层] 接收到的createTime数据:')
+    newNotifications.forEach((notification, index) => {
+      console.log(`通知${index}: createTime="${notification.createTime}", 类型=${typeof notification.createTime}`)
+    })
+  }
+)
+```
+
+#### **第三步：Store层数据验证**
+```typescript
+// 检查NotificationStore中的数据转换
+console.log('🔍 [Store层] notifications数据:', notifications.value)
+```
+
+#### **第四步：API层数据转换检查** (🚨 最关键!)
+```typescript
+// 检查 /src/api/notification.ts 数据映射逻辑
+createTime: item.createTime,  // ✅ 正确：保持原始格式
+// vs
+createTime: timeAgo(item.createTime),  // ❌ 错误：过早转换为相对时间
+```
+
+#### **🔧 核心修复模式**
+```typescript
+// 🚨 错误模式：API层过早格式化
+createTime: timeAgo(item.createTime),  // "2025-09-13T10:13:30" → "4小时前"
+// ↓ 前端formatApiDate()无法解析"4小时前" → "时间未知"
+
+// ✅ 正确模式：保持数据流完整性
+createTime: item.createTime,  // 保持 "2025-09-13T10:13:30" 原始格式
+// ↓ 前端formatApiDate()正确解析 → "今天 10:13"
+```
+
+#### **⚡ 快速验证命令**
+```bash
+# 检查API返回的实际数据结构
+curl -H "Authorization: Bearer {token}" -H "tenant-id: 1" \
+  http://localhost:48081/admin-api/test/notification/api/list
+
+# 前端开发者工具Console验证
+# 查看 Network -> /api/list 响应中的 createTime 字段格式
+```
+
+#### **📋 调试经验总结**
+1. **数据流完整性原则**: API→Store→Component 各层职责明确，避免重复转换
+2. **逆向追踪法**: 从显示问题反推数据源，逐层验证数据格式
+3. **临时调试代码**: 使用console.log在关键节点追踪数据变化
+4. **格式化分离**: 数据获取和显示格式化分离，前端组件负责最终显示逻辑
+
+**🎉 修复验证**: 修复后从"时间未知" → "今天 10:13" 或相对时间显示
 
 ### 📁 **项目核心文件位置**
 
@@ -1400,5 +1483,5 @@ CREATE TABLE weather_cache (
 
 ---
 
-**📋 与CURRENT_WORK_STATUS.md协作**: CLAUDE.md = 技术手册和架构指南，CURRENT_WORK_STATUS.md = 项目管理和当前状态  
-**📅 最后更新**: 2025年1月5日 | **维护**: Claude Code AI | **环境**: Linux + 三重Token架构完成 | **AI协作强制执行机制已全面实施**
+**📋 与CURRENT_WORK_STATUS.md协作**: CLAUDE.md = 技术手册和架构指南，CURRENT_WORK_STATUS.md = 项目管理和当前状态
+**📅 最后更新**: 2025年9月13日 | **维护**: Claude Code AI | **环境**: Linux + 三重Token架构完成 | **AI协作强制执行机制已全面实施** | **前端显示异常调试法已完善**

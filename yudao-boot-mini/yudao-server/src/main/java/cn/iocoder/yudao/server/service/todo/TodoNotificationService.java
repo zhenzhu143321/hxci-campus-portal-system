@@ -109,26 +109,29 @@ public class TodoNotificationService {
         }
         
         if ("ACADEMIC_ADMIN".equals(roleCode)) {
-            // 教务主任可以看到全校和部门级别的待办
+            // 教务主任可以看到全校、部门和年级级别的待办
             wrapper.and(w -> w.eq(TodoNotificationDO::getTargetScope, "SCHOOL_WIDE")
-                            .or().eq(TodoNotificationDO::getTargetScope, "DEPARTMENT"));
+                            .or().eq(TodoNotificationDO::getTargetScope, "DEPARTMENT")
+                            .or().eq(TodoNotificationDO::getTargetScope, "GRADE"));
             log.debug("🔒 [SCOPE_FILTER] 教务主任权限过滤应用");
             return;
         }
-        
+
         if ("TEACHER".equals(roleCode) || "CLASS_TEACHER".equals(roleCode)) {
-            // 教师和班主任可以看到部门和班级级别的待办
-            wrapper.and(w -> w.eq(TodoNotificationDO::getTargetScope, "DEPARTMENT")
+            // 🔧 修复：教师和班主任可以看到全校、部门、年级和班级级别的待办
+            wrapper.and(w -> w.eq(TodoNotificationDO::getTargetScope, "SCHOOL_WIDE")
+                            .or().eq(TodoNotificationDO::getTargetScope, "DEPARTMENT")
                             .or().eq(TodoNotificationDO::getTargetScope, "GRADE")
                             .or().eq(TodoNotificationDO::getTargetScope, "CLASS"));
-            log.debug("🔒 [SCOPE_FILTER] 教师权限过滤应用");
+            log.debug("🔒 [SCOPE_FILTER] 教师权限过滤应用 - 包含SCHOOL_WIDE");
             return;
         }
-        
+
         if ("STUDENT".equals(roleCode)) {
-            // 学生只能看到班级级别的待办
-            wrapper.eq(TodoNotificationDO::getTargetScope, "CLASS");
-            log.debug("🔒 [SCOPE_FILTER] 学生权限过滤应用");
+            // 🔧 修复：学生可以看到全校和班级级别的待办
+            wrapper.and(w -> w.eq(TodoNotificationDO::getTargetScope, "SCHOOL_WIDE")
+                            .or().eq(TodoNotificationDO::getTargetScope, "CLASS"));
+            log.debug("🔒 [SCOPE_FILTER] 学生权限过滤应用 - 包含SCHOOL_WIDE");
             return;
         }
         

@@ -141,8 +141,11 @@ import { ElMessage } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
 import { useNotificationStore } from '@/stores/notification'
 import { useUIStore } from '@/stores/ui'
+import { useTodoStore } from '@/stores/todo'
 import NotificationListContent from './NotificationListContent.vue'
-import type { NotificationItem } from '@/api/types/notification'
+import type { NotificationItem } from '@/api/notification'
+import type { TodoNotificationItem } from '@/types/todo'
+import { getNotificationTimestamp } from '@/utils/date'
 
 // =====================================================
 // Props & Emits 定义
@@ -166,6 +169,11 @@ const emit = defineEmits<Emits>()
 // =====================================================
 const notificationStore = useNotificationStore()
 const uiStore = useUIStore()
+const todoStore = useTodoStore()
+
+// =====================================================
+// 数据转换函数 - 将不同数据源统一转换为NotificationItem格式
+// =====================================================
 
 // 对话框显示状态
 const visible = computed({
@@ -179,14 +187,43 @@ const selectedLevel = ref<number | null>(null)
 const activeTab = ref('all')
 const batchLoading = ref(false)
 
-// =====================================================
-// Computed Properties - 数据统计
-// =====================================================
-// 🔧 P0级修复: 使用NotificationStore中实际存在的计算属性
-const totalCount = computed(() => {
-  const notifications = notificationStore.notifications
-  return Array.isArray(notifications) ? notifications.length : 0
+
+// 将待办通知转换为NotificationItem格式 (修复类型不匹配问题)
+const convertTodoToNotificationItem = (item: TodoNotificationItem): NotificationItem => ({
+  id: parseInt(`9000${item.id}`), // 使用9000前缀避免ID冲突，确保数字类型
+  title: `📝 ${item.title}`, // 添加待办图标前缀
+  content: item.content,
+  level: 5, // 待办通知统一为Level 5
+  levelColor: '#909399', // 灰色
+  publisherName: item.assignerName || '系统',
+  publisherRole: 'SYSTEM',
+  createTime: item.dueDate, // 使用截止时间作为显示时间
+  scope: 'SCHOOL_WIDE', // 待办通知默认全校范围
+  status: item.isCompleted ? 'COMPLETED' : 'PENDING',
+  summary: `📋 待办事项 | 优先级: ${item.priority} | ${item.isCompleted ? '已完成' : '待处理'}`,
+  isRead: item.isCompleted
 })
+
+// 合并所有通知的计算属性
+const allUnifiedNotifications = computed(() => {
+  const regularNotifications = notificationStore.notifications || []
+  const todoNotifications = (todoStore.todoNotifications || []).map(convertTodoToNotificationItem)
+
+  // 🔧 P0级修复: 确保所有数据都是NotificationItem类型，避免类型不匹配
+  console.log('🔍 [AllNotificationsDialog] 数据合并调试:')
+  console.log('  常规通知数量:', regularNotifications.length)
+  console.log('  待办通知数量:', todoNotifications.length)
+  console.log('  待办通知数据:', todoNotifications)
+
+  // 合并并按时间排序
+  return [...regularNotifications, ...todoNotifications]
+    .sort((a, b) => getNotificationTimestamp(b.createTime) - getNotificationTimestamp(a.createTime))
+})
+
+// =====================================================
+// Computed Properties - 数据统计 (基于合并后的数据)
+// =====================================================
+const totalCount = computed(() => allUnifiedNotifications.value.length)
 
 const unreadCount = computed(() => {
   const stats = notificationStore.unreadStats
@@ -206,7 +243,7 @@ const systemCount = computed(() => {
 })
 
 // =====================================================
-// Computed Properties - 筛选逻辑
+// Computed Properties - 筛选逻辑 (支持NotificationItem类型)
 // =====================================================
 const filterNotifications = (notifications: NotificationItem[]) => {
   // 🔧 P0级修复: 确保notifications是数组且有内容
@@ -214,50 +251,48 @@ const filterNotifications = (notifications: NotificationItem[]) => {
     console.warn('⚠️ [AllNotificationsDialog] notifications不是有效数组:', notifications)
     return []
   }
-  
+
   let filtered = [...notifications]
-  
+
   // 关键词搜索
   if (searchKeyword.value.trim()) {
     const keyword = searchKeyword.value.toLowerCase()
-    filtered = filtered.filter(n => 
-      n.title.toLowerCase().includes(keyword) || 
+    filtered = filtered.filter(n =>
+      n.title.toLowerCase().includes(keyword) ||
       n.content.toLowerCase().includes(keyword)
     )
   }
-  
+
   // 级别筛选
   if (selectedLevel.value !== null) {
     filtered = filtered.filter(n => n.level === selectedLevel.value)
   }
-  
-  return filtered.sort((a, b) => new Date(b.createTime).getTime() - new Date(a.createTime).getTime())
+
+  return filtered.sort((a, b) => getNotificationTimestamp(b.createTime) - getNotificationTimestamp(a.createTime))
 }
 
-const filteredAllNotifications = computed(() => 
-  filterNotifications(notificationStore.notifications)
+const filteredAllNotifications = computed(() =>
+  filterNotifications(allUnifiedNotifications.value)
 )
 
 const filteredUnreadNotifications = computed(() => {
-  // 🔧 P0级修复: 基于已有数据计算未读通知
-  const allNotifications = notificationStore.notifications || []
-  if (!Array.isArray(allNotifications)) {
-    return []
-  }
-  
-  const unreadNotifications = allNotifications.filter(n => 
-    n && !notificationStore.isRead(n.id)
+  const unreadNotifications = allUnifiedNotifications.value.filter(n =>
+    n && !n.isRead
   )
   return filterNotifications(unreadNotifications)
 })
 
-const filteredImportantNotifications = computed(() => 
-  filterNotifications(notificationStore.importantNotifications)
-)
+const filteredImportantNotifications = computed(() => {
+  const importantNotifications = allUnifiedNotifications.value.filter(n =>
+    n.level <= 2 // Level 1和2为重要通知
+  )
+  return filterNotifications(importantNotifications)
+})
 
 const filteredSystemNotifications = computed(() => {
-  // 🔧 P0级修复: 使用实际存在的systemAnnouncements
-  const systemNotifications = notificationStore.systemAnnouncements || []
+  const systemNotifications = allUnifiedNotifications.value.filter(n =>
+    n.publisherRole === 'SYSTEM' || n.publisherRole === 'SYSTEM_ADMIN' || n.title.includes('📝')
+  )
   return filterNotifications(systemNotifications)
 })
 
@@ -320,8 +355,12 @@ const handleMarkAllAsRead = async () => {
 
 const handleRefresh = async () => {
   try {
-    await notificationStore.fetchNotifications()
-    console.log('✅ [AllNotificationsDialog] 通知数据刷新成功')
+    // 并行获取常规通知和待办通知
+    await Promise.all([
+      notificationStore.fetchNotifications(),
+      todoStore.initializeTodos()
+    ])
+    console.log('✅ [AllNotificationsDialog] 所有通知数据刷新成功')
     // ElMessage.success('通知数据已刷新')
   } catch (error) {
     console.error('❌ [AllNotificationsDialog] 刷新失败:', error)
@@ -342,8 +381,13 @@ const handleClose = () => {
 // =====================================================
 watch(visible, (newValue) => {
   if (newValue) {
-    // 对话框打开时刷新数据
-    notificationStore.fetchNotifications()
+    // 对话框打开时刷新数据 - 同时获取常规通知和待办通知
+    Promise.all([
+      notificationStore.fetchNotifications(),
+      todoStore.initializeTodos()
+    ]).catch(error => {
+      console.error('❌ [AllNotificationsDialog] 数据加载失败:', error)
+    })
   }
 })
 </script>

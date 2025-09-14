@@ -43,7 +43,22 @@
       "Bash(mvn clean:*)",
       "Bash(python3:*)",
       "Bash(javac:*)",
-      "Bash(java:*)"
+      "Bash(java:*)",
+      "mcp__playwright__browser_snapshot",
+      "mcp__playwright__browser_evaluate",
+      "Read(//tmp/**)",
+      "Bash(__NEW_LINE__ gemini -p \"你现在是校园通知发布系统的专业学习助手！请扫描学习根目录中的核心文档，掌握完整的通知发布知识体系。\n\n🎯 **学习任务**：\n\n**第一步：扫描CLAUDE.md文档**\n请仔细阅读根目录的CLAUDE.md文件，重点学习：\n1. 🔑 **测试账号信息** - 6种角色的完整认证信息\n2. 🚀 **API路径** - 认证服务(48082)和主服务(48081)的端点\n3. 🛡️ **权限矩阵** - 每种角色能发布什么级别的通知\n4. 📋 **通知分类** - Level 1-4的含义和适用场景\n5. 🌐 **目标范围** - SCHOOL_WIDE/DEPARTMENT/GRADE/CLASS的区别\n6. 🔄 **认证流程** - JWT获取→CSRF获取→发布通知的完整步骤\n\n**第二步：学习核心要点**\n特别注意以下关键信息：\n- 正确的端口号配置\n- 必需的请求头格式\n- Markdown格式支持\n- 时间戳自动生成机制\n\n请开始扫描学习，并总结你学到的核心知识点！\")",
+      "Bash(__NEW_LINE__ gemini -p \"你现在是校园通知发布专家！在这一次调用中，请完成以下完整任务：\n\n📚 **第一步：快速学习核心知识**\n- 测试账号: SYSTEM_ADMIN_001 + 系统管理员 + admin123 (拥有Level 1-4全部发布权限)\n- API端点: 48082认证服务，48081主服务  \n- 认证流程: JWT获取 → CSRF获取 → 发布通知\n- 通知级别: Level 1紧急、Level 2重要、Level 3常规、Level 4提醒\n- 必需请求头: Authorization: Bearer {token}, tenant-id: 1, X-CSRF-TOKEN: {csrf}\n\n🚀 **第二步：立即执行发布任务**\n使用SYSTEM_ADMIN_001身份，依次发布4条通知：\n\n**Level 1 紧急通知**:\n标题: 🚨【紧急通知】校园安全警报\n内容: **紧急安全警报**\\n\\n**时间**: 2025年9月13日\\n**级别**: 最高优先级\\n\\n检测到网络安全威胁：\\n\\n- **立即行动**: 更改所有系统密码\\n- **联系方式**: security@campus.edu\\n\\n请立即配合！\n\n**Level 2 重要通知**:\n标题: 📚【重要通知】系统维护升级  \n内容: **系统维护通知**\\n\\n**维护时间**: 2025年9月15日 02:00-06:00\\n\\n**影响系统**:\\n- 教务管理系统\\n- 图书馆系统\\n\\n维护期间请勿使用相关服务。\n\n**Level 3 常规通知**:\n标题: 📅【常规通知】学期日程调整\n内容: **学期安排调整**\\n\\n根据校历安排：\\n\\n- 开学时间调整为**9月20日**\\n- 期末考试时间确定为*12月15日*\\n\\n请各部门做好准备。\n\n**Level 4 提醒通知**:\n标题: 🌟【温馨提醒】健康生活指导\n内容: **健康生活提醒**\\n\\n秋季养生建议：\\n\\n1. 适量运动，增强体质\\n2. 规律作息，充足睡眠\\n3. 均衡饮食，多喝水\\n\\n祝大家身体健康！\n\n请立即执行完整的认证→发布流程，每发布一条通知就报告结果！\")",
+      "Bash(__NEW_LINE__ gemini --yolo -p \"立即执行简单的通知发布测试！\n\n使用精确的API参数：\n1. 认证API: http://localhost:48082/mock-school-api/auth/authenticate\n   请求体: {\"\"employeeId\"\": \"\"SYSTEM_ADMIN_001\"\", \"\"name\"\": \"\"系统管理员\"\", \"\"password\"\": \"\"admin123\"\"}\n\n2. CSRF API: http://localhost:48081/csrf-token\n\n3. 发布API: http://localhost:48081/admin-api/test/notification/api/publish-database\n   请求头: Authorization: Bearer {token}, tenant-id: 1, X-CSRF-TOKEN: {csrf}\n   请求体: {\"\"title\"\": \"\"测试通知\"\", \"\"content\"\": \"\"这是一条测试通知\"\", \"\"level\"\": 1, \"\"categoryId\"\": 5, \"\"targetScope\"\": \"\"SCHOOL_WIDE\"\", \"\"pushChannels\"\": [1, 5], \"\"requireConfirm\"\": false, \"\"pinned\"\": true}\n\n立即执行这3个curl命令！不要创建文件，直接执行！\")",
+      "Bash(chmod:*)",
+      "Bash(/opt/hxci-campus-portal/hxci-campus-portal-system/scripts/notifications/api_test.sh:*)",
+      "Bash(/opt/hxci-campus-portal/hxci-campus-portal-system/scripts/notifications/test_roles.sh:*)",
+      "Bash(/opt/hxci-campus-portal/hxci-campus-portal-system/scripts/notifications/identify_problematic_chars.sh:*)",
+      "Bash(sudo netstat:*)",
+      "Bash(./publish_level1_emergency_fixed.sh:*)",
+      "Bash(./publish_level1_emergency.sh:*)",
+      "Bash(./publish_level2_important.sh:*)",
+      "Bash(./publish_level3_regular.sh:*)"
     ],
     "deny": [],
     "ask": []

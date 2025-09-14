@@ -68,7 +68,7 @@
               >
                 {{ getLevelText(notification.level) }}
               </el-tag>
-              <span class="notification-time">{{ formatTimeIntelligent(notification.createTime) }}</span>
+              <span class="notification-time">{{ formatApiDate(notification.createTime, { fallback: '时间未知' }) }}</span>
             </div>
           </div>
           
@@ -103,9 +103,10 @@
         
         <!-- 通知内容摘要 -->
         <div class="notification-content">
-          <p class="notification-summary">
-            {{ getContentSummary(notification.content) }}
-          </p>
+          <div
+            class="notification-summary"
+            v-html="getContentSummary(notification.content)"
+          ></div>
           
           <!-- 发布者信息 -->
           <div class="notification-publisher">
@@ -136,11 +137,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { Bell, User, Location, Message, Check, Refresh, View } from '@element-plus/icons-vue'
 import type { NotificationItem } from '@/api/types/notification'
-import { formatTimeIntelligent } from '@/utils'
+import { formatApiDate } from '@/utils'
 import { useNotificationStore } from '@/stores/notification'
+import { renderNotificationSummary } from '@/utils/markdown'
 
 // =====================================================
 // Props & Emits 定义
@@ -215,17 +217,11 @@ const getLevelTagType = (level: number): string => {
   return typeMap[level as keyof typeof typeMap] || 'info'
 }
 
-// formatTime函数已迁移到 @/utils，使用formatTimeIntelligent替代
+// 🔧 P0级修复：使用formatApiDate替代formatTimeIntelligent，提供更好的null值处理
 
 const getContentSummary = (content: string): string => {
-  if (!content) return ''
-  
-  // 移除HTML标签
-  const plainText = content.replace(/<[^>]*>/g, '')
-  
-  // 限制长度
-  if (plainText.length <= 100) return plainText
-  return plainText.substring(0, 100) + '...'
+  // 🚀 使用markdown渲染，支持换行、粗体、斜体、链接等格式
+  return renderNotificationSummary(content, 100)
 }
 
 const getRoleDisplayName = (role: string): string => {
@@ -402,6 +398,50 @@ const getChannelsDisplayName = (channels: string): string => {
   color: var(--el-text-color-regular);
   line-height: 1.5;
   margin: 0 0 8px 0;
+
+  /* 🚀 Markdown渲染支持样式 */
+  /* 确保内嵌HTML标签正确显示 */
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+
+  /* 内嵌标签样式 */
+  & strong, & b {
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+  }
+
+  & em, & i {
+    font-style: italic;
+    color: var(--el-text-color-regular);
+  }
+
+  & code {
+    background: var(--el-fill-color-light);
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-family: 'Monaco', 'Consolas', monospace;
+    font-size: 12px;
+  }
+
+  & a {
+    color: var(--el-color-primary);
+    text-decoration: none;
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  /* 处理段落和换行 */
+  & p {
+    margin: 0;
+    &:not(:last-child) {
+      margin-bottom: 4px;
+    }
+  }
+
+  & br {
+    line-height: 1.2;
+  }
 }
 
 .notification-publisher {

@@ -1225,9 +1225,10 @@ public class TempNotificationController {
                            "GRADE".equals(targetScope) || "CLASS".equals(targetScope);
                     
                 case "STUDENT":
-                    // 🚨 关键修复: 学生可以看到学校、年级、班级范围的通知
-                    // 学校通知、年级通知、班级通知都应该对学生可见
-                    return "SCHOOL_WIDE".equals(targetScope) || "GRADE".equals(targetScope) || "CLASS".equals(targetScope);
+                    // 🚨 关键修复: 学生可以看到学校、部门、年级、班级范围的通知
+                    // 学校通知、部门通知、年级通知、班级通知都应该对学生可见
+                    return "SCHOOL_WIDE".equals(targetScope) || "DEPARTMENT".equals(targetScope) ||
+                           "GRADE".equals(targetScope) || "CLASS".equals(targetScope);
                     
                 default:
                     return false;

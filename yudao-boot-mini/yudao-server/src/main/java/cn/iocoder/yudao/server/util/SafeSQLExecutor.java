@@ -26,6 +26,19 @@ public class SafeSQLExecutor {
     private static final Pattern DANGEROUS_PATTERN = Pattern.compile(
         "(?is)(/\\*.*?\\*/|(?m)(^|\\s)(?:--|#)|\\bunion\\s+(?:all\\s+)?select\\b|\\binto\\s+(?:outfile|dumpfile)\\b|\\bload_file\\b|\\bsleep\\s*\\(|\\bbenchmark\\s*\\(|\\bxp_\\w+\\b|\\bexec(?:ute)?\\b|\\binformation_schema\\b)"
     );
+
+    // Markdown内容安全模式 - 移除#注释检测，保留真正的SQL注入检测，修复---误判问题
+    private static final Pattern DANGEROUS_PATTERN_FOR_CONTENT = Pattern.compile(
+        "(?is)(/\\*.*?\\*/|(?m)(^|\\s)--(?!-)|\\bunion\\s+(?:all\\s+)?select\\b|\\binto\\s+(?:outfile|dumpfile)\\b|\\bload_file\\b|\\bsleep\\s*\\(|\\bbenchmark\\s*\\(|\\bxp_\\w+\\b|\\bexec(?:ute)?\\b|\\binformation_schema\\b)"
+    );
+
+    // Markdown语法过滤模式 - 在安全检测前移除这些内容
+    // Markdown代码块: ```...```
+    private static final Pattern MD_FENCED_CODE_BLOCK = Pattern.compile("(?s)```.*?```\\n?");
+    // Markdown行内代码: `...`
+    private static final Pattern MD_INLINE_CODE_SPAN = Pattern.compile("`[^`]*`");
+    // Markdown表格分隔线: | --- | :---: |
+    private static final Pattern MD_TABLE_SEPARATOR_LINE = Pattern.compile("(?m)^\\s*\\|?(\\s*:?-{2,}:?\\s*\\|)+\\s*$");
     
     // 用于检测SQL子句边界的模式
     private static final Pattern CLAUSE_BOUNDARY = Pattern.compile(
@@ -82,9 +95,9 @@ public class SafeSQLExecutor {
         public NotificationInsertSQL setBasicValues(String title, String content, Integer level, 
                                                   Integer status, String publisherName, String publisherRole, String targetScope) {
             
-            // 🔐 输入验证和清理
-            this.safeTitle = sanitizeInput(title, MAX_STRING_LENGTH, "title");
-            this.safeContent = sanitizeInput(content, MAX_CONTENT_LENGTH, "content");
+            // 🔐 输入验证和清理 - Markdown友好模式用于title和content
+            this.safeTitle = sanitizeMarkdownInput(title, MAX_STRING_LENGTH, "title");
+            this.safeContent = sanitizeMarkdownInput(content, MAX_CONTENT_LENGTH, "content");
             this.safePublisherName = sanitizeInput(publisherName, MAX_STRING_LENGTH, "publisherName");
             this.safePublisherRole = sanitizeInput(publisherRole, 50, "publisherRole");
             this.safeTargetScope = sanitizeInput(targetScope != null ? targetScope : "SCHOOL_WIDE", 50, "targetScope");
@@ -244,7 +257,53 @@ public class SafeSQLExecutor {
         
         return escaped;
     }
-    
+
+    /**
+     * 🔐 Markdown内容安全清理 - 支持Markdown语法但防止SQL注入
+     * 专用于title和content字段，允许#、*、**、_、-等Markdown字符
+     */
+    private static String sanitizeMarkdownInput(String input, int maxLength, String fieldName) {
+        if (input == null) {
+            log.warn("🔐 [MARKDOWN-SANITIZE] 字段 {} 为null，使用空字符串", fieldName);
+            return "";
+        }
+
+        // 长度检查
+        if (input.length() > maxLength) {
+            log.warn("🔐 [MARKDOWN-SANITIZE] 字段 {} 长度超限: {} > {}, 截断处理", fieldName, input.length(), maxLength);
+            input = input.substring(0, maxLength);
+        }
+
+        // 检测并拒绝二进制控制字符（除了CR/LF/TAB）
+        if (Pattern.compile("[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F]").matcher(input).find()) {
+            log.error("🚨 [SECURITY] 检测到控制字符: 字段={}", fieldName);
+            throw new SecurityException("Control characters detected in field: " + fieldName);
+        }
+
+        // 先移除Markdown语法元素，再进行SQL注入检测
+        String scanText = MD_FENCED_CODE_BLOCK.matcher(input).replaceAll("");
+        scanText = MD_INLINE_CODE_SPAN.matcher(scanText).replaceAll("");
+        scanText = MD_TABLE_SEPARATOR_LINE.matcher(scanText).replaceAll("");
+
+        // 使用Markdown友好的SQL注入检测（移除#注释检测，且避免匹配'---'为注释）
+        if (DANGEROUS_PATTERN_FOR_CONTENT.matcher(scanText).find()) {
+            log.error("🚨 [SECURITY] SQL注入风险检测(Markdown模式): 字段={}, 扫描文本={}", fieldName, scanText);
+            throw new SecurityException("Potential SQL injection detected in field: " + fieldName);
+        }
+
+        // SQL转义 - 单引号处理
+        String escaped = input.replace("'", "''");
+
+        // 其他危险字符转义
+        escaped = escaped.replace("\\", "\\\\");
+
+        if (!input.equals(escaped)) {
+            log.info("🔐 [MARKDOWN-SANITIZE] 字段 {} 已转义: {} -> {}", fieldName, input, escaped);
+        }
+
+        return escaped;
+    }
+
     /**
      * 🔐 查找SQL中第一个子句边界的位置（已被findTopLevelBoundary替代）
      * @deprecated 使用 findTopLevelBoundary 以正确处理子查询
@@ -374,18 +433,26 @@ public class SafeSQLExecutor {
         if (sql == null || sql.trim().isEmpty()) {
             return false;
         }
-        
-        // 检查是否包含多个语句 (分号分隔)
-        String[] statements = sql.split(";");
-        if (statements.length > 3) { // 允许DML + SELECT LAST_INSERT_ID()模式
-            log.warn("🚨 [SECURITY] SQL包含过多语句: {}", statements.length);
+
+        // 以语法感知的方式分割语句：忽略字符串/注释中的分号
+        List<String> statements = splitSqlStatementsRespectingLiterals(sql);
+
+        // 只统计看起来是SQL语句的片段，避免Markdown文本中的分号被误算
+        List<String> sqlStatements = new ArrayList<>();
+        for (String st : statements) {
+            String s = st.trim();
+            if (s.isEmpty()) continue;
+            if (isLikelySqlStatementStart(s)) {
+                sqlStatements.add(s);
+            }
+        }
+
+        if (sqlStatements.size() > 3) { // 允许DML + SELECT LAST_INSERT_ID()模式
+            log.warn("🚨 [SECURITY] SQL包含过多语句: {}", sqlStatements.size());
             return false;
         }
 
-        for (String statement : statements) {
-            String s = statement.trim();
-            if (s.isEmpty()) continue;
-
+        for (String s : sqlStatements) {
             String upper = s.toUpperCase(Locale.ROOT);
 
             // 阻止DDL和导出操作
@@ -411,6 +478,7 @@ public class SafeSQLExecutor {
                 }
             }
         }
+        // 若未检测到可疑SQL或违规，视为安全
         return true;
     }
     
@@ -509,5 +577,134 @@ public class SafeSQLExecutor {
             return (defaultOrder != null && !defaultOrder.isEmpty()) ? " ORDER BY " + defaultOrder : "";
         }
         return " ORDER BY " + String.join(", ", safeParts);
+    }
+
+    /**
+     * 🔐 将SQL按顶层分号拆分，忽略字符串与注释内的分号
+     */
+    private static List<String> splitSqlStatementsRespectingLiterals(String sql) {
+        List<String> parts = new ArrayList<>();
+        StringBuilder current = new StringBuilder();
+
+        boolean inSingle = false;
+        boolean inDouble = false;
+        boolean inLineComment = false;   // -- ... 到行尾
+        boolean inHashComment = false;   // # ... 到行尾（用于拆分，不作为危险判定）
+        boolean inBlockComment = false;  // /* ... */
+
+        for (int i = 0; i < sql.length(); i++) {
+            char c = sql.charAt(i);
+            char next = (i + 1 < sql.length()) ? sql.charAt(i + 1) : '\0';
+            char next2 = (i + 2 < sql.length()) ? sql.charAt(i + 2) : '\0';
+
+            // 行注释结束
+            if (inLineComment || inHashComment) {
+                current.append(c);
+                if (c == '\n' || c == '\r') {
+                    inLineComment = false;
+                    inHashComment = false;
+                }
+                continue;
+            }
+
+            // 块注释结束
+            if (inBlockComment) {
+                current.append(c);
+                if (c == '*' && next == '/') {
+                    current.append('/');
+                    i++;
+                    inBlockComment = false;
+                }
+                continue;
+            }
+
+            // 进入注释（不在字符串中）
+            if (!inSingle && !inDouble) {
+                // -- 注释：要求后面跟空白/换行/结束，避免误命中 Markdown '---'
+                if (c == '-' && next == '-' && (next2 == ' ' || next2 == '\t' || next2 == '\r' || next2 == '\n' || next2 == '\0')) {
+                    current.append(c).append(next);
+                    i++;
+                    inLineComment = true;
+                    continue;
+                }
+                // # 行注释
+                if (c == '#') {
+                    current.append(c);
+                    inHashComment = true;
+                    continue;
+                }
+                // 块注释
+                if (c == '/' && next == '*') {
+                    current.append(c).append(next);
+                    i++;
+                    inBlockComment = true;
+                    continue;
+                }
+            }
+
+            // 处理字符串与转义
+            if (!inDouble && c == '\'') {
+                current.append(c);
+                if (inSingle) {
+                    // '' 转义
+                    if (next == '\'') {
+                        current.append(next);
+                        i++;
+                    } else {
+                        inSingle = false;
+                    }
+                } else {
+                    inSingle = true;
+                }
+                continue;
+            }
+            if (!inSingle && c == '\"') {
+                current.append(c);
+                if (inDouble) {
+                    // "" 转义
+                    if (next == '\"') {
+                        current.append(next);
+                        i++;
+                    } else {
+                        inDouble = false;
+                    }
+                } else {
+                    inDouble = true;
+                }
+                continue;
+            }
+            // 处理反斜杠转义
+            if ((inSingle || inDouble) && c == '\\' && next != '\0') {
+                current.append(c).append(next);
+                i++;
+                continue;
+            }
+
+            // 顶层分号 -> 分割
+            if (!inSingle && !inDouble && c == ';') {
+                String stmt = current.toString().trim();
+                if (!stmt.isEmpty()) {
+                    parts.add(stmt);
+                }
+                current.setLength(0);
+                continue;
+            }
+
+            current.append(c);
+        }
+
+        String tail = current.toString().trim();
+        if (!tail.isEmpty()) {
+            parts.add(tail);
+        }
+        return parts;
+    }
+
+    /**
+     * 🔐 判断片段是否像SQL语句开头，仅对这些片段计数和校验
+     */
+    private static boolean isLikelySqlStatementStart(String s) {
+        String up = s.trim().toUpperCase(Locale.ROOT);
+        return up.matches("^(WITH|SELECT|INSERT|UPDATE|DELETE|REPLACE|MERGE|CALL|DO|CREATE|ALTER|DROP|TRUNCATE)\\b.*");
     }
 }

@@ -42,13 +42,20 @@
         </p>
       </div>
       <div class="notification-time">
-        {{ notification.createTime }}
+        {{ formatApiDate(notification.createTime) }}
       </div>
     </div>
 
     <div class="notification-content">
-      <slot name="content" :notification="notification" :type="type">
-        <p class="content-text">{{ notification.content }}</p>
+      <slot name="content" :notification="notification" :type="type" :summary="summaryContent" :hasMore="hasMoreContent">
+        <p class="content-text">{{ summaryContent }}</p>
+        <button
+          v-if="hasMoreContent"
+          @click.stop="handleViewDetails"
+          class="action-button view-details-inline"
+        >
+          查看详情
+        </button>
       </slot>
     </div>
 
@@ -79,18 +86,22 @@
 
 <script setup lang="ts">
 import { computed, type PropType } from 'vue'
-import { 
+import {
   Warning,
   InfoFilled,
   ChatDotRound
 } from '@element-plus/icons-vue'
 import type { NotificationItem } from '@/api/notification'
+import { formatApiDate } from '@/utils/date'
 
 // 定义严格的通知级别类型
 type NotificationLevel = 1 | 2 | 3 | 4
 
 // 定义组件专用的通知类型（基于API接口扩展）
 type NotificationType = 'emergency' | 'important' | 'regular'
+
+// 定义通知范围类型
+type ScopeType = 'SCHOOL_WIDE' | 'DEPARTMENT' | 'GRADE' | 'CLASS'
 
 // 扩展通知接口，确保包含组件所需字段
 interface ComponentNotificationData extends NotificationItem {
@@ -114,8 +125,27 @@ interface Emits {
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
+// 🔥 内容摘要逻辑：解决信息过载问题 + 换行符修复
+const MAX_SUMMARY_LENGTH = 80
+
+const summaryContent = computed(() => {
+  let content = props.notification.content || ''
+
+  // 🚀 核心修复：将转义的 \\n 转换为真实换行符
+  content = content.replace(/\\n/g, '\n')
+
+  if (content.length <= MAX_SUMMARY_LENGTH) {
+    return content
+  }
+  return `${content.slice(0, MAX_SUMMARY_LENGTH)}...`
+})
+
+const hasMoreContent = computed(() => {
+  return props.notification.content && props.notification.content.length > MAX_SUMMARY_LENGTH
+})
+
 // 导出类型供其他组件使用
-export type { 
+export type {
   ComponentNotificationData,
   NotificationType,
   NotificationLevel,
@@ -146,9 +176,6 @@ const iconComponent = computed(() => {
       return ChatDotRound
   }
 })
-
-// 定义范围类型映射
-type ScopeType = 'SCHOOL_WIDE' | 'DEPARTMENT' | 'GRADE' | 'CLASS'
 
 // 获取范围文本 - 强类型参数
 const getScopeText = (scope: string): string => {
@@ -284,8 +311,13 @@ const handleViewDetails = () => {
 .content-text {
   margin: 0;
   font-size: 13px;
-  line-height: 1.5;
+  line-height: 1.6;
   color: var(--widget-text-color);
+  /* 🔥 核心修复：正确处理换行符和文本截断 */
+  white-space: pre-line;      /* 保留\n换行，折叠多余空格 */
+  overflow-wrap: anywhere;     /* 长URL/单词自动换行 */
+  word-break: break-word;      /* 兼容性兜底 */
+  hyphens: auto;              /* 自动断词优化 */
 }
 
 /* 底部样式 */
@@ -345,6 +377,23 @@ const handleViewDetails = () => {
 
 .action-button.view-details:hover {
   opacity: 0.9;
+}
+
+/* 内联查看详情按钮样式 */
+.action-button.view-details-inline {
+  margin-top: 8px;
+  font-size: 11px;
+  padding: 3px 6px;
+  background: transparent;
+  color: var(--widget-accent-color);
+  border: 1px solid var(--widget-accent-color);
+  border-radius: 3px;
+  transition: all 0.2s ease;
+}
+
+.action-button.view-details-inline:hover {
+  background: var(--widget-accent-color);
+  color: white;
 }
 
 /* 紧急通知动画 */

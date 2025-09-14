@@ -1,5 +1,6 @@
 import { notificationAPI, type NotificationItem, type NotificationListResponse, type NotificationDetailResponse } from '@/api/notification'
 import { ElMessage } from 'element-plus'
+import { getNotificationTimestamp } from '@/utils/date'
 
 /**
  * 通知服务缓存配置
@@ -223,7 +224,7 @@ export class NotificationService {
           if (a.level !== b.level) {
             return a.level - b.level // Level 1(紧急) 排在最前
           }
-          return new Date(b.createTime).getTime() - new Date(a.createTime).getTime()
+          return getNotificationTimestamp(b.createTime) - getNotificationTimestamp(a.createTime)
         })
       
       console.log(`🎯 [NotificationService] 找到 ${priorityNotifications.length} 条优先级通知`)

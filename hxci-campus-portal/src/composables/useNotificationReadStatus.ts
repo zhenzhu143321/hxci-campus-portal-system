@@ -1,5 +1,6 @@
 import { ref, computed, watch } from 'vue'
 import type { NotificationItem } from '@/api/notification'
+import { getNotificationTimestamp } from '@/utils/date'
 
 /**
  * 通知已读状态管理 Composable
@@ -303,17 +304,17 @@ export function useNotificationReadStatus(userId?: string, initialNotifications:
           return a.level - b.level // Level 1优先显示
         }
         // 同级别按时间倒序
-        return new Date(b.createTime).getTime() - new Date(a.createTime).getTime()
+        return getNotificationTimestamp(b.createTime) - getNotificationTimestamp(a.createTime)
       })
       
       // 已读归档按时间倒序
       categories.readArchive.sort((a, b) => 
-        new Date(b.createTime).getTime() - new Date(a.createTime).getTime()
+        getNotificationTimestamp(b.createTime) - getNotificationTimestamp(a.createTime)
       )
       
       // 系统公告只取最新一条
       categories.systemAnnouncements = categories.systemAnnouncements
-        .sort((a, b) => new Date(b.createTime).getTime() - new Date(a.createTime).getTime())
+        .sort((a, b) => getNotificationTimestamp(b.createTime) - getNotificationTimestamp(a.createTime))
         .slice(0, 1)
       
       console.log('🧠 [智能分类] 分类完成:', {

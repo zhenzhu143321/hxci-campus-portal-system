@@ -12,6 +12,7 @@ import { ref, computed, watchEffect } from 'vue'
 import type { NotificationItem } from '@/api/notification'
 import notificationService from '@/services/notificationService'
 import { useNotificationReadStatus } from '@/composables/useNotificationReadStatus'
+import { getNotificationTimestamp } from '@/utils/date'
 
 export const useNotificationStore = defineStore('notification', () => {
   // ================== 状态定义 ==================
@@ -76,7 +77,7 @@ export const useNotificationStore = defineStore('notification', () => {
             if (a.level !== b.level) {
               return a.level - b.level
             }
-            return new Date(b.createTime).getTime() - new Date(a.createTime).getTime()
+            return getNotificationTimestamp(b.createTime) - getNotificationTimestamp(a.createTime)
           })
         } else {
           console.debug('⚠️ [NotificationStore] readNotificationIds.value不是Set对象')
@@ -112,7 +113,7 @@ export const useNotificationStore = defineStore('notification', () => {
           if (a.level !== b.level) {
             return a.level - b.level
           }
-          return new Date(b.createTime).getTime() - new Date(a.createTime).getTime()
+          return getNotificationTimestamp(b.createTime) - getNotificationTimestamp(a.createTime)
         })
       
       console.log('🔍 [NotificationStore] 未读优先级计算:', {
@@ -235,7 +236,7 @@ export const useNotificationStore = defineStore('notification', () => {
       const archivedNotifications = notifications.value
         // 🔧 P0级修复：增加isClearedFromArchive过滤，排除已清空的归档通知
         .filter(n => n && manager.isRead(n.id) && !manager.isClearedFromArchive(n))
-        .sort((a, b) => new Date(b.createTime).getTime() - new Date(a.createTime).getTime())
+        .sort((a, b) => getNotificationTimestamp(b.createTime) - getNotificationTimestamp(a.createTime))
       
       // 🔧 核心修复：安全访问size属性，防止undefined错误
       let readCount = 0
@@ -318,8 +319,8 @@ export const useNotificationStore = defineStore('notification', () => {
       })
       
       // 按时间倒序排列（最新的在前）
-      const sortedUnreadLevel4 = unreadLevel4.sort((a, b) => 
-        new Date(b.createTime).getTime() - new Date(a.createTime).getTime()
+      const sortedUnreadLevel4 = unreadLevel4.sort((a, b) =>
+        getNotificationTimestamp(b.createTime) - getNotificationTimestamp(a.createTime)
       )
       
       // 限制显示数量
@@ -344,7 +345,7 @@ export const useNotificationStore = defineStore('notification', () => {
   const emergencyNotifications = computed(() => {
     return notifications.value
       .filter(n => n.level === 1)
-      .sort((a, b) => new Date(b.createTime).getTime() - new Date(a.createTime).getTime())
+      .sort((a, b) => getNotificationTimestamp(b.createTime) - getNotificationTimestamp(a.createTime))
   })
   
   /** 重要通知 (Level 2-3) */
@@ -355,7 +356,7 @@ export const useNotificationStore = defineStore('notification', () => {
         if (a.level !== b.level) {
           return a.level - b.level
         }
-        return new Date(b.createTime).getTime() - new Date(a.createTime).getTime()
+        return getNotificationTimestamp(b.createTime) - getNotificationTimestamp(a.createTime)
       })
   })
   

@@ -194,6 +194,8 @@ export const isThisWeek = (value: Date | number | string): boolean => {
  * @returns 智能格式化后的时间字符串，无效输入返回'未知时间'
  */
 export const formatTimeIntelligent = (timeStr: string | null | undefined): string => {
+  console.debug('🔍 [formatTimeIntelligent] 调用参数:', timeStr, 'type:', typeof timeStr)
+
   // 🔧 P0级修复：增强输入验证
   if (!timeStr || timeStr === null || timeStr === undefined) {
     console.debug('formatTimeIntelligent: Empty input, returning default')
@@ -207,10 +209,10 @@ export const formatTimeIntelligent = (timeStr: string | null | undefined): strin
   }
   
   try {
-    const date = new Date(timeStr)
-    // 🔧 关键修复：增强的日期有效性检查
-    if (isNaN(date.getTime())) {
-      console.warn('formatTimeIntelligent: Invalid date input:', timeStr)
+    // 🔧 核心修复：使用安全的日期解析，而不是new Date()
+    const date = parseBackendDateString(timeStr)
+    if (!date) {
+      console.warn('formatTimeIntelligent: Failed to parse date input:', timeStr)
       return '无效日期'
     }
     
@@ -253,38 +255,60 @@ export const formatTimeOnly = (timeStr: string): string => {
  * 专门处理API返回数据的日期格式化函数
  * 🔧 P0级修复：针对前端API数据显示异常的专用函数
  * @param apiDateValue API返回的日期数据（可能为null、undefined、空字符串或有效日期）
- * @param format 目标格式，默认为智能时间显示
+ * @param options 格式化选项，包括format和fallback
  * @returns 格式化后的日期字符串，异常情况返回用户友好的提示
  */
-export const formatApiDate = (apiDateValue: any, format?: string): string => {
-  console.debug('formatApiDate called with:', apiDateValue, 'type:', typeof apiDateValue)
-  
+export const formatApiDate = (
+  apiDateValue: any,
+  options: {
+    format?: string;
+    fallback?: string;
+    useIntelligent?: boolean;
+  } = {}
+): string => {
+  const { format, fallback = '--', useIntelligent = true } = options
+
+  console.debug('🔍 [formatApiDate] 调用参数:', {
+    apiDateValue,
+    type: typeof apiDateValue,
+    format,
+    fallback,
+    useIntelligent
+  })
+
   // 🔧 第一层：处理完全无效的输入
   if (apiDateValue === null || apiDateValue === undefined) {
-    console.debug('formatApiDate: null/undefined input')
-    return '--'
+    console.debug('formatApiDate: null/undefined input, returning fallback:', fallback)
+    return fallback
   }
 
   // 🔧 第二层：处理空值或无效字符串
   if (typeof apiDateValue === 'string') {
     const trimmed = apiDateValue.trim()
     if (trimmed === '' || trimmed === 'null' || trimmed === 'undefined' || trimmed === 'Invalid Date') {
-      console.debug('formatApiDate: empty/invalid string input')
-      return '--'
+      console.debug('formatApiDate: empty/invalid string input, returning fallback:', fallback)
+      return fallback
     }
   }
 
   // 🔧 第三层：尝试使用指定格式化函数
   try {
     if (format) {
-      return formatDate(apiDateValue, format)
-    } else {
+      const result = formatDate(apiDateValue, format)
+      // 如果formatDate返回"无效日期"，使用fallback
+      return result === '无效日期' ? fallback : result
+    } else if (useIntelligent) {
       // 默认使用智能时间显示
-      return formatTimeIntelligent(apiDateValue)
+      const result = formatTimeIntelligent(apiDateValue)
+      // 如果formatTimeIntelligent返回"无效日期"，使用fallback
+      return result === '无效日期' ? fallback : result
+    } else {
+      const result = formatDate(apiDateValue)
+      return result === '无效日期' ? fallback : result
     }
   } catch (error) {
     console.warn('formatApiDate: Formatting failed for', apiDateValue, error)
-    return '时间解析失败'
+    return fallback
   }
 }
 
@@ -295,5 +319,132 @@ export const formatApiDate = (apiDateValue: any, format?: string): string => {
  * @returns 格式化后的时间字符串
  */
 export const formatNotificationTime = (notificationTime: any): string => {
-  return formatApiDate(notificationTime, 'YYYY-MM-DD HH:mm')
+  return formatApiDate(notificationTime, { format: 'YYYY-MM-DD HH:mm' })
+}
+
+/**
+ * 🚨 核心修复：安全的日期字符串解析函数
+ * 专门处理后端返回的 'YYYY-MM-DD HH:mm:ss' 格式字符串
+ * 解决 new Date() 在不同浏览器下解析不一致的问题
+ *
+ * @param dateString 后端返回的日期字符串，如 '2025-09-13 12:30:45'
+ * @returns Date对象或null（解析失败时）
+ */
+export const parseBackendDateString = (dateString: string | null | undefined): Date | null => {
+  if (!dateString) {
+    console.debug('parseBackendDateString: Empty input')
+    return null
+  }
+
+  try {
+    const trimmed = dateString.trim()
+
+    // 🔧 核心修复：智能处理多种日期格式
+    let isoString: string
+
+    if (trimmed.includes('T')) {
+      // 已经是ISO格式 (2025-09-13T10:13:30)
+      isoString = trimmed
+    } else if (trimmed.includes(' ')) {
+      // 后端格式 (2025-09-13 10:13:30) -> ISO格式
+      isoString = trimmed.replace(' ', 'T')
+    } else {
+      // 纯日期格式 (2025-09-13) -> 添加时间
+      isoString = `${trimmed}T00:00:00`
+    }
+
+    console.debug('🔍 [parseBackendDateString] 解析:', dateString, '->', isoString)
+
+    const date = new Date(isoString)
+
+    // 🔧 验证解析结果
+    if (isNaN(date.getTime())) {
+      console.warn('parseBackendDateString: Failed to parse date string:', dateString)
+      return null
+    }
+
+    return date
+  } catch (error) {
+    console.error('parseBackendDateString: Error parsing date string:', dateString, error)
+    return null
+  }
+}
+
+/**
+ * 🚨 核心修复：安全的通知数据时间戳转换
+ * 替换 NotificationStore 中的 new Date(n.createTime).getTime() 逻辑
+ *
+ * @param createTime 后端返回的 createTime 字段
+ * @returns 时间戳（毫秒）或 0（解析失败时）
+ */
+export const getNotificationTimestamp = (createTime: string | null | undefined): number => {
+  if (!createTime) {
+    console.debug('getNotificationTimestamp: Empty createTime')
+    return 0
+  }
+
+  const date = parseBackendDateString(createTime)
+  if (!date) {
+    console.warn('getNotificationTimestamp: Failed to parse createTime:', createTime)
+    return 0
+  }
+
+  const timestamp = date.getTime()
+  console.debug('getNotificationTimestamp: Parsed', createTime, 'to timestamp', timestamp)
+
+  return timestamp
+}
+
+/**
+ * 🚨 优化的通知时间显示函数
+ * 专门用于前端组件显示通知的创建时间、更新时间等
+ *
+ * @param dateValue 日期值（字符串、时间戳或Date对象）
+ * @param options 格式化选项
+ * @returns 格式化后的日期字符串
+ */
+export const formatNotificationDate = (
+  dateValue: string | number | Date | null | undefined,
+  options: {
+    format?: string;
+    intelligent?: boolean;
+    fallback?: string;
+  } = {}
+): string => {
+  const { format = 'YYYY-MM-DD HH:mm', intelligent = false, fallback = '--' } = options
+
+  if (!dateValue) {
+    return fallback
+  }
+
+  try {
+    // 🔧 如果是后端返回的字符串格式，使用安全解析
+    if (typeof dateValue === 'string') {
+      const parsedDate = parseBackendDateString(dateValue)
+      if (!parsedDate) {
+        return fallback
+      }
+
+      if (intelligent) {
+        return formatTimeIntelligent(dateValue)
+      } else {
+        return dayjs(parsedDate).format(format)
+      }
+    }
+
+    // 🔧 如果是时间戳或Date对象，直接使用dayjs处理
+    const dayjsObj = dayjs(dateValue)
+    if (!dayjsObj.isValid()) {
+      return fallback
+    }
+
+    if (intelligent) {
+      return formatTimeIntelligent(dayjsObj.toISOString())
+    } else {
+      return dayjsObj.format(format)
+    }
+  } catch (error) {
+    console.error('formatNotificationDate: Error formatting date:', dateValue, error)
+    return fallback
+  }
 }
