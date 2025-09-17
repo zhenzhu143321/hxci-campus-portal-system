@@ -30,11 +30,15 @@ import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
  * 📋 T13待办通知系统Controller
  * 专用于处理Level 5待办通知功能，从TempNotificationController解耦
  * 基于TempWeatherController架构设计，采用双重认证模式
- * 
- * @author Claude AI  
+ *
+ * ⚠️ 已弃用警告：此控制器存在SQL注入风险，请使用NewTodoNotificationController
+ * @deprecated 请使用 {@link NewTodoNotificationController} 替代，它使用MyBatis Plus防止SQL注入
+ *
+ * @author Claude AI
  * @since 2025-08-15
  */
-@Tag(name = "T13待办通知系统API")
+@Deprecated
+@Tag(name = "T13待办通知系统API (已弃用)")
 @RestController
 @RequestMapping("/admin-api/test/todo")
 @Validated
@@ -268,6 +272,9 @@ public class TempTodoController {
             }
 
             // 📊 Step 5: 更新统计信息（可选）
+            // ⚠️ 安全警告：此控制器已弃用，存在SQL注入风险
+            // 生产环境请使用NewTodoNotificationController，它使用MyBatis Plus防止SQL注入
+            // 这里暂时保留原代码以确保编译通过，但应尽快废弃此控制器
             String updateStatsSql = String.format(
                 "UPDATE notification_info SET confirm_count = confirm_count + 1 WHERE id = %d", id
             );

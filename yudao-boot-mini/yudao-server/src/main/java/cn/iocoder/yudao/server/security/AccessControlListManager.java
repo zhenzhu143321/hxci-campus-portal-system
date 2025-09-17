@@ -136,15 +136,23 @@ public class AccessControlListManager {
         }
 
         String roleCode = user.getRoleCode();
+
+        // 🔧 FIX: SYSTEM_ADMIN拥有所有权限的特殊豁免
+        if ("SYSTEM_ADMIN".equals(roleCode)) {
+            log.info("✅ [ACL_CHECK] 系统管理员豁免权限检查: user={}, role={}, permission={}",
+                    user.getEmployeeId(), roleCode, permission);
+            return true;
+        }
+
         Set<String> userPermissions = getUserPermissions(roleCode);
 
         boolean hasPermission = userPermissions.contains(permission);
-        
+
         if (hasPermission) {
-            log.info("✅ [ACL_CHECK] 权限验证通过: user={}, role={}, permission={}", 
+            log.info("✅ [ACL_CHECK] 权限验证通过: user={}, role={}, permission={}",
                     user.getEmployeeId(), roleCode, permission);
         } else {
-            log.warn("🚨 [ACL_DENIED] 权限验证失败: user={}, role={}, permission={}", 
+            log.warn("🚨 [ACL_DENIED] 权限验证失败: user={}, role={}, permission={}",
                     user.getEmployeeId(), roleCode, permission);
         }
 

@@ -10,7 +10,7 @@
         :key="item.id"
         :item="item"
         @complete="handleComplete"
-        @viewDetail="handleViewDetail"
+        @view-detail="handleViewDetail"
       />
     </div>
     

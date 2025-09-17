@@ -60,14 +60,15 @@
         <h4><el-icon><Document /></el-icon>📋 待办通知</h4>
         <el-tag type="primary" size="small">{{ todoStore.pendingCount }}项待办</el-tag>
       </div>
-      <TodoNotificationWidget 
-        :notifications="todoStore.pendingTodos" 
+      <TodoNotificationWidget
+        :notifications="todoStore.pendingTodos"
         :max-display-items="4"
         :is-loading="todoStore.isLoading"
         :error="todoStore.error"
         display-mode="homepage"
         @complete="handleTodoComplete"
         @view-all="handleViewAllTodos"
+        @remove="handleTodoRemove"
       />
     </div>
     
@@ -254,13 +255,36 @@ const handleCourseClick = (course: any) => {
 }
 
 /** 处理待办完成 */
-const handleTodoComplete = async (todoId: number) => {
-  emit('todo-complete', todoId)
+const handleTodoComplete = async (todoId: number, completed: boolean) => {
+  console.log('🔄 [IntelligentWorkspace] 处理待办完成事件:', { todoId, completed })
+
+  try {
+    // 直接调用store中的updateTodoStatus方法
+    await todoStore.updateTodoStatus(todoId, completed)
+
+    console.log('✅ [IntelligentWorkspace] 待办状态更新成功')
+  } catch (error) {
+    console.error('❌ [IntelligentWorkspace] 待办状态更新失败:', error)
+  }
 }
 
 /** 处理查看全部待办 */
 const handleViewAllTodos = () => {
   emit('view-all-todos')
+}
+
+/** 处理待办删除 */
+const handleTodoRemove = async (todoId: number) => {
+  console.log('🗑️ [IntelligentWorkspace] 处理待办删除事件:', { todoId })
+
+  try {
+    // 调用store中的removeTodo方法
+    await todoStore.removeTodo(todoId)
+
+    console.log('✅ [IntelligentWorkspace] 待办删除成功')
+  } catch (error) {
+    console.error('❌ [IntelligentWorkspace] 待办删除失败:', error)
+  }
 }
 
 // ================== 生命周期 ==================

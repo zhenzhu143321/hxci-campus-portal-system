@@ -1,9 +1,6 @@
 # CLAUDE.md - 哈尔滨信息工程学院校园门户系统开发指南
 
 ## 🚨 **新Claude实例必读指南** - 避免项目误判的关键说明！
-
-### **⚠️ 常见理解误区和避坑指南** (防止错误修改项目评估)
-
 #### **1. 项目完成度评估误区** ⚠️ **最容易误判的问题**
 **常见错误**: 认为兄弟实例的41%项目完成度评估不准确
 **实际情况**: 经深度核实，**41%评估完全准确且合理**
@@ -75,7 +72,7 @@ git log --oneline -5  # 查看最近开发活动
 ### **✅ 正确的工作方式**
 
 1. **信任现有技术架构** - 经过深度验证，设计合理
-2. **专注执行47个任务** - 使用TodoWrite体系进行精确管理
+2. **专注执行任务** - 使用TodoWrite体系进行精确管理
 3. **延续现有开发模式** - 遵循已建立的开发流程和技术标准
 4. **基于实际代码评估** - 通过阅读源码了解真实技术状态
 
@@ -97,24 +94,11 @@ git log --oneline -5  # 查看最近开发活动
 - **UI层面**: 企业级前端界面，用户体验优秀 (80%完成)
 - **综合评估**: 基于加权平均的科学评估方法
 
-### **🎯 当前最高优先级任务正确理解**
-
-#### **P0-HIGHEST: 全面API验证 (11个任务)** - 当前重点
-**执行原因**: 确保现有系统的稳定性和准确性
-**技术背景**: Linux迁移后需要验证所有API接口的权限矩阵
-**不是重构**: 是验证现有功能，而非重新开发
-
-#### **P0-CRITICAL-NEW: 三重Token适配器 (7个任务)** - 架构升级
-**执行原因**: 集成真实学校API，实现Basic+JWT+CSRF三重认证
-**技术背景**: 基于现有双重认证系统的自然升级，非破坏性改造
-**保持兼容**: 现有Mock API系统完全保留
-
 ### **📚 新实例快速上手清单**
 
 #### **必须阅读的核心文档顺序**:
 1. **CLAUDE.md** (本文档) - 30秒理解项目本质 + 避坑指南
-2. **CURRENT_WORK_STATUS.md** - 了解47个任务的当前状态
-3. **PROJECT_ARCHITECTURE.md** - 深度理解yudao框架集成技术方案
+2. **gemini.md** - 深度理解yudao框架集成技术方案
 
 #### **快速验证环境准备**:
 ```bash
@@ -128,13 +112,6 @@ mysql -u root ruoyi-vue-pro -e "SHOW TABLES LIKE 'notification_%';"
 # 3. 确认Vue前端准备
 ls /opt/hxci-campus-portal/hxci-campus-portal-system/hxci-campus-portal/src/views/Home.vue
 ```
-
-#### **立即可执行的第一个任务**:
-**【P0-HIGHEST】全面API验证-学生权限精确性** 
-- 测试STUDENT_001账号权限边界
-- 验证权限矩阵的准确性
-- 为后续开发建立可信基础
-
 ---
 
 ## 🎯 项目本质 (30秒理解项目)
@@ -149,45 +126,11 @@ ls /opt/hxci-campus-portal/hxci-campus-portal-system/hxci-campus-portal/src/view
 - **核心缺失**: 后台管理系统完全未开发，影响项目实用性
 
 ## 🚨 **快速恢复工作状态指引** (压缩上下文后必读)
-
-### **📋 核心项目文档体系** (压缩上下文后必读)
-
-#### **🎯 三大核心文档**
-1. **CLAUDE.md** (本文档) - 开发指南和快速上手
-2. **PROJECT_ARCHITECTURE.md** - 项目架构理解文档 (原todos.md)
-   - **yudao框架集成模式详细分析**
-   - **三重Token认证系统技术实现**  
-   - **数据库混合设计模式**
-   - **关键技术决策解释**
-3. **CURRENT_WORK_STATUS.md** - 当前工作状态备份
-   - **压缩上下文前的完整工作状态**
-   - **当前任务优先级和执行计划**
-   - **项目进度和下一步指引**
-
 #### **📖 文档阅读顺序**
 **新Claude实例理解步骤**:
 1. **快速理解**: CLAUDE.md (本文档) - 30秒掌握项目本质
-2. **架构深度**: PROJECT_ARCHITECTURE.md - 理解yudao框架集成和三重Token认证  
+2. **架构深度**: gemini.md - 理解yudao框架集成和三重Token认证  
 3. **当前状态**: CURRENT_WORK_STATUS.md - 了解当前工作进展
-4. **项目规划**: TaskArchitect_ProjectManagement_Plan.md - 完整开发计划
-
-### **🔥 当前最高优先级任务**  
-**T18: API全面测试验证** (3天) - Linux迁移后必须优先执行
-**原因**: Windows→Linux迁移修改了大量核心代码，必须全面测试确保系统稳定性
-
-### **⚡ 任务优先级排序**
-1. **T18 API测试** (3天) - 验证P0权限缓存系统实际效果
-2. **性能压力测试** - 验证5000+ QPS并发处理能力  
-3. **P1级技术债务** - JWT双Token机制实施
-4. **T14 后台管理系统** (15-18天) - 项目完整性最后关键
-
-### **📊 快速状态评估**
-- **已完成**: 12天开发 (40%完成度) + P0级权限缓存系统实施
-- **Linux迁移**: 已完成，系统稳定运行
-- **核心功能**: 门户前端90%+后端API85%，质量优秀
-- **下一步**: 验证P0权限缓存系统效果，确保5000+ QPS性能
-
-**📅 项目状态获取**: 详见 CURRENT_WORK_STATUS.md (当前工作状态) + PROJECT_ARCHITECTURE.md (项目架构)
 
 **✅ 完整的双重认证流程**
 
@@ -238,12 +181,6 @@ ls /opt/hxci-campus-portal/hxci-campus-portal-system/hxci-campus-portal/src/view
 🚨 绝对禁止: 自动启动npm run dev
 ✅ 正确做法: 明确通知用户需要手动启动Vue服务，等待用户确认
 ```
-
-### 🔄 **用户手动重启原因** (⚠️ 除非用户特殊授权，否则禁止自动启动)
-- **start命令不可靠**: 经常启动失败，无法查看错误信息
-- **错误信息可见**: 手动启动可以立即看到启动问题
-- **进程控制**: 用户可以随时用Ctrl+C停止服务
-
 ### 🔄 **服务重启操作** (用户手动执行)
 ```bash
 # 1. 停止所有Java服务
@@ -279,18 +216,12 @@ mvn spring-boot:run -pl yudao-mock-school-api -Dspring.profiles.active=local # 4
 
 ### ⚠️ **编码完成质量审查铁律** - 🚨 质量生命线！
 ```cmd
-代码编写完成 → 🛑 必须Multi-Agent专业审查 → 质量合格 → 允许提交
+代码编写完成 → 🛑 必须调用codex工具进行专业审查 → 质量合格 → 允许提交
 
 🚨 绝对禁止: 未经AI专业审查直接提交代码
 🚨 绝对禁止: 跳过security-auditor安全审计环节
 ✅ 正确做法: 执行 `/hxci-code-done [文件/模块]` 获取四重专业审查报告
 ```
-
-**四重专业审查体系**:
-- **code-reviewer**: 代码质量和设计模式检查
-- **security-auditor**: P0级安全风险审计  
-- **architect-reviewer**: 架构一致性验证
-- **performance-engineer**: 性能分析和优化建议
 
 ### ⚠️ **重要节点状态保存铁律** - 🚨 知识传承保障！
 ```cmd
@@ -315,7 +246,6 @@ mvn spring-boot:run -pl yudao-mock-school-api -Dspring.profiles.active=local # 4
 🤖 **技术问题求助** → 自动建议: `/hxci-code-ask [具体问题]`
 📚 **详细使用指导** → 自动引用: `.claude/commands/README.md` 完整使用指南
 ```
-
 **Claude实例执行原则**:
 - ✅ **主动提醒**: 检测到适用场景时主动提醒用户执行相应命令
 - ✅ **协助执行**: 用户同意后协助执行Slash Command工作流
@@ -361,34 +291,13 @@ mvn spring-boot:run -pl yudao-mock-school-api -Dspring.profiles.active=local # 4
 - 🚨 **自动验证**: 系统自动检查代码上下文完整性，6项质量指标
 - 🚨 **违规处罚**: 1-2次警告，3-5次延迟5秒，5+次强制培训
 
-### 🔧 **核心工具** (位置：scripts/ai-collaboration/)
-```bash
-# 1. 代码上下文收集器
-./ai-context-collector.sh java-api /path/to/file.java
-
-# 2. AI调用拦截器 (🚨 强制使用!)
-./ai-agent-wrapper.sh auto "你的技术问题"
-./ai-agent-wrapper.sh gpt5 "包含完整代码的问题" 3000 0.3
-
-# 3. 质量监控
-./agent-monitor.sh report  # 查看调用质量报告
-./agent-monitor.sh monitor # 实时监控模式
-```
-
-### 📋 **强制执行流程** (4步骤)
-1. **收集上下文**: `./ai-context-collector.sh` 自动收集代码
-2. **准备请求**: 使用模板确保完整性
-3. **拦截器调用**: `./ai-agent-wrapper.sh` 强制验证
-4. **质量报告**: 检查评分，60%合格线，80%优秀线
-
-**❌ 绝对禁止**:
-- 直接调用ai-assistant.sh或curl (违规记录CSV)
-- 传递代码片段 (完整文件+上下文)
-- 绕过拦截器 (自动检测+累计处罚)
-
+### 🔧 **核心工具**
+ 阅读项目根目录下GM_QUICK_GUIDE.md和CX_QUICK_GUIDE.md使用说明，掌握工具使用方法。 
+ 铁律:使用codex或gemini工具时，请使用Bash(cx或gm指令) timeout: 20m命令语法，避免超时问题！严重注意timeout参数应该放在Bash工具的参数里，而不是命令内部,要放到括号外面，例如Bash(命令)timeout:20m,时间必须设置为10m以上。
+ 请在编码过程中经常咨询codex的意见！
+ 严重注意：gemini或codeX对系统没有任何理解，每次调用都是一个新的实例，都需要让它扫描相关代码，给够足够的上下文才能给出实用建议！请在提示词中给它足够的信息，这样它才能给出了有建设的意见。
 ### 🎯 **编码前AI协作流程** (🚨 强制执行!)
-
-#### **第一步: Gemini CLI代码扫描分析** (OpenRouter无限额度)
+### **第一步: Gemini CLI代码扫描分析** (OpenRouter无限额度)
 ```bash
 # 设置环境变量
 export GOOGLE_GEMINI_BASE_URL='http://127.0.0.1:8888'
@@ -484,21 +393,6 @@ cx -p "修复安全漏洞的具体代码"            # GPT-5安全修复
 ./cache_clear_server.sh           # HTTP清理页面服务器
 ```
 
-### 后端服务启动 (Java)
-```bash
-# 一键启动脚本 (仅在用户授权时使用)
-/opt/hxci-campus-portal/hxci-campus-portal-system/scripts/deployment/start_all_services_complete.sh
-```
-
-### Vue前端服务启动 (Port 3000)
-```bash
-# 详细版启动脚本 (推荐)
-/opt/hxci-campus-portal/hxci-campus-portal-system/scripts/deployment/start_vue_dev_server.sh
-
-# 快速启动版本 (简洁)
-/opt/hxci-campus-portal/hxci-campus-portal-system/scripts/deployment/vue_dev_quick.sh
-```
-
 ### Demo展示服务 (8080端口) - nginx稳定版
 ```bash
 # 服务状态检查
@@ -512,48 +406,6 @@ cx -p "修复安全漏洞的具体代码"            # GPT-5安全修复
 ```
 
 **⚡ 自动监控**: 每5分钟自动检测+修复异常，nginx替代不稳定Python服务器
-
-**📋 分工模式**：
-- **Claude负责**: 代码修改、编译、文档更新
-- **用户负责**: 服务启动、重启、关闭 (Ctrl+C)
-- **优势**: 用户可完全控制服务状态，出现问题能立即看到错误信息
-
-⚠️ **重要**: 除非用户明确授权，否则必须手动启动服务！
-
-## 🔬 Gemini CLI代码分析系统 (✅ OpenRouter代理无限额度)
-
-### 🚀 **AI工具极简使用指南** (🔥 所有智能体5秒学会!)
-
-#### **1️⃣ Gemini (gm) - 项目分析扫描** 
-```bash
-# 一行搞定
-gm "分析项目架构"           # 架构分析
-gm "扫描安全风险"           # 安全扫描
-gm "评估代码质量"           # 代码审查
-gm "找出性能瓶颈"           # 性能分析
-gm --help                   # 查看帮助
-
-# 高级用法
-gm "深度分析" --model gemini-2.5-pro  # 使用更强大模型
-
-# 原理: 自动设置 GOOGLE_GEMINI_BASE_URL='http://127.0.0.1:8888' GEMINI_API_KEY='test'
-```
-
-#### **2️⃣ CodeX (cx) - 代码审查建议**
-```bash
-# 一行搞定
-cx -p "审查安全配置"         # 默认GPT-5分析
-cx -p "修复Bug" --mode fix  # 修复模式
-cx -p "重构代码" --mode refactor  # 重构模式
-cx --help                   # 查看帮助
-
-# 工作模式
-- analyze: 分析模式（默认）
-- fix: 修复模式
-- refactor: 重构模式
-- test: 测试模式
-- docs: 文档模式
-```
 
 #### **3️⃣ AI协作工作流程**
 ```bash
@@ -684,13 +536,6 @@ OpenRouter MCP工具提供访问400+AI模型的统一接口，包括GPT-4、Clau
 
 ### 🔧 **常用模型名称** (避免list_models调用)
 ```bash
-# 🤖 编码协作模型 (主要编码搭子)
-openai/gpt-5                                  # ⭐ 主要编码搭子
-openai/gpt-4o                                 # GPT-4 Omni备用
-
-# 🔬 深度分析模型 (超长上下文架构师)  
-google/gemini-2.5-pro                         # 🏗️ 架构分析专家 - 1M tokens上下文
-
 # 📱 图片生成模型
 google/gemini-2.5-flash-image-preview:free    # 推荐: 免费额度
 google/gemini-2.5-flash-image-preview         # 付费版本
@@ -744,33 +589,6 @@ mcp__openrouter__edit_image
 - images: ["图片路径"], instruction: "编辑指令", save_directory: "保存路径"
 ```
 
-### 🔧 **标准化AI协作工具集** (⭐ 推荐：替代MCP工具)
-
-**工具位置**: `/opt/hxci-campus-portal/hxci-campus-portal-system/scripts/ai-collaboration/`
-
-```bash
-# 🎯 统一调用接口 (100%成功率，基于curl)
-./ai-assistant.sh auto "技术问题"           # 自动选择最合适AI
-cx -p "代码优化的具体建议"                    # 使用Codex GPT-5
-./ai-assistant.sh gpt4o "快速技术咨询" 500   # 指定GPT-4o
-
-# 📊 智能模型选择逻辑
-# 架构分析 → Gemini CLI (无限额度) + gemini-pro(备选)
-# 编码建议 → cx命令 (Codex GPT-5编程搭子)
-# 一般问答 → gpt4o (快速响应)
-```
-
-### 🎯 **最佳实践**
-- **🔥 高优先级**: Codex GPT-5编码建议 + Gemini项目扫描 + Claude实施修改
-- **💡 使用技巧**: 中文优先、具体描述、合适模型选择
-- **🚫 绝对避免**: 调用list_models、重复生成、长文本输入
-
-### 🔍 **AI模型响应格式差异**
-- **Codex GPT-5**: 提供具体可操作的代码修改建议
-- **Gemini Pro**: 推理过程在reasoning_details字段
-- **GPT-4o**: content直接回答，无推理字段
-
-
 ## 🔑 关键API路径
 
 ### 主通知服务 (48081) - 生产就绪
@@ -789,9 +607,9 @@ cx -p "代码优化的具体建议"                    # 使用Codex GPT-5
 ✅ POST /admin-api/test/weather/api/refresh                # 手动刷新天气
 ✅ GET  /admin-api/test/weather/api/ping                   # 服务状态测试
 
-# 待办通知API (T13完成 - 2025-08-15 | 重构完成 - 2025-08-19)
-✅ GET  /admin-api/test/todo-new/api/my-list               # 获取我的待办列表
-✅ POST /admin-api/test/todo-new/api/{id}/complete         # 标记待办完成
+# 待办通知API (T13完成 - 2025-08-15 | 重构完成 - 2025-08-19 | 优化完成 - 2025-09-15)
+✅ GET  /admin-api/test/todo-new/api/my-list               # 获取我的待办列表(支持用户独立状态)
+✅ POST /admin-api/test/todo-new/api/{id}/complete         # 标记待办完成(个人状态管理)
 ✅ POST /admin-api/test/todo-new/api/publish               # 发布待办通知
 ✅ GET  /admin-api/test/todo-new/api/{id}/stats            # 获取待办统计
 ✅ GET  /admin-api/test/todo-new/api/ping                  # 测试接口
@@ -801,6 +619,28 @@ cx -p "代码优化的具体建议"                    # 使用Codex GPT-5
 - **旧路径**: `/admin-api/test/todo/` (TempTodoController - 已弃用)
 - **重构原因**: 修复emoji编码+tenant_id缺失问题，避免代码冲突
 - **前端已更新**: todo.ts已切换到新API路径
+
+# 🚀 待办通知优化特性 (2025-09-15)
+## 核心优化功能:
+- **用户状态隔离**: 每个用户独立的已读/已完成/隐藏状态，互不影响
+- **数据隔离机制**: tenant_id + user_id双重隔离，确保数据安全
+- **乐观锁控制**: version字段防止并发更新冲突
+- **认证优化**: 集成CampusAuthContextHolder，减少30-40%认证开销
+- **状态持久化**: todo_completion表记录用户个人完成状态
+
+## 请求示例:
+# 获取我的待办列表（包含个人状态）
+curl -X GET http://localhost:48081/admin-api/test/todo-new/api/my-list \
+  -H "Authorization: Bearer {jwt_token}" \
+  -H "tenant-id: 1" \
+  -H "Content-Type: application/json"
+
+# 标记待办完成（仅影响当前用户）
+curl -X POST http://localhost:48081/admin-api/test/todo-new/api/{id}/complete \
+  -H "Authorization: Bearer {jwt_token}" \
+  -H "tenant-id: 1" \
+  -H "X-XSRF-TOKEN: {csrf_token}" \
+  -H "Content-Type: application/json"
 
 # P0权限缓存系统API (P0级性能优化完成 - 2025-08-20)
 ✅ GET  /admin-api/test/permission-cache/api/test-class-permission     # CLASS级别权限测试
@@ -1340,7 +1180,7 @@ curl -H "Authorization: Bearer {token}" -H "tenant-id: 1" \
 **项目根目录**: `/opt/hxci-campus-portal/hxci-campus-portal-system/`
 
 **🔥 T12.6修复目标文件**: `hxci-campus-portal/src/api/weather.ts`  
-**🏠 首页组件**: `hxci-campus-portal/src/views/Home.vue` (2400+行)  
+**🏠 首页组件**: `hxci-campus-portal/src/views/Home.vue` 
 **🌤️ 天气组件**: `hxci-campus-portal/src/components/WeatherWidget.vue`  
 **📢 通知API**: `hxci-campus-portal/src/api/notification.ts`  
 **📄 已读状态**: `hxci-campus-portal/src/composables/useNotificationReadStatus.ts`  
@@ -1354,8 +1194,6 @@ curl -H "Authorization: Bearer {token}" -H "tenant-id: 1" \
 - `yudao-boot-mini/yudao-server/src/main/java/cn/iocoder/yudao/server/controller/NewTodoNotificationController.java` (重构版 - 2025-08-19)
 
 **🚀 启动脚本**:  
-- `scripts/deployment/start_all_services_complete.sh` (一键启动)  
-- `scripts/deployment/start_vue_dev_server.sh` (Vue启动)  
 - `scripts/weather/generate-weather-jwt.py` (天气JWT生成器)
 
 ## ⚙️ 关键配置
@@ -1363,12 +1201,7 @@ curl -H "Authorization: Bearer {token}" -H "tenant-id: 1" \
 ### 📍 服务端口
 - 主通知服务: 48081
 - Mock School API: 48082  
-- Vue前端: 3001-3002 (自动检测)
-
-### 📊 测试数据  
-- 通知数据: 6条真实数据
-- 用户角色: 6种 (系统管理员/校长/教务主任/教师/班主任/学生)
-- 系统角色: SYSTEM (自动通知，非登录用户)
+- Vue前端: 3000(自动检测)
 
 ### 📁 关键文件位置
 - **Vue门户项目**: `/opt/hxci-campus-portal/hxci-campus-portal-system/hxci-campus-portal`
@@ -1378,9 +1211,15 @@ curl -H "Authorization: Bearer {token}" -H "tenant-id: 1" \
 ## 📦 Git仓库管理
 
 ### 🔗 **项目仓库信息**
-- **Git地址**: https://gitee.com/hxcisunli/hxci-campus-portal-system.git
+- **Git地址1**: https://gitee.com/hxcisunli/hxci-campus-portal-system.git
 - **账号**: hxcisunli@126.com  
 - **密码**: Sunyewei1231
+
+- **Git地址2**: https://github.com/zhenzhu143321/hxci-campus-portal-system.git
+- **账号**: hxcisunli@126.com  
+- **密码**: sunyewei1231
+
+
 - **推送模式**: 强制推送模式 (--force)
 
 ### 📋 **Git操作命令**
@@ -1484,4 +1323,4 @@ CREATE TABLE weather_cache (
 ---
 
 **📋 与CURRENT_WORK_STATUS.md协作**: CLAUDE.md = 技术手册和架构指南，CURRENT_WORK_STATUS.md = 项目管理和当前状态
-**📅 最后更新**: 2025年9月13日 | **维护**: Claude Code AI | **环境**: Linux + 三重Token架构完成 | **AI协作强制执行机制已全面实施** | **前端显示异常调试法已完善**
+**📅 最后更新**: 2025年9月15日 | **维护**: Claude Code AI | **环境**: Linux + 三重Token架构完成 | **AI协作强制执行机制已全面实施** | **前端显示异常调试法已完善** | **待办通知API优化完成**

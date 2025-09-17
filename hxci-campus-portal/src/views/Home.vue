@@ -26,56 +26,24 @@
         </div>
         
         <div class="news-content">
-          <!-- 校园新闻 -->
-          <div class="news-card">
-            <h4>📢 校园新闻</h4>
-            <div class="news-list">
-              <div v-for="news in campusNews" :key="news.id" class="news-item">
-                <img 
-                  :src="news.image" 
-                  :alt="news.title" 
-                  class="news-image" 
-                  loading="lazy"
-                  decoding="async"
-                  @error="handleImageError" 
-                />
-                <div class="news-info">
-                  <div class="news-title">{{ news.title }}</div>
-                  <div class="news-time">{{ news.time }}</div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <!-- 校园新闻 (解耦重构版) -->
+          <CampusNewsPanel
+            :news="campusNews"
+            :loading="newsLoading"
+            :is-fallback="newsIsFallback"
+            :fallback-message="newsFallbackMessage"
+            :retryable="newsRetryable"
+            title="📢 校园新闻"
+            @news-click="handleNewsClick"
+            @retry="handleNewsRetry"
+          />
 
-          <!-- 通知公告（增强版） -->
-          <div class="news-card">
-            <h4>🔔 系统公告</h4>
-            <div class="system-announcements-list" v-loading="notificationLoading">
-              <div v-if="systemAnnouncements.length === 0 && !notificationLoading" class="no-announcements">
-                <el-empty description="暂无系统公告" :image-size="80">
-                  <template #description>
-                    <p style="color: #909399; font-size: 14px;">暂无系统公告</p>
-                    <p style="color: #c0c4cc; font-size: 12px;">系统公告会显示最新的重要通知</p>
-                  </template>
-                </el-empty>
-              </div>
-              <div v-for="announcement in systemAnnouncements" :key="announcement.id" class="system-announcement-item" @click="handleNotificationClick(announcement)">
-                <div class="announcement-header">
-                  <el-tag :type="getAnnouncementType(announcement.level)" size="small">
-                    {{ getLevelText(announcement.level) }}
-                  </el-tag>
-                  <div class="announcement-time">{{ formatDate(announcement.createTime) }}</div>
-                </div>
-                <div class="announcement-title">{{ announcement.title }}</div>
-                <div class="announcement-summary" v-if="announcement.summary">
-                  {{ announcement.summary }}
-                </div>
-                <div class="announcement-content-preview" v-else>
-                  {{ getFormattedPreview(announcement.content, 120) }}
-                </div>
-              </div>
-            </div>
-          </div>
+          <!-- 通知公告（增强版 - 独立组件重构） -->
+          <SystemAnnouncementsPanel
+            :announcements="systemAnnouncements"
+            :loading="notificationLoading"
+            @notification-click="handleNotificationClick"
+          />
           
           <!-- 已读归档（解耦重构版） -->
           <NotificationArchivePanel
@@ -91,48 +59,21 @@
           />
 
           <!-- 校园服务 -->
-          <div class="news-card">
-            <h4>🌤️ 校园服务</h4>
-            <div class="service-info-list">
-              <div class="service-info-item">
-                <el-icon><Bell /></el-icon>
-                <div class="info-content">
-                  <div class="info-title">食堂菜单</div>
-                  <div class="info-desc">今日推荐：宫保鸡丁</div>
-                </div>
-              </div>
-              <div class="service-info-item">
-                <el-icon><User /></el-icon>
-                <div class="info-content">
-                  <div class="info-title">图书馆</div>
-                  <div class="info-desc">开放时间：8:00-22:00</div>
-                </div>
-              </div>
-              <div class="service-info-item">
-                <el-icon><Setting /></el-icon>
-                <div class="info-content">
-                  <div class="info-title">校园巴士</div>
-                  <div class="info-desc">下班班次：15分钟后</div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <CampusServicesCard 
+            @refresh="handleRefreshServices"
+            @service-click="handleServiceClick"
+          />
         </div>
       </div>
     </div>
 
-    <!-- API测试按钮（开发调试用） -->
-    <div class="debug-panel" v-show="showDebugPanel">
-      <el-button @click="testHealthCheck" :loading="testLoading.health" size="small">
-        健康检查
-      </el-button>
-      <el-button @click="testTokenVerify" :loading="testLoading.verify" size="small">
-        验证Token
-      </el-button>
-      <el-button @click="testNotificationAPI" :loading="testLoading.notification" size="small">
-        通知API
-      </el-button>
-    </div>
+    <!-- 开发调试面板 -->
+    <DevDebugPanel 
+      :visible="showDebugPanel"
+      @close="showDebugPanel = false"
+      @test-result="handleDebugTestResult"
+      ref="debugPanelRef"
+    />
   </div>
 
   <!-- 全部通知对话框组件 -->
@@ -145,11 +86,9 @@
 
   <!-- 通知详情对话框组件 -->
   <NotificationDetailDialog
-    :visible="showNotificationDetail"
+    v-model:visible="showNotificationDetail"
     :notification="uiStore.selectedNotification"
     :read-status-checker="notificationStore.isRead"
-    @update:visible="(value) => showNotificationDetail = value"
-    @close="() => showNotificationDetail = false"
     @mark-read="handleMarkAsRead"
   />
 </template>
@@ -158,7 +97,7 @@
 import { computed, onMounted, onUnmounted, reactive, ref, nextTick, defineAsyncComponent } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { 
+import {
   School, Avatar, SwitchButton, Bell, User, Setting,
   Clock, Document, Check, CircleCheck
 } from '@element-plus/icons-vue'
@@ -166,12 +105,15 @@ import { useUserStore } from '@/stores/user'
 import { useNotificationStore } from '@/stores/notification'
 import { useUIStore } from '@/stores/ui'
 import { useTodoStore } from '@/stores/todo'
+import { useNewsStore } from '@/stores/news'
 import { authAPI } from '@/api/auth'
 import type { NotificationItem } from '@/api/notification'
+import type { NewsItem } from '@/types/news'
 import { useNotificationArchiveAnimation } from '@/composables/useNotificationArchiveAnimation'
 import { useAuth } from '@/composables/useAuth'
 import { useNotifications } from '@/composables/useNotifications'
 import { useTodos } from '@/composables/useTodos'
+import { useNotificationHandlers } from '@/composables/useNotificationHandlers'
 import WeatherWidget from '@/components/WeatherWidget.vue'
 import TodoNotificationWidget from '@/components/TodoNotificationWidget.vue'
 import NotificationArchiveIndicator from '@/components/notification/NotificationArchiveIndicator.vue'
@@ -179,6 +121,8 @@ import NotificationArchiveIndicator from '@/components/notification/Notification
 import HeaderNavigation from '@/components/HeaderNavigation.vue'
 import WelcomeBanner from '@/components/WelcomeBanner.vue'
 import QuickServicesGrid from '@/components/QuickServicesGrid.vue'
+import DevDebugPanel from '@/views/home/components/DevDebugPanel.vue'
+import CampusServicesCard from '@/views/home/components/CampusServicesCard.vue'
 // 🚀 Stage 9性能优化: 异步组件懒加载 (深化版)
 const AllNotificationsDialog = defineAsyncComponent({
   loader: () => import('@/views/home/components/AllNotificationsDialog.vue'),
@@ -212,6 +156,33 @@ const NotificationArchivePanel = defineAsyncComponent({
   },
   delay: 100
 })
+
+// 系统公告面板组件（懒加载）
+const SystemAnnouncementsPanel = defineAsyncComponent({
+  loader: () => import('@/components/notification/SystemAnnouncementsPanel.vue'),
+  loadingComponent: {
+    template: '<div class="announcement-loading"><el-skeleton :rows="3" animated /></div>'
+  },
+  errorComponent: {
+    template: '<div class="announcement-error">系统公告加载失败，请刷新重试</div>'
+  },
+  delay: 100,
+  timeout: 5000
+})
+
+// 校园新闻面板组件（懒加载）
+const CampusNewsPanel = defineAsyncComponent({
+  loader: () => import('@/components/news/CampusNewsPanel.vue'),
+  loadingComponent: {
+    template: '<div class="news-loading"><el-skeleton :rows="2" animated /></div>'
+  },
+  errorComponent: {
+    template: '<div class="news-error">校园新闻加载失败，请刷新重试</div>'
+  },
+  delay: 100,
+  timeout: 5000
+})
+
 import IntelligentNotificationWorkspace from '@/views/home/components/IntelligentNotificationWorkspace.vue'
 import dayjs from 'dayjs'
 import { formatDate } from '@/utils'
@@ -282,6 +253,7 @@ const userStore = useUserStore()
 const notificationStore = useNotificationStore()
 const uiStore = useUIStore()
 const todoStore = useTodoStore()
+const newsStore = useNewsStore()
 
 // 使用新的 composables
 const auth = useAuth()
@@ -294,6 +266,52 @@ const todos = useTodos({
   autoInit: false,
   autoRefresh: false
 })
+
+// 🔧 关键修复：将所有模板引用的computed属性提前定义，确保在任何异步操作前就绪
+// 校园新闻相关状态
+const campusNews = computed(() => newsStore?.topNews || [])
+const newsLoading = computed(() => newsStore?.loading || false)
+const newsIsFallback = computed(() => newsStore?.isFallback || false)
+const newsFallbackMessage = computed(() => newsStore?.fallbackMessage || '')
+const newsRetryable = computed(() => newsStore?.retryable || false)
+
+// UI状态相关computed
+const showAllNotifications = computed({
+  get: () => uiStore.showAllNotifications,
+  set: (value: boolean) => {
+    if (value) uiStore.openAllNotifications()
+    else uiStore.closeAllNotifications()
+  }
+})
+
+const showNotificationDetail = computed({
+  get: () => uiStore.showNotificationDetail,
+  set: (value: boolean) => {
+    if (value) {
+      // 通过v-model打开（通常不会发生，但保证完整性）
+      uiStore.showNotificationDetail = true
+    } else {
+      // 通过v-model关闭（常见情况）
+      uiStore.closeNotificationDetail()
+    }
+  }
+})
+
+// 事件处理函数提前定义
+const handleRefreshServices = () => {
+  console.log('🔄 [Home] 刷新服务列表')
+  // 刷新服务逻辑
+}
+
+const handleServiceClick = (service: any) => {
+  console.log('🖱️ [Home] 点击服务:', service)
+  // 服务点击逻辑
+}
+
+const handleDebugTestResult = (result: any) => {
+  console.log('🧪 [Home] 调试测试结果:', result)
+  // 调试结果处理逻辑
+}
 
 
 // 使用 useAuth composable 管理认证状态
@@ -388,7 +406,11 @@ const isRead = (notificationId: number): boolean => {
   return notificationStore.isRead(notificationId)
 }
 
-// 处理"已读"按钮点击 - 使用 useNotifications 和保留动画
+// 使用通知处理器composable
+const notificationHandlers = useNotificationHandlers()
+
+// 处理"已读"按钮点击 - 已迁移到composable
+/* 
 const handleMarkAsRead = async (notificationId: number) => {
   const endTimer = performanceMonitor.startTimer(`标记已读-${notificationId}`)
 
@@ -428,7 +450,22 @@ const handleMarkAsRead = async (notificationId: number) => {
 
   console.log('🔧 [DEBUG] === 标记已读完成 ===')
 }
+*/
 
+// 使用composable中的处理函数
+const { 
+  handleMarkAsRead,
+  handleMarkAsUnread,
+  handlePermanentDelete,
+  handleClearAllArchive,
+  handleNotificationClick,
+  handleEmergencyClick
+} = notificationHandlers
+
+// 保留原函数名以保持兼容性
+const handlePermanentDeleteNotification = handlePermanentDelete
+
+/*
 // 处理"撤销已读"按钮点击
 const handleMarkAsUnread = (notificationId: number) => {
   notifications.markUnread(notificationId)
@@ -469,21 +506,6 @@ const handleClearAllArchive = () => {
   })
 }
 
-// 🎯 Stage 7: UI状态已迁移到uiStore - 使用store的状态和方法
-const showAllNotifications = computed({
-  get: () => uiStore.showAllNotifications,
-  set: (value: boolean) => {
-    if (value) uiStore.openAllNotifications()
-    else uiStore.closeAllNotifications()
-  }
-})
-
-const showNotificationDetail = computed({
-  get: () => uiStore.showNotificationDetail,
-  set: (value: boolean) => {
-    if (!value) uiStore.closeNotificationDetail()
-  }
-})
 
 const selectedNotification = computed(() => uiStore.selectedNotification)
 
@@ -496,25 +518,7 @@ const notificationPagination = uiStore.notificationPagination
 // 🎯 Stage 7: 待办统计使用todoStore
 const pendingTodoCount = computed(() => todoStore.pendingCount)
 
-// 通知点击处理 - 修复：使用uiStore打开详情对话框
-const handleNotificationClick = async (notification: NotificationItem, autoMarkRead: boolean = false) => {
-  try {
-    // 获取通知详情（如果可能的话）
-    const detail = await notificationStore.getNotificationDetail(notification.id).catch(() => null)
-
-    // 使用uiStore打开详情对话框（这是对话框绑定的状态）
-    uiStore.openNotificationDetail(detail || notification)
-
-    // 如果需要，标记为已读
-    if (autoMarkRead) {
-      notificationStore.markAsRead(notification.id)
-    }
-  } catch (error) {
-    console.error('打开通知详情失败:', error)
-    // 即使出错，仍然尝试打开对话框
-    uiStore.openNotificationDetail(notification)
-  }
-}
+// 通知点击处理已在上面从composable中解构导入
 
 // 🚀 Stage 9性能优化: 防抖版本的通知点击处理 (强化版)
 const debouncedNotificationClick = debounce(handleNotificationClick, 300)
@@ -569,42 +573,15 @@ const todayCourses = ref([
   }
 ])
 
-// 获取级别文本
-const getLevelText = (level: number): string => {
-  switch (level) {
-    case 1: return '紧急'
-    case 2: return '重要'
-    case 3: return '常规'
-    case 4: return '提醒'
-    default: return '未知'
-  }
-}
-
-// 格式化通知内容（处理换行符和格式）
-const formatNotificationContent = (content: string): string => {
-  if (!content) return ''
-  // 将\n转换为实际换行符，处理各种换行格式
-  return content
-    .replace(/\\n/g, '\n')  // 转义的\n转为真换行
-    .replace(/\n\s*\n/g, '\n\n')  // 规范化多重换行
-    .replace(/^\s+|\s+$/g, '')  // 去除首尾空白
-    .trim()
-}
-
 // 获取内容预览（用于卡片显示，将换行转为空格）
 const getContentPreview = (content: string, maxLength: number = 50): string => {
   if (!content) return ''
   // 先格式化，然后将换行符替换为空格用于预览
-  const formatted = formatNotificationContent(content)
-  const preview = formatted.replace(/\n{2,}/g, ' | ').replace(/\n/g, ' ')
-  return preview.length > maxLength ? preview.substring(0, maxLength) + '...' : preview
-}
-
-// 获取格式化的内容预览（用于右侧通知公告）
-const getFormattedPreview = (content: string, maxLength: number = 80): string => {
-  if (!content) return ''
-  const formatted = formatNotificationContent(content)
-  // 将换行符替换为空格用于预览，但保持段落结构
+  const formatted = content
+    .replace(/\\n/g, '\n')  // 转义的\n转为真换行
+    .replace(/\n\s*\n/g, '\n\n')  // 规范化多重换行
+    .replace(/^\s+|\s+$/g, '')  // 去除首尾空白
+    .trim()
   const preview = formatted.replace(/\n{2,}/g, ' | ').replace(/\n/g, ' ')
   return preview.length > maxLength ? preview.substring(0, maxLength) + '...' : preview
 }
@@ -644,22 +621,6 @@ const filteredNotifications = computed(() => {
   return filtered
 })
 
-// 校园新闻
-const campusNews = ref([
-  {
-    id: 1,
-    title: '我校在全国程序设计竞赛中获得佳绩',
-    time: '2025-08-12',
-    image: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA2MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjRjVGNUY1Ii8+CjxwYXRoIGQ9Ik0yNSAyMEMyNSAxNy4yMzg2IDI3LjIzODYgMTUgMzAgMTVDMzIuNzYxNCAxNSAzNSAxNy4yMzg2IDM1IDIwQzM1IDIyLjc2MTQgMzIuNzYxNCAyNSAzMCAyNUMyNy4yMzg2IDI1IDI1IDIyLjc2MTQgMjUgMjBaIiBmaWxsPSIjQ0NDQ0NDIi8+CjxwYXRoIGQ9Ik0yMCAyOEwyNS41IDIyLjVMMzIuNSAyOS41TDQwIDIyTDQwIDMySDIwVjI4WiIgZmlsbD0iI0NDQ0NDQyIvPgo8L3N2Zz4K'
-  },
-  {
-    id: 2,
-    title: '2025年春季学期开学典礼成功举行',
-    time: '2025-08-11', 
-    image: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA2MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjRjBGOEZGIi8+CjxjaXJjbGUgY3g9IjMwIiBjeT0iMTYiIHI9IjQiIGZpbGw9IiM0MDlFRkYiLz4KPHBhdGggZD0iTTIyIDI2QzIyIDIzLjc5MDkgMjMuNzkwOSAyMiAyNiAyMkgzNEMzNi4yMDkxIDIyIDM4IDIzLjc5MDkgMzggMjZWMzJIMjJWMjZaIiBmaWxsPSIjNDA5RUZGIi8+Cjwvc3ZnPgo='
-  }
-])
-
 // 当前显示的紧急通知（支持轮播，基于智能分类结果）
 const currentEmergencyNotification = computed(() => {
   return emergencyNotifications.value[0] || null
@@ -668,24 +629,11 @@ const currentEmergencyNotification = computed(() => {
 // 公告通知数据（右侧通知公告栏专用，改为使用智能分类的系统公告）
 const announcementNotifications = computed(() => systemAnnouncements.value)
 
-// 获取通知类型
-const getAnnouncementType = (level: number): string => {
-  switch (level) {
-    case 1: return 'danger'  // 紧急
-    case 2: return 'warning' // 重要
-    case 3: return 'info'    // 常规
-    case 4: return 'success' // 提醒
-    default: return 'info'
-  }
-}
 
 // formatDate函数已迁移到 @/utils
 
-// 处理紧急通知点击（兼容性保留）
-const handleEmergencyClick = (notification: NotificationItem) => {
-  console.log('🚨 点击紧急通知:', notification.title)
-  handleNotificationClick(notification)
-}
+// 处理紧急通知点击 - 使用composable中的实现
+// handleEmergencyClick已在上面从composable中解构导入
 
 // 数据加载逻辑 - 使用notifications composable
 const loadNotificationData = async () => {
@@ -704,6 +652,19 @@ const loadNotificationData = async () => {
   }
 }
 
+// 加载校园新闻数据
+const loadNewsData = async () => {
+  console.log('📰 开始加载校园新闻数据...')
+
+  try {
+    await newsStore.fetchNews()
+    console.log('✅ 校园新闻加载成功:', newsStore.topNews.length, '条')
+  } catch (error) {
+    console.error('❌ 加载校园新闻失败:', error)
+    // 即使失败也会有默认数据，用户无感知
+  }
+}
+
 // 🎯 Stage 7: 未读数量更新使用notificationStore
 const updateUnreadCount = () => {
   try {
@@ -715,7 +676,14 @@ const updateUnreadCount = () => {
 }
 
 
-// API测试方法
+// API测试方法已迁移到DevDebugPanel组件
+
+// 调试面板组件引用
+const debugPanelRef = ref<InstanceType<typeof DevDebugPanel> | null>(null)
+
+
+// 原测试方法已移除，请参考DevDebugPanel组件
+/*
 const testHealthCheck = async () => {
   console.log('=== 健康检查测试开始 ===')
   console.log('🏥 开始测试Mock School API健康检查...')
@@ -774,60 +742,15 @@ const testTokenVerify = async () => {
   }
 }
 
-const testNotificationAPI = async () => {
-  console.log('=== 通知API测试开始 ===')
-  console.log('📢 开始测试主通知服务连接...')
-  console.log('🔑 使用Token:', currentToken.value?.substring(0, 50) + '...')
-  
-  testLoading.notification = true
-  testResults.value = null
-  
-  try {
-    console.log('📤 发送通知API Ping请求...')
-    
-    // 🔧 修复：使用Vite代理路径，避免CORS问题
-    const response = await fetch('/admin-api/test/notification/api/ping', {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${currentToken.value}`,
-        'Content-Type': 'application/json',
-        'tenant-id': '1'
-      }
-    })
-    
-    console.log('📥 通知API响应状态:', response.status, response.statusText)
-    
-    const result = await response.text()
-    console.log('📥 通知API响应内容:', result)
-    
-    if (response.ok) {
-      console.log('✅ 主通知服务连接成功')
-      ElMessage.success(`主通知服务连接正常: ${result}`)
-      testResults.value = {
-        type: 'success',
-        message: '主通知服务连接正常',
-        details: result
-      }
-    } else {
-      console.log('❌ 通知API响应错误')
-      ElMessage.error(`通知API响应错误: ${response.status}`)
-      testResults.value = {
-        type: 'error',
-        message: `通知API响应错误: ${response.status}`,
-        details: result
-      }
-    }
-  } catch (error) {
-    console.log('❌ 通知API测试异常:', error)
-    ElMessage.error(`通知API测试异常: ${error.message}`)
-    testResults.value = {
-      type: 'error',
-      message: '通知API测试异常',
-      details: error.message
-    }
-  } finally {
-    testLoading.notification = false
-    console.log('=== 通知API测试结束 ===')
+*/
+
+// 处理登录成功
+const handleLoginSuccess = () => {
+  console.log('✅ [Home] 登录成功')
+  if (userStore.isLoggedIn) {
+    loginTime.value = new Date().toLocaleString('zh-CN')
+    // 更新调试面板的登录时间
+    debugPanelRef.value?.updateLoginTime()
   }
 }
 
@@ -913,12 +836,26 @@ const handleLogout = async () => {
   }
 }
 
-// 处理图片加载错误
-const handleImageError = (event: Event) => {
-  const target = event.target as HTMLImageElement
-  if (target) {
-    target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA2MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjRjVGNUY1Ii8+CjxwYXRoIGQ9Ik0yNSAyMEMyNSAxNy4yMzg2IDI3LjIzODYgMTUgMzAgMTVDMzIuNzYxNCAxNSAzNSAxNy4yMzg2IDM1IDIwQzM1IDIyLjc2MTQgMzIuNzYxNCAyNSAzMCAyNUMyNy4yMzg2IDI1IDI1IDIyLjc2MTQgMjUgMjBaIiBmaWxsPSIjQ0NDQ0NDIi8+CjxwYXRoIGQ9Ik0yMCAyOEwyNS41IDIyLjVMMzIuNSAyOS41TDQwIDIyTDQwIDMySDIwVjI4WiIgZmlsbD0iI0NDQ0NDQyIvPgo8L3N2Zz4K'
+// 处理图片加载错误（移除，CampusNewsPanel组件内部已处理）
+// 函数已移至组件内部
+
+// 处理校园新闻点击
+const handleNewsClick = (news: NewsItem) => {
+  console.log('🗞️ [Home] 点击校园新闻:', news.title)
+
+  // 如果有URL，打开原文链接
+  if (news.url) {
+    window.open(news.url, '_blank')
+  } else {
+    // 否则显示新闻详情（可以创建详情对话框）
+    ElMessage.info(`查看新闻: ${news.title}`)
   }
+}
+
+// 处理新闻重试加载
+const handleNewsRetry = async () => {
+  console.log('🔄 [Home] 用户触发新闻重试加载')
+  await newsStore.retry()
 }
 
 // 待办通知相关函数
@@ -991,6 +928,9 @@ onMounted(async () => {
 
     // 用户登录成功后加载数据
     loadNotificationData()
+
+    // 加载校园新闻数据
+    loadNewsData()
   } else {
     console.log('❌ 用户未登录，准备跳转到登录页')
     router.push('/login')

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>通知详情对话框修复验证</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f7fa;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success { background-color: #f0f9ff; border-left: 4px solid #10b981; }
+        .info { background-color: #f0f9ff; border-left: 4px solid #3b82f6; }
+        .warning { background-color: #fffbeb; border-left: 4px solid #f59e0b; }
+        .code {
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            padding: 12px;
+            margin: 8px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+        .link {
+            color: #3b82f6;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 通知详情对话框修复验证报告</h1>
+        <p><strong>修复时间:</strong> 2025年9月15日 09:59</p>
+
+        <div class="status success">
+            <h3>✅ 修复完成项目</h3>
+            <ul>
+                <li><strong>NotificationDetailDialog组件props修复</strong>: 添加 <code>visible: false</code> 默认值</li>
+                <li><strong>Home.vue v-model绑定优化</strong>: 改为标准的 <code>v-model:visible</code> 模式</li>
+                <li><strong>重复computed属性删除</strong>: 删除3组重复定义，确保每个属性只有一个定义</li>
+                <li><strong>属性定义顺序优化</strong>: 所有computed属性移至script setup顶部，避免异步初始化问题</li>
+            </ul>
+        </div>
+
+        <div class="status info">
+            <h3>🎯 核心修复内容</h3>
+            <p><strong>1. NotificationDetailDialog.vue</strong></p>
+            <div class="code">
+const props = withDefaults(defineProps&lt;Props&gt;(), {
+  visible: false,  // ✅ 新增: 防止undefined错误
+  notification: null,
+  isLoading: false,
+  isMarkingRead: false,
+  readStatusChecker: () => false
+})
+            </div>
+
+            <p><strong>2. Home.vue - v-model绑定标准化</strong></p>
+            <div class="code">
+&lt;!-- 修复后 --&gt;
+&lt;NotificationDetailDialog
+  v-model:visible="showNotificationDetail"
+  :notification="uiStore.selectedNotification"
+  :read-status-checker="notificationStore.isRead"
+  @mark-read="handleMarkAsRead"
+/&gt;
+            </div>
+
+            <p><strong>3. 重复属性删除</strong></p>
+            <div class="code">
+// ❌ 删除重复的计算属性定义:
+// - showAllNotifications (删除行510-530)
+// - campusNews, newsLoading等 (删除行625-629)
+// - handleDebugTestResult等处理函数 (删除行685-699)
+
+// ✅ 保留: 早期定义的唯一版本 (行270-314)
+            </div>
+        </div>
+
+        <div class="status success">
+            <h3>📊 Vue编译验证</h3>
+            <p><strong>编译状态:</strong> ✅ 成功编译，无Vue组件错误</p>
+            <p><strong>服务器状态:</strong> ✅ 开发服务器正常运行 (http://localhost:3000)</p>
+            <p><strong>警告级别:</strong> 仅Sass弃用警告 (不影响功能)</p>
+        </div>
+
+        <div class="status info">
+            <h3>🧪 测试验证步骤</h3>
+            <ol>
+                <li>访问 <a href="http://localhost:3000" class="link" target="_blank">http://localhost:3000</a></li>
+                <li>使用测试账号登录 (如: PRINCIPAL_001 + Principal-Zhang + admin123)</li>
+                <li>在通知卡片中点击 <strong>"查看详情"</strong> 按钮</li>
+                <li>验证通知详情对话框是否正常弹出</li>
+                <li>检查浏览器控制台是否无Vue undefined警告</li>
+            </ol>
+        </div>
+
+        <div class="status warning">
+            <h3>⚠️ 注意事项</h3>
+            <ul>
+                <li>如果仍有问题，请检查浏览器缓存并刷新页面</li>
+                <li>确认后端服务 (48081, 48082) 正常运行</li>
+                <li>观察控制台Console面板中的Vue相关错误信息</li>
+            </ul>
+        </div>
+
+        <div class="status success">
+            <h3>🎉 预期修复效果</h3>
+            <p><strong>修复前:</strong> 点击"查看详情"按钮 → 无响应 + 控制台Vue警告</p>
+            <p><strong>修复后:</strong> 点击"查看详情"按钮 → 正常弹出通知详情对话框 + 无控制台警告</p>
+        </div>
+    </div>
+</body>
+</html>

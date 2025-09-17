@@ -165,6 +165,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  visible: false,
   notification: null,
   isLoading: false,
   isMarkingRead: false,

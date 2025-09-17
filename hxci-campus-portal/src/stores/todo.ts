@@ -10,6 +10,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { TodoNotificationItem, TodoPriority, TodoStatus, TodoFilterOptions, TodoStatistics } from '@/types/todo'
 import api from '@/utils/request'
+import { updateTodoStatusApi, removeTodoApi } from '@/api/todo'
 
 export const useTodoStore = defineStore('todo', () => {
   // ================== 状态定义 ==================
@@ -193,7 +194,16 @@ export const useTodoStore = defineStore('todo', () => {
       }
     }
   }
-  
+
+  /**
+   * 标记待办为已完成 (便捷方法)
+   * @param id 待办项ID
+   */
+  const markAsCompleted = async (id: number) => {
+    console.log('✅ [TodoStore] 标记待办为已完成:', id)
+    return await updateTodoStatus(id, true)
+  }
+
   /**
    * 添加新的待办项
    * @param todo 新的待办项数据
@@ -215,14 +225,54 @@ export const useTodoStore = defineStore('todo', () => {
    * 删除待办项
    * @param id 待办项ID
    */
-  const removeTodo = (id: number) => {
-    const index = todoNotifications.value.findIndex(item => item.id === id)
-    if (index > -1) {
-      const todo = todoNotifications.value[index]
-      todoNotifications.value.splice(index, 1)
-      lastUpdateTime.value = new Date()
-      
-      console.log('🗑️ [TodoStore] 删除待办项:', todo.title)
+  const removeTodo = async (id: number) => {
+    console.log('🗑️ [TodoStore] 开始删除待办项:', id)
+
+    const todo = todoNotifications.value.find(item => item.id === id)
+    if (!todo) {
+      console.warn('⚠️ [TodoStore] 待办项不存在:', id)
+      return
+    }
+
+    try {
+      // 🌐 调用删除API
+      const response = await removeTodoApi(id)
+
+      if (response.code === 0) {
+        // API成功，从本地列表中移除
+        const index = todoNotifications.value.findIndex(item => item.id === id)
+        if (index > -1) {
+          todoNotifications.value.splice(index, 1)
+          lastUpdateTime.value = new Date()
+        }
+
+        console.log('✅ [TodoStore] 待办项删除成功 (API + 本地):', {
+          id: todo.id,
+          title: todo.title
+        })
+      } else {
+        throw new Error(response.msg || '删除失败')
+      }
+
+    } catch (err) {
+      // 🛡️ API失败时的降级处理
+      console.warn('⚠️ [TodoStore] API删除失败，执行本地删除:', err)
+
+      // 仍然从本地列表中移除（降级策略）
+      const index = todoNotifications.value.findIndex(item => item.id === id)
+      if (index > -1) {
+        todoNotifications.value.splice(index, 1)
+        lastUpdateTime.value = new Date()
+
+        console.log('🔄 [TodoStore] 本地删除完成 (降级模式):', {
+          id: todo.id,
+          title: todo.title,
+          localOnly: true
+        })
+      }
+
+      // 可以在这里添加用户通知，告知删除可能未同步到服务器
+      throw err
     }
   }
   
@@ -689,6 +739,7 @@ export const useTodoStore = defineStore('todo', () => {
     // 操作方法
     initializeTodos,
     updateTodoStatus,
+    markAsCompleted,
     addTodo,
     removeTodo,
     getFilteredTodos,

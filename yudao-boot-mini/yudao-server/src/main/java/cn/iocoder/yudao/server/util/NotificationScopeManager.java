@@ -62,9 +62,11 @@ public class NotificationScopeManager {
      * 角色范围权限映射表
      */
     private static final Map<String, Set<NotificationScope>> ROLE_SCOPE_PERMISSIONS = Map.of(
-        "PRINCIPAL", Set.of(NotificationScope.SCHOOL_WIDE, NotificationScope.DEPARTMENT, 
+        "SYSTEM_ADMIN", Set.of(NotificationScope.SCHOOL_WIDE, NotificationScope.DEPARTMENT,
+                              NotificationScope.CLASS, NotificationScope.GRADE), // 系统管理员：所有范围
+        "PRINCIPAL", Set.of(NotificationScope.SCHOOL_WIDE, NotificationScope.DEPARTMENT,
                            NotificationScope.CLASS, NotificationScope.GRADE), // 校长：所有范围
-        "ACADEMIC_ADMIN", Set.of(NotificationScope.SCHOOL_WIDE, NotificationScope.DEPARTMENT, 
+        "ACADEMIC_ADMIN", Set.of(NotificationScope.SCHOOL_WIDE, NotificationScope.DEPARTMENT,
                                 NotificationScope.GRADE), // 教务主任：除班级外所有范围
         "TEACHER", Set.of(NotificationScope.DEPARTMENT, NotificationScope.CLASS), // 教师：部门和班级
         "CLASS_TEACHER", Set.of(NotificationScope.CLASS, NotificationScope.GRADE), // 班主任：班级和年级

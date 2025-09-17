@@ -146,10 +146,35 @@ api.interceptors.request.use(
     // 3️⃣ 🛡️ 为需要CSRF保护的请求添加CSRF Token
     if (CsrfTokenManager.requiresCsrfToken(config)) {
       try {
-        const csrfToken = await csrfManager.getValidToken()
-        if (config.headers) {
+        // 🔧 核心修复：优先使用Cookie中的XSRF-TOKEN（Spring Security标准）
+        let csrfToken = null
+
+        // 方法1：从Cookie中获取XSRF-TOKEN（推荐，Spring Security标准）
+        const cookies = document.cookie.split(';')
+        for (let cookie of cookies) {
+          const [name, value] = cookie.trim().split('=')
+          if (name === 'XSRF-TOKEN') {
+            csrfToken = decodeURIComponent(value)
+            console.log('🍪 [CSRF] 从Cookie获取CSRF Token (前20字符):', csrfToken.substring(0, 20) + '...')
+            break
+          }
+        }
+
+        // 方法2：如果Cookie中没有，使用自定义管理器获取
+        if (!csrfToken) {
+          console.log('🔄 [CSRF] Cookie中无Token，使用管理器获取...')
+          csrfToken = await csrfManager.getValidToken()
+          console.log('🛡️ [CSRF] 管理器获取Token成功 (前20字符):', csrfToken.substring(0, 20) + '...')
+        }
+
+        // 添加CSRF Token到请求头
+        if (csrfToken && config.headers) {
           config.headers['X-CSRF-TOKEN'] = csrfToken
-          console.log('🛡️ [CSRF] 已添加CSRF Token到请求头 (前20字符):', csrfToken.substring(0, 20) + '...')
+          // 同时添加到X-XSRF-TOKEN头（备用）
+          config.headers['X-XSRF-TOKEN'] = csrfToken
+          console.log('✅ [CSRF] 已添加CSRF Token到请求头')
+        } else {
+          console.warn('⚠️ [CSRF] 无法获取有效的CSRF Token')
         }
       } catch (error) {
         console.error('💥 [CSRF] 获取CSRF Token失败:', error)

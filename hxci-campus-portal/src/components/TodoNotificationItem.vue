@@ -55,15 +55,26 @@
 
     <!-- 操作区域 -->
     <div class="todo-action-area">
-      <el-checkbox 
-        v-model="item.isCompleted"
+      <el-checkbox
+        :model-value="item.isCompleted"
         class="todo-checkbox"
         :disabled="item.isCompleted"
         @change="handleComplete"
       />
-      <el-button 
-        type="text" 
-        size="small" 
+      <el-button
+        type="text"
+        size="small"
+        class="todo-remove-btn"
+        @click="handleRemove"
+        :loading="isRemoving"
+      >
+        <el-icon color="#f56565">
+          <Delete />
+        </el-icon>
+      </el-button>
+      <el-button
+        type="text"
+        size="small"
         class="todo-detail-btn"
         @click="handleViewDetail"
       >
@@ -74,8 +85,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import { Calendar } from '@element-plus/icons-vue'
+import { computed, ref } from 'vue'
+import { ElMessageBox } from 'element-plus'
+import { Calendar, Delete } from '@element-plus/icons-vue'
 import type { TodoNotificationItem } from '@/types/todo'
 
 // Props定义
@@ -87,7 +99,11 @@ const props = defineProps<{
 const emit = defineEmits<{
   complete: [id: number, completed: boolean]
   viewDetail: [item: TodoNotificationItem]
+  remove: [id: number]
 }>()
+
+// 响应式状态
+const isRemoving = ref(false)
 
 // 计算是否逾期
 const isOverdue = computed(() => {
@@ -117,8 +133,33 @@ const formatDueDate = (dueDate: string): string => {
 }
 
 // 完成待办事件
-const handleComplete = () => {
-  emit('complete', props.item.id, props.item.isCompleted)
+const handleComplete = (checked: boolean) => {
+  console.log('🔄 [TodoItem] 处理完成事件:', { id: props.item.id, checked, title: props.item.title })
+  emit('complete', props.item.id, checked)
+}
+
+// 删除待办事件
+const handleRemove = async () => {
+  console.log('🗑️ [TodoItem] 处理删除事件:', { id: props.item.id, title: props.item.title })
+
+  // 显示确认对话框
+  try {
+    await ElMessageBox.confirm(
+      `确定要删除待办事项"${props.item.title}"吗？`,
+      '确认删除',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning',
+      }
+    )
+
+    // 用户确认后发出删除事件
+    emit('remove', props.item.id)
+  } catch {
+    // 用户取消删除
+    console.log('🔄 [TodoItem] 用户取消删除操作')
+  }
 }
 
 // 查看详情事件
@@ -148,11 +189,16 @@ const handleViewDetail = () => {
 
   &.todo-completed {
     background: rgba(108, 117, 125, 0.1);
-    opacity: 0.7;
-    
+    opacity: 0.8;
+
     .todo-title {
-      text-decoration: line-through;
-      color: #6c757d;
+      text-decoration: line-through !important;
+      color: #6c757d !important;
+    }
+
+    .todo-meta-info,
+    .todo-content-preview {
+      opacity: 0.7;
     }
   }
 
@@ -230,10 +276,13 @@ const handleViewDetail = () => {
   font-weight: 500;
   color: #2d3748;
   line-height: 1.4;
-  
+  transition: all 0.3s ease;
+
   &.completed-todo {
-    text-decoration: line-through;
-    color: #6c757d;
+    text-decoration: line-through !important;
+    color: #6c757d !important;
+    font-weight: 400;
+    opacity: 0.8;
   }
 }
 

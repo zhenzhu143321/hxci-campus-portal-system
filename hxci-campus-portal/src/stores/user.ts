@@ -104,6 +104,44 @@ export const useUserStore = defineStore('user', () => {
     })
   }
 
+  // 清空缓存
+  const clearCache = async () => {
+    console.log('🗑️ [UserStore] 执行缓存清理')
+    console.log('🧹 清理所有Store缓存数据...')
+
+    try {
+      // 清理认证相关缓存
+      token.value = ''
+      userInfo.value = null
+      isLoggedIn.value = false
+
+      // 清理localStorage中的所有缓存
+      const keysToRemove = []
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i)
+        if (key) {
+          // 保留某些关键配置，只清理缓存数据
+          if (!key.startsWith('config_') && !key.startsWith('settings_')) {
+            keysToRemove.push(key)
+          }
+        }
+      }
+
+      keysToRemove.forEach(key => localStorage.removeItem(key))
+
+      // 清理sessionStorage
+      sessionStorage.clear()
+
+      console.log('✅ Store缓存清理完成')
+      console.log(`📊 清理了 ${keysToRemove.length} 个localStorage项`)
+
+      return Promise.resolve()
+    } catch (error) {
+      console.error('❌ [UserStore] 缓存清理失败:', error)
+      return Promise.reject(error)
+    }
+  }
+
   return {
     token,
     userInfo,
@@ -112,6 +150,7 @@ export const useUserStore = defineStore('user', () => {
     setUserInfo,
     logout,
     initializeAuth,
-    initAuth  // 向后兼容的别名
+    initAuth,  // 向后兼容的别名
+    clearCache  // 新增缓存清理方法
   }
 })

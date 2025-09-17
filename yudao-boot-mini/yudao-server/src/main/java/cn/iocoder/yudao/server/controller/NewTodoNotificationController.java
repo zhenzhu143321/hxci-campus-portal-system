@@ -11,6 +11,7 @@ import cn.iocoder.yudao.server.util.SecurityEnhancementUtil;
 import cn.iocoder.yudao.server.security.ResourceOwnershipValidator;
 import cn.iocoder.yudao.server.security.IdorProtectionValidator;
 import cn.iocoder.yudao.server.security.AccessControlListManager;
+import cn.iocoder.yudao.server.security.CampusAuthContextHolder;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.security.PermitAll;
@@ -18,6 +19,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
@@ -74,7 +76,7 @@ public class NewTodoNotificationController {
         this.ownershipValidator = ownershipValidator;
         this.idorValidator = idorValidator;
         this.aclManager = aclManager;
-        log.info("🛡️ [TODO_SECURITY_INIT] 待办通知安全验证器已初始化完成");
+        log.debug("🛡️ [TODO_SECURITY_INIT] 待办通知安全验证器已初始化完成");
     }
 
     /**
@@ -85,7 +87,7 @@ public class NewTodoNotificationController {
     @PermitAll
     @TenantIgnore
     public CommonResult<String> ping() {
-        log.info("🏓 [NEW-TODO-PING] 新待办通知服务ping测试");
+        log.debug("🏓 [NEW-TODO-PING] 新待办通知服务ping测试");
         return success("pong from NewTodoNotificationController - 完全独立的待办通知系统");
     }
 
@@ -103,27 +105,38 @@ public class NewTodoNotificationController {
             @RequestParam(required = false) String priority,
             HttpServletRequest httpRequest) {
         
-        log.info("📝 [NEW-TODO-LIST] 获取我的待办列表 - page:{}, pageSize:{}, status:{}, priority:{}", 
+        log.debug("📝 [NEW-TODO-LIST] 获取我的待办列表 - page:{}, pageSize:{}, status:{}, priority:{}",
                 page, pageSize, status, priority);
         
         try {
-            // 🔐 Step 1: 双重认证验证 - 完全复制TempNotificationController模式
-            String authToken = httpRequest.getHeader("Authorization");
-            if (authToken == null) {
-                log.warn("❌ [NEW-TODO-LIST] 未提供认证Token");
-                return CommonResult.error(401, "未提供认证Token");
+            // 🔐 Step 1: 从ThreadLocal获取用户信息（性能优化）
+            AccessControlListManager.UserInfo userInfo = null;
+
+            // 首先尝试从ThreadLocal获取
+            CampusAuthContextHolder.UserInfo contextUser = CampusAuthContextHolder.getCurrentUser();
+            if (contextUser != null) {
+                userInfo = contextUser.toAclUserInfo();
+                log.debug("⚡ [NEW-TODO-LIST] 从ThreadLocal获取用户信息: {} ({})",
+                        userInfo.getUsername(), userInfo.getRoleCode());
+            } else {
+                // ThreadLocal没有数据，回退到原始方式
+                String authToken = httpRequest.getHeader("Authorization");
+                if (authToken == null) {
+                    log.warn("❌ [NEW-TODO-LIST] 未提供认证Token");
+                    return CommonResult.error(401, "未提供认证Token");
+                }
+
+                userInfo = getUserInfoFromMockApi(authToken);
+                if (userInfo == null) {
+                    log.warn("❌ [NEW-TODO-LIST] Token验证失败");
+                    return CommonResult.error(401, "Token验证失败");
+                }
             }
 
-            AccessControlListManager.UserInfo userInfo = getUserInfoFromMockApi(authToken);
-            if (userInfo == null) {
-                log.warn("❌ [NEW-TODO-LIST] Token验证失败");
-                return CommonResult.error(401, "Token验证失败");
-            }
-
-            log.info("✅ [NEW-TODO-LIST] 用户认证成功: {} (角色: {})", userInfo.getUsername(), userInfo.getRoleCode());
+            log.debug("✅ [NEW-TODO-LIST] 用户认证成功: {} (角色: {})", userInfo.getUsername(), userInfo.getRoleCode());
 
             // 🛡️ Step 1.5: 高风险安全漏洞修复 - 待办列表API安全验证
-            log.info("🛡️ [TODO_LIST_SECURITY] 开始执行待办列表安全验证");
+            log.debug("🛡️ [TODO_LIST_SECURITY] 开始执行待办列表安全验证");
             
             // IDOR防护 - 验证分页参数安全性
             if (!idorValidator.validatePaginationParams(page, pageSize, userInfo)) {
@@ -150,20 +163,20 @@ public class NewTodoNotificationController {
                 return CommonResult.error(403, "权限不足，无法查看待办列表");
             }
             
-            log.info("✅ [TODO_LIST_SECURITY] 待办列表安全验证通过 - user={}", userInfo.getUsername());
+            log.debug("✅ [TODO_LIST_SECURITY] 待办列表安全验证通过 - user={}", userInfo.getUsername());
 
             // 🔍 Step 2: 使用MyBatis Plus安全查询（自动处理 deleted = 0）
             Integer statusCode = getStatusCode(status);
             Integer priorityCode = getPriorityCode(priority);
 
-            log.info("🔍 [NEW-TODO-LIST] 使用MyBatis Plus安全查询: statusCode={}, priorityCode={}", 
+            log.debug("🔍 [NEW-TODO-LIST] 使用MyBatis Plus安全查询: statusCode={}, priorityCode={}",
                     statusCode, priorityCode);
 
             // 📋 Step 3: 执行安全的分页查询
             PageResult<TodoNotificationDO> pageResult = todoNotificationService.getMyTodos(
                     page, pageSize, statusCode, priorityCode, userInfo);
 
-            log.info("🔍 [NEW-TODO-LIST] MyBatis Plus查询完成: 总数={}, 当前页数据={}", 
+            log.debug("🔍 [NEW-TODO-LIST] MyBatis Plus查询完成: 总数={}, 当前页数据={}",
                     pageResult.getTotal(), pageResult.getList().size());
 
             // 🎯 Step 4: 转换为前端所需的Map格式
@@ -196,26 +209,46 @@ public class NewTodoNotificationController {
 
             long total = pageResult.getTotal();
 
-            // 🔄 Step 5: 检查每个待办的个人完成状态
+            // 🔄 Step 5: 获取用户的待办状态映射
+            List<Long> todoIdList = todos.stream()
+                .map(todo -> Long.parseLong(todo.get("id").toString()))
+                .collect(java.util.stream.Collectors.toList());
+
+            Map<Long, cn.iocoder.yudao.server.dal.dataobject.todo.TodoCompletionDO> statusMap =
+                todoNotificationService.getUserTodoStatusMap(todoIdList, 1L, userInfo.getUsername());
+
+            // 检查每个待办的个人状态
             for (Map<String, Object> todo : todos) {
                 Long todoId = Long.parseLong(todo.get("id").toString());
-                boolean isCompleted = checkUserTodoCompletion(todoId, userInfo.getUsername());
-                
+
+                // 从状态映射中获取用户状态
+                cn.iocoder.yudao.server.dal.dataobject.todo.TodoCompletionDO userStatus = statusMap.get(todoId);
+                boolean isCompleted = userStatus != null && userStatus.isCompleted();
+                boolean isRead = userStatus != null && userStatus.isRead();
+                boolean isHidden = userStatus != null && userStatus.isHidden();
+
                 // 📊 构建前端所需的数据格式
                 todo.put("level", 5); // 固定Level 5
-                // priority已经是String了，不需要再转换
-                // todo.put("priority", todo.get("priority")); // 已经是String
                 todo.put("dueDate", todo.get("due_date"));
-                // 如果已完成，覆盖status为"completed"
-                if (isCompleted) {
+
+                // 根据用户状态覆盖status字段
+                if (isHidden) {
+                    todo.put("status", "hidden");
+                } else if (isCompleted) {
                     todo.put("status", "completed");
+                } else if (isRead) {
+                    todo.put("status", "read");
                 }
+
                 todo.put("assignerName", todo.get("assigner_name"));
                 todo.put("isCompleted", isCompleted);
-                todo.put("targetStudentIds", todo.get("target_student_ids")); // 第4层：学号过滤字段
-                todo.put("targetGrades", todo.get("target_grade_ids")); // 第5层：年级过滤字段
-                todo.put("targetClasses", todo.get("target_class_ids")); // 第5层：班级过滤字段
-                
+                todo.put("isRead", isRead);
+                todo.put("isHidden", isHidden);
+                todo.put("userStatus", userStatus != null ? userStatus.getStatus() : 0);
+                todo.put("targetStudentIds", todo.get("target_student_ids"));
+                todo.put("targetGrades", todo.get("target_grade_ids"));
+                todo.put("targetClasses", todo.get("target_class_ids"));
+
                 // 清理数据库字段
                 todo.remove("assigner_name");
                 todo.remove("due_date");
@@ -247,7 +280,122 @@ public class NewTodoNotificationController {
     }
 
     /**
-     * ✅ 标记待办完成 - 双重认证版本
+     * 📝 更新待办状态（已读/已完成/隐藏）
+     */
+    @PutMapping("/api/{id}/status")
+    @Operation(summary = "更新待办状态(新版)")
+    @PermitAll
+    @TenantIgnore
+    public CommonResult<Map<String, Object>> updateTodoStatus(
+            @PathVariable Long id,
+            @RequestBody Map<String, Object> request,
+            HttpServletRequest httpRequest) {
+
+        log.info("📝 [NEW-TODO-UPDATE-STATUS] 更新待办状态 - todoId: {}, request: {}", id, request);
+
+        try {
+            // 🔐 Step 1: 从ThreadLocal获取用户信息（性能优化）
+            AccessControlListManager.UserInfo userInfo = null;
+
+            // 首先尝试从ThreadLocal获取
+            CampusAuthContextHolder.UserInfo contextUser = CampusAuthContextHolder.getCurrentUser();
+            if (contextUser != null) {
+                userInfo = contextUser.toAclUserInfo();
+                log.info("⚡ [NEW-TODO-UPDATE-STATUS] 从ThreadLocal获取用户信息: {} ({})",
+                        userInfo.getUsername(), userInfo.getRoleCode());
+            } else {
+                // ThreadLocal没有数据，回退到原始方式
+                String authToken = httpRequest.getHeader("Authorization");
+                if (authToken == null) {
+                    return CommonResult.error(401, "未提供认证Token");
+                }
+
+                userInfo = getUserInfoFromMockApi(authToken);
+                if (userInfo == null) {
+                    return CommonResult.error(401, "Token验证失败");
+                }
+            }
+
+            log.info("✅ [NEW-TODO-UPDATE-STATUS] 用户认证成功: {} (角色: {})", userInfo.getUsername(), userInfo.getRoleCode());
+
+            // 🔍 Step 2: 检查待办是否存在
+            TodoNotificationDO todoInfo = todoNotificationService.getTodoById(id);
+            if (todoInfo == null) {
+                log.warn("❌ [NEW-TODO-UPDATE-STATUS] 待办不存在: {}", id);
+                return CommonResult.error(404, "待办任务不存在");
+            }
+
+            // 📊 Step 3: 解析状态更新请求
+            String action = (String) request.get("action"); // read, complete, hide
+            Boolean completed = (Boolean) request.get("completed");
+            Boolean read = (Boolean) request.get("read");
+            Boolean hidden = (Boolean) request.get("hidden");
+
+            boolean updateSuccess = false;
+            String updateType = "";
+
+            // 根据不同的更新类型调用对应的Service方法
+            if (action != null) {
+                switch (action) {
+                    case "read":
+                        updateSuccess = todoNotificationService.markTodoAsRead(id, 1L, userInfo.getUsername());
+                        updateType = "已读";
+                        break;
+                    case "complete":
+                        updateSuccess = todoNotificationService.markTodoAsCompleted(
+                            id, 1L, userInfo.getUsername(), userInfo.getUsername(), userInfo.getRoleCode()
+                        );
+                        updateType = "完成";
+                        break;
+                    case "hide":
+                        updateSuccess = todoNotificationService.markTodoAsHidden(id, 1L, userInfo.getUsername());
+                        updateType = "隐藏";
+                        break;
+                    default:
+                        return CommonResult.error(400, "无效的操作类型: " + action);
+                }
+            } else if (Boolean.TRUE.equals(completed)) {
+                updateSuccess = todoNotificationService.markTodoAsCompleted(
+                    id, 1L, userInfo.getUsername(), userInfo.getUsername(), userInfo.getRoleCode()
+                );
+                updateType = "完成";
+            } else if (Boolean.TRUE.equals(read)) {
+                updateSuccess = todoNotificationService.markTodoAsRead(id, 1L, userInfo.getUsername());
+                updateType = "已读";
+            } else if (Boolean.TRUE.equals(hidden)) {
+                updateSuccess = todoNotificationService.markTodoAsHidden(id, 1L, userInfo.getUsername());
+                updateType = "隐藏";
+            } else {
+                return CommonResult.error(400, "未指定有效的状态更新操作");
+            }
+
+            if (!updateSuccess) {
+                log.warn("⚠️ [NEW-TODO-UPDATE-STATUS] 状态更新失败: todoId={}, action={}", id, updateType);
+                return CommonResult.error(409, "状态更新失败，可能存在并发冲突");
+            }
+
+            // ✅ Step 4: 构建响应结果
+            Map<String, Object> result = new HashMap<>();
+            result.put("todoId", id);
+            result.put("title", todoInfo.getTitle());
+            result.put("updateType", updateType);
+            result.put("updatedBy", userInfo.getUsername());
+            result.put("updatedTime", LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+            result.put("success", true);
+            result.put("timestamp", System.currentTimeMillis());
+
+            log.info("✅ [NEW-TODO-UPDATE-STATUS] 待办状态更新成功 - todoId: {}, type: {}, user: {}",
+                    id, updateType, userInfo.getUsername());
+            return success(result);
+
+        } catch (Exception e) {
+            log.error("❌ [NEW-TODO-UPDATE-STATUS] 更新待办状态异常", e);
+            return CommonResult.error(500, "更新状态异常: " + e.getMessage());
+        }
+    }
+
+    /**
+     * ✅ 标记待办完成 - 双重认证版本（保留向后兼容）
      */
     @PostMapping("/api/{id}/complete")
     @Operation(summary = "标记待办完成(新版)")
@@ -259,17 +407,28 @@ public class NewTodoNotificationController {
             HttpServletRequest httpRequest) {
         
         log.info("✅ [NEW-TODO-COMPLETE] 标记待办完成 - todoId: {}", id);
-        
-        try {
-            // 🔐 Step 1: 双重认证验证
-            String authToken = httpRequest.getHeader("Authorization");
-            if (authToken == null) {
-                return CommonResult.error(401, "未提供认证Token");
-            }
 
-            AccessControlListManager.UserInfo userInfo = getUserInfoFromMockApi(authToken);
-            if (userInfo == null) {
-                return CommonResult.error(401, "Token验证失败");
+        try {
+            // 🔐 Step 1: 从ThreadLocal获取用户信息（性能优化）
+            AccessControlListManager.UserInfo userInfo = null;
+
+            // 首先尝试从ThreadLocal获取
+            CampusAuthContextHolder.UserInfo contextUser = CampusAuthContextHolder.getCurrentUser();
+            if (contextUser != null) {
+                userInfo = contextUser.toAclUserInfo();
+                log.info("⚡ [NEW-TODO-COMPLETE] 从ThreadLocal获取用户信息: {} ({})",
+                        userInfo.getUsername(), userInfo.getRoleCode());
+            } else {
+                // ThreadLocal没有数据，回退到原始方式
+                String authToken = httpRequest.getHeader("Authorization");
+                if (authToken == null) {
+                    return CommonResult.error(401, "未提供认证Token");
+                }
+
+                userInfo = getUserInfoFromMockApi(authToken);
+                if (userInfo == null) {
+                    return CommonResult.error(401, "Token验证失败");
+                }
             }
 
             log.info("✅ [NEW-TODO-COMPLETE] 用户认证成功: {} (角色: {})", userInfo.getUsername(), userInfo.getRoleCode());
@@ -303,28 +462,18 @@ public class NewTodoNotificationController {
                 return CommonResult.error(404, "待办任务不存在");
             }
 
-            // 🔄 Step 3: 检查是否已经完成
-            boolean alreadyCompleted = checkUserTodoCompletion(id, userInfo.getUsername());
-            if (alreadyCompleted) {
-                log.warn("⚠️ [NEW-TODO-COMPLETE] 待办已完成: {} (用户: {})", id, userInfo.getUsername());
-                return CommonResult.error(409, "该待办任务已完成");
-            }
-
-            // ✅ Step 4: 插入完成记录
-            String insertSql = String.format(
-                "INSERT INTO todo_completions " +
-                "(todo_id, user_id, user_name, user_role, completed_time, tenant_id) " +
-                "VALUES (%d, '%s', '%s', '%s', NOW(), 1)",
-                id, 
-                SecurityEnhancementUtil.escapeSQL(userInfo.getUsername()), // 使用username作为user_id
-                SecurityEnhancementUtil.escapeSQL(userInfo.getUsername()),
-                SecurityEnhancementUtil.escapeSQL(userInfo.getRoleCode())
+            // 🔄 Step 3: 使用Service层标记完成（包含重复检查和乐观锁）
+            boolean markSuccess = todoNotificationService.markTodoAsCompleted(
+                id,
+                1L, // tenant_id
+                userInfo.getUsername(), // 使用username作为user_id
+                userInfo.getUsername(),
+                userInfo.getRoleCode()
             );
 
-            boolean insertSuccess = executeSQLUpdate(insertSql);
-            if (!insertSuccess) {
-                log.error("❌ [NEW-TODO-COMPLETE] 插入完成记录失败");
-                return CommonResult.error(500, "标记完成失败");
+            if (!markSuccess) {
+                log.warn("⚠️ [NEW-TODO-COMPLETE] 标记完成失败，可能已完成或并发冲突: {} (用户: {})", id, userInfo.getUsername());
+                return CommonResult.error(409, "该待办任务已完成或正在被其他操作处理");
             }
 
             // ✅ Step 5: 构建响应结果
@@ -350,6 +499,7 @@ public class NewTodoNotificationController {
      */
     @PostMapping("/api/publish")
     @Operation(summary = "发布待办通知(新版+修复+目标定向)")
+    @PreAuthorize("@todoPermission.canPublishTodo()")
     @PermitAll
     @TenantIgnore
     public CommonResult<Map<String, Object>> publishTodoNotification(
@@ -358,19 +508,30 @@ public class NewTodoNotificationController {
         
         log.info("📝 [NEW-TODO-PUBLISH] 发布待办通知请求开始");
         log.info("📝 [NEW-TODO-PUBLISH] 接收到请求参数: {}", request);
-        
-        try {
-            // 🔐 Step 1: 双重认证验证
-            String authToken = httpRequest.getHeader("Authorization");
-            if (authToken == null) {
-                log.error("❌ [NEW-TODO-PUBLISH] 未提供认证Token");
-                return CommonResult.error(401, "未提供认证Token");
-            }
 
-            AccessControlListManager.UserInfo userInfo = getUserInfoFromMockApi(authToken);
-            if (userInfo == null) {
-                log.error("❌ [NEW-TODO-PUBLISH] Token验证失败");
-                return CommonResult.error(401, "Token验证失败");
+        try {
+            // 🔐 Step 1: 从ThreadLocal获取用户信息（性能优化）
+            AccessControlListManager.UserInfo userInfo = null;
+
+            // 首先尝试从ThreadLocal获取
+            CampusAuthContextHolder.UserInfo contextUser = CampusAuthContextHolder.getCurrentUser();
+            if (contextUser != null) {
+                userInfo = contextUser.toAclUserInfo();
+                log.info("⚡ [NEW-TODO-PUBLISH] 从ThreadLocal获取用户信息: {} ({})",
+                        userInfo.getUsername(), userInfo.getRoleCode());
+            } else {
+                // ThreadLocal没有数据，回退到原始方式
+                String authToken = httpRequest.getHeader("Authorization");
+                if (authToken == null) {
+                    log.error("❌ [NEW-TODO-PUBLISH] 未提供认证Token");
+                    return CommonResult.error(401, "未提供认证Token");
+                }
+
+                userInfo = getUserInfoFromMockApi(authToken);
+                if (userInfo == null) {
+                    log.error("❌ [NEW-TODO-PUBLISH] Token验证失败");
+                    return CommonResult.error(401, "Token验证失败");
+                }
             }
 
             log.info("✅ [NEW-TODO-PUBLISH] 用户认证成功: {} (角色: {})", userInfo.getUsername(), userInfo.getRoleCode());
@@ -390,17 +551,12 @@ public class NewTodoNotificationController {
                 return CommonResult.error(400, "发布参数包含不安全内容");
             }
             
-            // ACL权限检查 - 验证用户是否有发布待办的权限
-            String requiredPermission = String.format("TODO_CREATE_%s", 
-                    getAccessLevelForScope(targetScope).name());
-            
-            if (!aclManager.hasPermission(userInfo, requiredPermission)) {
-                log.warn("🚨 [SECURITY_VIOLATION] ACL权限检查失败 - 用户无发布待办权限: user={}, role={}, requiredPermission={}", 
-                        userInfo.getUsername(), userInfo.getRoleCode(), requiredPermission);
-                return CommonResult.error(403, "权限不足，无法发布此范围的待办");
-            }
-            
-            log.info("✅ [TODO_PUBLISH_SECURITY] 待办发布安全验证通过 - user={}", userInfo.getUsername());
+            // 🔥 权限验证已通过@PreAuthorize("@todoPermission.canPublishTodo()")完成
+            // 移除冗余的ACL检查，避免双重验证冲突
+            // Spring Security的声明式权限验证是最佳实践
+
+            log.info("✅ [TODO_PUBLISH_SECURITY] 待办发布安全验证通过 - user={}, role={}",
+                    userInfo.getUsername(), userInfo.getRoleCode());
 
             // 📝 Step 2: 提取并验证请求参数 (继续使用已验证的参数)
             // title, content, targetScope 已在安全验证中提取
@@ -616,17 +772,28 @@ public class NewTodoNotificationController {
             HttpServletRequest httpRequest) {
         
         log.info("📊 [NEW-TODO-STATS] 获取待办统计 - todoId: {}", id);
-        
-        try {
-            // 🔐 Step 1: 双重认证验证
-            String authToken = httpRequest.getHeader("Authorization");
-            if (authToken == null) {
-                return CommonResult.error(401, "未提供认证Token");
-            }
 
-            AccessControlListManager.UserInfo userInfo = getUserInfoFromMockApi(authToken);
-            if (userInfo == null) {
-                return CommonResult.error(401, "Token验证失败");
+        try {
+            // 🔐 Step 1: 从ThreadLocal获取用户信息（性能优化）
+            AccessControlListManager.UserInfo userInfo = null;
+
+            // 首先尝试从ThreadLocal获取
+            CampusAuthContextHolder.UserInfo contextUser = CampusAuthContextHolder.getCurrentUser();
+            if (contextUser != null) {
+                userInfo = contextUser.toAclUserInfo();
+                log.info("⚡ [NEW-TODO-STATS] 从ThreadLocal获取用户信息: {} ({})",
+                        userInfo.getUsername(), userInfo.getRoleCode());
+            } else {
+                // ThreadLocal没有数据，回退到原始方式
+                String authToken = httpRequest.getHeader("Authorization");
+                if (authToken == null) {
+                    return CommonResult.error(401, "未提供认证Token");
+                }
+
+                userInfo = getUserInfoFromMockApi(authToken);
+                if (userInfo == null) {
+                    return CommonResult.error(401, "Token验证失败");
+                }
             }
 
             log.info("✅ [NEW-TODO-STATS] 用户认证成功: {} (角色: {})", userInfo.getUsername(), userInfo.getRoleCode());
@@ -1177,6 +1344,7 @@ public class NewTodoNotificationController {
      */
     @PostMapping("/api/publish-v2")
     @Operation(summary = "发布待办通知(P0缓存优化版)")
+    @PreAuthorize("@todoPermission.canPublishTodo()")
     @PermitAll
     @TenantIgnore
     @RequiresPermission(
@@ -1293,17 +1461,28 @@ public class NewTodoNotificationController {
         
         log.info("🔧 [DEBUG-INSERT] 开始调试数据库插入");
         log.info("🔧 [DEBUG-INSERT] 请求参数: {}", request);
-        
-        try {
-            // 🔐 Step 1: 认证
-            String authToken = httpRequest.getHeader("Authorization");
-            if (authToken == null) {
-                return CommonResult.error(401, "未提供认证Token");
-            }
 
-            AccessControlListManager.UserInfo userInfo = getUserInfoFromMockApi(authToken);
-            if (userInfo == null) {
-                return CommonResult.error(401, "Token验证失败");
+        try {
+            // 🔐 Step 1: 从ThreadLocal获取用户信息（性能优化）
+            AccessControlListManager.UserInfo userInfo = null;
+
+            // 首先尝试从ThreadLocal获取
+            CampusAuthContextHolder.UserInfo contextUser = CampusAuthContextHolder.getCurrentUser();
+            if (contextUser != null) {
+                userInfo = contextUser.toAclUserInfo();
+                log.info("⚡ [DEBUG-INSERT] 从ThreadLocal获取用户信息: {} ({})",
+                        userInfo.getUsername(), userInfo.getRoleCode());
+            } else {
+                // ThreadLocal没有数据，回退到原始方式
+                String authToken = httpRequest.getHeader("Authorization");
+                if (authToken == null) {
+                    return CommonResult.error(401, "未提供认证Token");
+                }
+
+                userInfo = getUserInfoFromMockApi(authToken);
+                if (userInfo == null) {
+                    return CommonResult.error(401, "Token验证失败");
+                }
             }
 
             log.info("✅ [DEBUG-INSERT] 用户认证成功: {}", userInfo.getUsername());

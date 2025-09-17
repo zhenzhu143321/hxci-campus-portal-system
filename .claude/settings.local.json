@@ -59,7 +59,19 @@
       "Bash(./publish_level1_emergency.sh:*)",
       "Bash(./publish_level2_important.sh:*)",
       "Bash(./publish_level3_regular.sh:*)",
-      "Bash(npm run dev:*)"
+      "Bash(npm run dev:*)",
+      "Bash(sed:*)",
+      "Bash(./start-gemini-proxy.sh:*)",
+      "Bash(/opt/hxci-campus-portal/hxci-campus-portal-system/gm \"分析home.scss和CampusNewsPanel.vue中的样式重复和冲突问题。home.scss中定义了.news-card、.news-list、.news-item等样式，而CampusNewsPanel.vue组件也定义了相同的类名但样式不同。请分析：1.这会造成什么样式优先级问题 2.如何重构避免冲突 3.是否应该将样式统一到一处管理\")",
+      "Bash(/opt/hxci-campus-portal/hxci-campus-portal-system/gm \"深度扫描分析前端Vue项目架构和代码质量问题。项目路径：/opt/hxci-campus-portal/hxci-campus-portal-system/hxci-campus-portal/\n\n请重点分析以下方面：\n1. 组件架构设计问题\n   - 组件划分是否合理\n   - 组件依赖关系是否清晰\n   - 是否存在循环依赖\n\n2. 样式管理问题\n   - 全局样式与组件样式冲突\n   - 重复的CSS定义\n   - 未使用的样式代码\n   - 样式命名规范性\n\n3. 代码质量问题\n   - 重复代码\n   - 过长的组件文件（如Home.vue超过2000行）\n   - 未使用的导入和变量\n   - 不合理的代码结构\n\n4. 性能优化空间\n   - 组件渲染优化\n   - 资源加载优化\n   - 代码分割建议\n\n5. TypeScript类型问题\n   - 类型定义不完整\n   - any类型滥用\n   - 类型不一致\n\n请扫描src目录下所有.vue、.ts、.scss文件，给出详细的问题清单和架构评审意见。\")",
+      "Bash(/opt/hxci-campus-portal/hxci-campus-portal-system/gm \"请扫描Vue前端项目的以下核心文件，分析架构和代码质量问题：\n\n主要文件：\n1. src/views/Home.vue - 超过2000行的首页组件\n2. src/styles/views/home.scss - 首页样式文件\n3. src/components/news/CampusNewsPanel.vue - 校园新闻组件\n4. src/components/notification/SystemAnnouncementsPanel.vue - 系统公告组件\n5. src/stores/notification.ts - 通知状态管理\n6. src/api/notification.ts - 通知API\n\n请分析：\n1. Home.vue文件过大问题（2000+行）\n2. 样式冲突：home.scss与组件内部样式的冲突\n3. 组件依赖关系是否合理\n4. TypeScript类型定义是否完整\n5. 是否有重复代码和未使用的代码\n\n输出具体的问题清单和改进建议。\")",
+      "Bash(/opt/hxci-campus-portal/hxci-campus-portal-system/gm \"深度分析Vue3前端项目架构，重点检查以下方面：\n\n1. 组件架构问题 - 扫描src/views/Home.vue的代码结构，分析是否存在God Component反模式\n2. TypeScript类型安全 - 检查是否大量使用any类型，类型定义是否完整\n3. 样式管理问题 - 分析src/styles/views/home.scss与组件样式的冲突情况  \n4. 代码重复度 - 对比CampusNewsPanel.vue和SystemAnnouncementsPanel.vue的代码相似性\n5. 组件依赖关系 - 检查是否存在循环依赖和不合理的耦合\n\n请提供具体的问题清单和优先级建议。\n\n项目路径：/opt/hxci-campus-portal/hxci-campus-portal-system/hxci-campus-portal/\")",
+      "Bash(/opt/hxci-campus-portal/hxci-campus-portal-system/gm \"分析CodeX从0.30.0升级到0.34.0后的系统改进效果\")",
+      "mcp__playwright__browser_type",
+      "Bash(./P0_service_health_check.sh:*)",
+      "Bash(./run_comprehensive_api_tests.sh:*)",
+      "Read(//usr/local/bin/**)",
+      "Bash(./scripts/testing/test_system_admin_todo_permission.sh:*)"
     ],
     "deny": [],
     "ask": []

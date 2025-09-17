@@ -53,7 +53,7 @@ public class JwtSecurityConfig {
     /**
      * JWT有效期（毫秒）
      */
-    @Value("${jwt.expiration:600000}") // 默认10分钟
+    @Value("${jwt.expiration:3600000}") // 默认60分钟
     private long jwtExpiration;
     
     /**

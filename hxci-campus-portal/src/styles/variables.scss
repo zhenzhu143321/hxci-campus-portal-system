@@ -1,0 +1,275 @@
+/**
+ * CSS变量定义文件
+ * 
+ * @description 统一的设计系统变量，支持主题切换和样式一致性
+ * @author Claude Code AI Assistant
+ * @date 2025-09-14
+ */
+
+// ===========================
+// 颜色系统 (Color System)
+// ===========================
+
+:root {
+  // 主色调 (Primary Colors)
+  --color-primary: #409eff;
+  --color-primary-light-1: #53a8ff;
+  --color-primary-light-2: #66b1ff;
+  --color-primary-light-3: #79bbff;
+  --color-primary-light-4: #8cc5ff;
+  --color-primary-light-5: #a0cfff;
+  --color-primary-light-6: #b3d8ff;
+  --color-primary-light-7: #c6e2ff;
+  --color-primary-light-8: #d9ecff;
+  --color-primary-light-9: #ecf5ff;
+  --color-primary-dark: #337ecc;
+
+  // 成功色 (Success Colors)
+  --color-success: #67c23a;
+  --color-success-light: #e1f3d8;
+  --color-success-lighter: #f0f9ff;
+  --color-success-dark: #529b2e;
+
+  // 警告色 (Warning Colors)
+  --color-warning: #e6a23c;
+  --color-warning-light: #fdf6ec;
+  --color-warning-lighter: #fef0f0;
+  --color-warning-dark: #b88230;
+
+  // 危险色 (Danger Colors)
+  --color-danger: #f56c6c;
+  --color-danger-light: #fef0f0;
+  --color-danger-lighter: #fef0f0;
+  --color-danger-dark: #c45656;
+
+  // 信息色 (Info Colors)
+  --color-info: #909399;
+  --color-info-light: #f4f4f5;
+  --color-info-lighter: #f9f9f9;
+  --color-info-dark: #73767a;
+
+  // 文本色 (Text Colors)
+  --color-text-primary: #303133;
+  --color-text-regular: #606266;
+  --color-text-secondary: #909399;
+  --color-text-placeholder: #c0c4cc;
+  --color-text-disabled: #c0c4cc;
+
+  // 边框色 (Border Colors)
+  --color-border-base: #dcdfe6;
+  --color-border-light: #e4e7ed;
+  --color-border-lighter: #ebeef5;
+  --color-border-extra-light: #f2f6fc;
+
+  // 背景色 (Background Colors)
+  --color-bg-base: #ffffff;
+  --color-bg-page: #f5f7fa;
+  --color-bg-light: #fafafa;
+  --color-bg-lighter: #fafbfc;
+  --color-bg-dark: #1a1a1a;
+  --color-bg-hover: #e6e9f0;
+
+  // ===========================
+  // 间距系统 (Spacing System)
+  // ===========================
+  
+  // 基础间距单位 (Base Spacing Unit)
+  --spacing-unit: 4px;
+  
+  // 间距尺寸 (Spacing Sizes)
+  --spacing-xs: calc(var(--spacing-unit) * 1);   // 4px
+  --spacing-sm: calc(var(--spacing-unit) * 2);   // 8px
+  --spacing-md: calc(var(--spacing-unit) * 3);   // 12px
+  --spacing-lg: calc(var(--spacing-unit) * 4);   // 16px
+  --spacing-xl: calc(var(--spacing-unit) * 5);   // 20px
+  --spacing-2xl: calc(var(--spacing-unit) * 6);  // 24px
+  --spacing-3xl: calc(var(--spacing-unit) * 8);  // 32px
+  --spacing-4xl: calc(var(--spacing-unit) * 10); // 40px
+
+  // ===========================
+  // 字体系统 (Typography System)
+  // ===========================
+  
+  // 字体族 (Font Family)
+  --font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-family-mono: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  
+  // 字体大小 (Font Sizes)
+  --font-size-xs: 12px;
+  --font-size-sm: 13px;
+  --font-size-base: 14px;
+  --font-size-md: 16px;
+  --font-size-lg: 18px;
+  --font-size-xl: 20px;
+  --font-size-2xl: 24px;
+  --font-size-3xl: 30px;
+  --font-size-4xl: 38px;
+  
+  // 字重 (Font Weights)
+  --font-weight-light: 300;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  
+  // 行高 (Line Heights)
+  --line-height-none: 1;
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.625;
+  --line-height-loose: 2;
+
+  // ===========================
+  // 圆角系统 (Border Radius System)
+  // ===========================
+  
+  --radius-none: 0;
+  --radius-sm: 2px;
+  --radius-base: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --radius-circle: 50%;
+  --radius-pill: 9999px;
+
+  // ===========================
+  // 阴影系统 (Shadow System)
+  // ===========================
+  
+  --shadow-none: none;
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-base: 0 2px 4px 0 rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  --shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
+  
+  // 卡片阴影 (Card Shadows)
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --shadow-card-active: 0 6px 16px rgba(0, 0, 0, 0.12);
+  --shadow-elevated: 0 8px 32px rgba(30, 58, 138, 0.08);
+
+  // ===========================
+  // 动画系统 (Animation System)
+  // ===========================
+  
+  // 动画时长 (Animation Durations)
+  --duration-fast: 150ms;
+  --duration-base: 250ms;
+  --duration-slow: 350ms;
+  --duration-slower: 500ms;
+  
+  // 动画曲线 (Animation Easings)
+  --ease-linear: linear;
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+  // ===========================
+  // 层级系统 (Z-Index System)
+  // ===========================
+  
+  --z-index-normal: 1;
+  --z-index-tooltip: 100;
+  --z-index-dropdown: 200;
+  --z-index-sticky: 300;
+  --z-index-fixed: 400;
+  --z-index-modal-backdrop: 500;
+  --z-index-modal: 600;
+  --z-index-popover: 700;
+  --z-index-notification: 800;
+  --z-index-top: 900;
+
+  // ===========================
+  // 布局系统 (Layout System)
+  // ===========================
+  
+  // 容器宽度 (Container Widths)
+  --container-sm: 640px;
+  --container-md: 768px;
+  --container-lg: 1024px;
+  --container-xl: 1280px;
+  --container-2xl: 1536px;
+  
+  // 断点 (Breakpoints)
+  --breakpoint-xs: 480px;
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1536px;
+}
+
+// ===========================
+// 暗黑模式 (Dark Mode)
+// ===========================
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    // 覆盖颜色变量
+    --color-bg-base: #1a1a1a;
+    --color-bg-page: #0f0f0f;
+    --color-bg-light: #262626;
+    --color-bg-lighter: #333333;
+    
+    --color-text-primary: #e4e7ed;
+    --color-text-regular: #cfd3dc;
+    --color-text-secondary: #a3a6ad;
+    --color-text-placeholder: #8b8e95;
+    
+    --color-border-base: #4c4d4f;
+    --color-border-light: #414243;
+    --color-border-lighter: #363637;
+    --color-border-extra-light: #2b2b2c;
+    
+    // 调整阴影
+    --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.3);
+    --shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.4);
+    --shadow-card-active: 0 6px 16px rgba(0, 0, 0, 0.5);
+  }
+}
+
+// ===========================
+// 工具类生成 (Utility Classes)
+// ===========================
+
+// 间距工具类
+@each $name, $size in (
+  'xs': var(--spacing-xs),
+  'sm': var(--spacing-sm),
+  'md': var(--spacing-md),
+  'lg': var(--spacing-lg),
+  'xl': var(--spacing-xl),
+  '2xl': var(--spacing-2xl),
+  '3xl': var(--spacing-3xl),
+  '4xl': var(--spacing-4xl)
+) {
+  .m-#{$name} { margin: #{$size}; }
+  .mt-#{$name} { margin-top: #{$size}; }
+  .mr-#{$name} { margin-right: #{$size}; }
+  .mb-#{$name} { margin-bottom: #{$size}; }
+  .ml-#{$name} { margin-left: #{$size}; }
+  .mx-#{$name} { margin-left: #{$size}; margin-right: #{$size}; }
+  .my-#{$name} { margin-top: #{$size}; margin-bottom: #{$size}; }
+  
+  .p-#{$name} { padding: #{$size}; }
+  .pt-#{$name} { padding-top: #{$size}; }
+  .pr-#{$name} { padding-right: #{$size}; }
+  .pb-#{$name} { padding-bottom: #{$size}; }
+  .pl-#{$name} { padding-left: #{$size}; }
+  .px-#{$name} { padding-left: #{$size}; padding-right: #{$size}; }
+  .py-#{$name} { padding-top: #{$size}; padding-bottom: #{$size}; }
+}
+
+// 导出为JavaScript可用的变量
+:export {
+  primaryColor: var(--color-primary);
+  successColor: var(--color-success);
+  warningColor: var(--color-warning);
+  dangerColor: var(--color-danger);
+  infoColor: var(--color-info);
+}

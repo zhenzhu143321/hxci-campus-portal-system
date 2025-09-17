@@ -8,6 +8,7 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     BaseNotificationWidget: typeof import('./src/components/BaseNotificationWidget.vue')['default']
+    CampusNewsPanel: typeof import('./src/components/news/CampusNewsPanel.vue')['default']
     ElAlert: typeof import('element-plus/es')['ElAlert']
     ElBadge: typeof import('element-plus/es')['ElBadge']
     ElButton: typeof import('element-plus/es')['ElButton']
@@ -38,6 +39,7 @@ declare module 'vue' {
     EmergencyNotificationWidget: typeof import('./src/components/EmergencyNotificationWidget.vue')['default']
     HeaderNavigation: typeof import('./src/components/HeaderNavigation.vue')['default']
     ImportantNotificationWidget: typeof import('./src/components/ImportantNotificationWidget.vue')['default']
+    InfoListPanel: typeof import('./src/components/common/InfoListPanel.vue')['default']
     NotificationArchiveIndicator: typeof import('./src/components/notification/NotificationArchiveIndicator.vue')['default']
     NotificationArchivePanel: typeof import('./src/components/notification/NotificationArchivePanel.vue')['default']
     PermissionCacheDemo: typeof import('./src/components/PermissionCacheDemo.vue')['default']
@@ -46,6 +48,8 @@ declare module 'vue' {
     RegularNotificationWidget: typeof import('./src/components/RegularNotificationWidget.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    SystemAnnouncementsPanel: typeof import('./src/components/notification/SystemAnnouncementsPanel.vue')['default']
+    ThemedCard: typeof import('./src/components/common/ThemedCard.vue')['default']
     TodoNotificationContainer: typeof import('./src/components/todo/TodoNotificationContainer.vue')['default']
     TodoNotificationItem: typeof import('./src/components/TodoNotificationItem.vue')['default']
     TodoNotificationWidget: typeof import('./src/components/TodoNotificationWidget.vue')['default']

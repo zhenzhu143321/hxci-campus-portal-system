@@ -14,3 +14,8 @@
   height: 100vh;
 }
 </style>
+
+<!-- 全局导入CSS变量，不使用scoped -->
+<style lang="scss">
+@import '@/styles/variables.scss';
+</style>

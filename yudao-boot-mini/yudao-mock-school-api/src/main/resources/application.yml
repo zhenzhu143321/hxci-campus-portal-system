@@ -58,8 +58,8 @@ jwt:
   secret: ${JWT_SECRET:}
   # JWT签发者
   issuer: hxci-campus-portal
-  # JWT有效期（毫秒）- 10分钟
-  expiration: 600000
+  # JWT有效期（毫秒）- 60分钟
+  expiration: 3600000
 
 # 应用信息
 info:

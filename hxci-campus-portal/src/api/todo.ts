@@ -140,14 +140,43 @@ export const completeTodoNotification = async (id: number): Promise<TodoApiRespo
 }
 
 /**
+ * 更新待办状态
+ * @param id 待办项ID
+ * @param completed 是否完成
+ */
+export const updateTodoStatusApi = async (id: number, completed: boolean): Promise<TodoApiResponse> => {
+  console.log('🌐 [TodoAPI] 调用更新待办状态API:', { id, completed })
+
+  const response = await api.post(`/admin-api/test/todo-new/api/${id}/complete`, {
+    completed
+  })
+
+  console.log('✅ [TodoAPI] 更新待办状态API响应:', response.data)
+  return response.data
+}
+
+/**
+ * 删除待办项
+ * @param id 待办项ID
+ */
+export const removeTodoApi = async (id: number): Promise<TodoApiResponse> => {
+  console.log('🌐 [TodoAPI] 调用删除待办API:', id)
+
+  const response = await api.delete(`/admin-api/test/todo-new/api/${id}`)
+
+  console.log('✅ [TodoAPI] 删除待办API响应:', response.data)
+  return response.data
+}
+
+/**
  * 获取待办统计
  * @param id 待办项ID
  */
 export const getTodoStats = async (id: number): Promise<TodoApiResponse> => {
   console.log('🌐 [TodoAPI] 调用待办统计API:', id)
-  
+
   const response = await api.get(`/admin-api/test/todo-new/api/${id}/stats`)
-  
+
   console.log('✅ [TodoAPI] 待办统计API响应:', response.data)
   return response.data
 }
@@ -242,6 +271,8 @@ export default {
   getMyTodoList,
   publishTodoNotification,
   completeTodoNotification,
+  updateTodoStatusApi,
+  removeTodoApi,
   getTodoStats,
   pingTodoService,
   

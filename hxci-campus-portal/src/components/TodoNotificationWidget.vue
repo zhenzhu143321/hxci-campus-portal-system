@@ -68,7 +68,8 @@
           :key="item.id"
           :item="item"
           @complete="handleComplete"
-          @viewDetail="handleViewDetail"
+          @view-detail="handleViewDetail"
+          @remove="handleRemove"
         />
       </div>
 
@@ -89,8 +90,14 @@
     <el-dialog
       v-model="detailDialogVisible"
       :title="selectedItem?.title"
-      width="500px"
+      width="560px"
       class="todo-detail-dialog"
+      append-to-body
+      :close-on-click-modal="false"
+      align-center
+      :lock-scroll="true"
+      draggable
+      @closed="selectedItem = null"
     >
       <div v-if="selectedItem" class="todo-detail-content">
         <div class="detail-header">
@@ -165,6 +172,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   complete: [id: number, completed: boolean]
   viewAll: []
+  remove: [id: number]
 }>()
 
 // 响应式数据
@@ -214,6 +222,11 @@ const handleViewDetail = (item: TodoItem) => {
 // 处理查看全部事件
 const handleViewAll = () => {
   emit('viewAll')
+}
+
+// 处理删除事件
+const handleRemove = (id: number) => {
+  emit('remove', id)
 }
 
 // 从弹窗中标记完成
@@ -374,62 +387,131 @@ const formatFullDate = (dateString: string) => {
   }
 }
 
-// 详情弹窗样式
+// 详情弹窗样式 - 增强版
 .todo-detail-dialog {
+  // 美化弹窗样式
+  :deep(.el-dialog) {
+    border-radius: 12px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  }
+
+  :deep(.el-dialog__header) {
+    border-bottom: 1px solid rgba(139, 92, 246, 0.1);
+    padding: 16px 20px;
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.05) 0%, rgba(255, 255, 255, 0.9) 100%);
+  }
+
+  :deep(.el-dialog__title) {
+    font-size: 18px;
+    font-weight: 600;
+    color: #2d3748;
+  }
+
+  :deep(.el-dialog__body) {
+    max-height: 60vh;
+    overflow-y: auto;
+    padding: 20px;
+
+    // 自定义滚动条
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: rgba(139, 92, 246, 0.05);
+      border-radius: 3px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: rgba(139, 92, 246, 0.3);
+      border-radius: 3px;
+
+      &:hover {
+        background: rgba(139, 92, 246, 0.5);
+      }
+    }
+  }
+
   .todo-detail-content {
     .detail-header {
       display: flex;
       gap: 8px;
-      margin-bottom: 16px;
-    }
-    
-    .detail-meta {
       margin-bottom: 20px;
-      
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(139, 92, 246, 0.1);
+    }
+
+    .detail-meta {
+      margin-bottom: 24px;
+      background: rgba(249, 250, 251, 0.5);
+      padding: 16px;
+      border-radius: 8px;
+
       .meta-item {
         display: flex;
-        margin-bottom: 8px;
+        margin-bottom: 12px;
         font-size: 14px;
-        
-        strong {
-          color: #2d3748;
-          margin-right: 8px;
-          min-width: 80px;
+
+        &:last-child {
+          margin-bottom: 0;
         }
-        
+
+        strong {
+          color: #8B5CF6;
+          margin-right: 12px;
+          min-width: 80px;
+          font-weight: 500;
+        }
+
         .status-completed {
           color: #10B981;
+          font-weight: 500;
         }
-        
+
         .status-overdue {
           color: #EF4444;
+          font-weight: 500;
         }
-        
+
         .status-pending {
           color: #F59E0B;
+          font-weight: 500;
         }
       }
     }
-    
+
     .detail-content {
       h4 {
-        color: #2d3748;
+        color: #8B5CF6;
         margin-bottom: 12px;
-        font-size: 14px;
+        font-size: 15px;
+        font-weight: 600;
       }
-      
+
       p {
         color: #4a5568;
-        line-height: 1.6;
+        line-height: 1.8;
         margin: 0;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        background: rgba(249, 250, 251, 0.3);
+        padding: 12px;
+        border-radius: 6px;
+        border-left: 3px solid rgba(139, 92, 246, 0.3);
       }
     }
   }
-  
+
+  :deep(.el-dialog__footer) {
+    border-top: 1px solid rgba(139, 92, 246, 0.1);
+    padding: 12px 20px;
+    background: rgba(249, 250, 251, 0.3);
+  }
+
   .dialog-footer {
     display: flex;
     justify-content: flex-end;
-    gap: 8px;
+    gap: 12px;
   }
 }
 

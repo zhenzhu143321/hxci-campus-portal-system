@@ -19,6 +19,14 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
+import cn.iocoder.yudao.server.security.CampusAuthContextHolder;
+import cn.iocoder.yudao.server.security.AccessControlListManager;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.http.*;
+import java.util.Map;
+import java.util.HashMap;
+import java.time.Duration;
 
 /**
  * 全局认证拦截器配置类 - P0级安全修复
@@ -66,9 +74,17 @@ public class GlobalAuthenticationConfig implements WebMvcConfigurer {
     public static class GlobalAuthenticationInterceptor implements HandlerInterceptor {
 
         private static final Logger log = LoggerFactory.getLogger(GlobalAuthenticationInterceptor.class);
-        
+
         @Autowired
         private ObjectMapper objectMapper;
+
+        // Mock School API调用工具
+        private static final String MOCK_API_BASE = "http://localhost:48082";
+        // 配置RestTemplate超时设置，防止线程永久阻塞
+        private final RestTemplate restTemplate = new RestTemplateBuilder()
+                .setConnectTimeout(Duration.ofSeconds(5))    // 连接超时5秒
+                .setReadTimeout(Duration.ofSeconds(10))      // 读取超时10秒
+                .build();
 
         // 🚨 公开端点白名单（严格控制，只有必要的认证端点）
         private static final Set<String> PUBLIC_ENDPOINTS = new HashSet<>(Arrays.asList(
@@ -92,7 +108,10 @@ public class GlobalAuthenticationConfig implements WebMvcConfigurer {
                 
                 // 🛡️ 垂直越权防护测试API（P0-SEC-04功能）
                 "/admin-api/test/vertical-privilege/api/ping",          // 垂直越权防护系统ping测试
-                "/admin-api/test/vertical-privilege/api/protection-status" // 防护状态检查
+                "/admin-api/test/vertical-privilege/api/protection-status", // 防护状态检查
+
+                // 📝 待办通知系统测试API（标记为@PermitAll的公开端点）
+                "/admin-api/test/todo-new/api/ping"                    // 待办通知服务ping测试
         ));
 
         // 🛡️ 允许的HTTP方法白名单
@@ -106,7 +125,7 @@ public class GlobalAuthenticationConfig implements WebMvcConfigurer {
             String method = request.getMethod();
             String clientIP = getClientIP(request);
             
-            log.info("🔍 [AUTH_CHECK] 认证检查: {} {} from {}", method, requestPath, clientIP);
+            log.debug("🔍 [AUTH_CHECK] 认证检查: {} {} from {}", method, requestPath, clientIP);
 
             try {
                 // 1️⃣ HTTP方法验证
@@ -118,13 +137,13 @@ public class GlobalAuthenticationConfig implements WebMvcConfigurer {
 
                 // 2️⃣ OPTIONS请求处理（CORS预检）
                 if ("OPTIONS".equals(method)) {
-                    log.info("✅ [AUTH_CHECK] OPTIONS预检请求通过: {}", requestPath);
+                    log.debug("✅ [AUTH_CHECK] OPTIONS预检请求通过: {}", requestPath);
                     return true;
                 }
 
                 // 3️⃣ 公开端点检查
                 if (isPublicEndpoint(requestPath)) {
-                    log.info("✅ [AUTH_CHECK] 公开端点访问: {}", requestPath);
+                    log.debug("✅ [AUTH_CHECK] 公开端点访问: {}", requestPath);
                     return true;
                 }
 
@@ -151,11 +170,33 @@ public class GlobalAuthenticationConfig implements WebMvcConfigurer {
                 }
 
                 // 7️⃣ 记录成功的认证
-                log.info("✅ [AUTH_CHECK] 认证通过: {} {} from {}", method, requestPath, clientIP);
+                log.debug("✅ [AUTH_CHECK] 认证通过: {} {} from {}", method, requestPath, clientIP);
                 
                 // 8️⃣ 将Token添加到请求属性，供后续使用
                 request.setAttribute("JWT_TOKEN", token);
-                
+
+                // 9️⃣ 🔐 将用户信息存储到ThreadLocal（新增安全特性）
+                try {
+                    // 先清理可能存在的旧数据
+                    CampusAuthContextHolder.clear();
+
+                    // 存储JWT Token
+                    CampusAuthContextHolder.setCurrentToken(token);
+
+                    // 调用Mock API获取用户信息并存储到ThreadLocal
+                    CampusAuthContextHolder.UserInfo userInfo = getUserInfoFromMockApi("Bearer " + token);
+                    if (userInfo != null) {
+                        CampusAuthContextHolder.setCurrentUser(userInfo);
+                        log.debug("✅ [AUTH_CHECK] 用户信息已存储到ThreadLocal: {} ({})",
+                                userInfo.getUsername(), userInfo.getRoleCode());
+                    } else {
+                        log.warn("⚠️ [AUTH_CHECK] 无法获取用户信息，但Token验证通过，继续请求");
+                    }
+                } catch (Exception e) {
+                    log.error("❌ [AUTH_CHECK] 存储用户信息到ThreadLocal失败: {}", e.getMessage());
+                    // 不影响请求继续，因为Token已验证通过
+                }
+
                 return true;
 
             } catch (Exception e) {
@@ -501,6 +542,77 @@ public class GlobalAuthenticationConfig implements WebMvcConfigurer {
         public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
             // 清理请求属性
             request.removeAttribute("JWT_TOKEN");
+
+            // 🚨 清理ThreadLocal（防止内存泄漏和用户信息串扰）
+            try {
+                CampusAuthContextHolder.clear();
+                log.debug("🧹 [AUTH_CLEANUP] ThreadLocal已清理");
+            } catch (Exception e) {
+                log.error("❌ [AUTH_CLEANUP] 清理ThreadLocal失败: {}", e.getMessage());
+            }
+        }
+
+        /**
+         * 🔐 从Mock API获取用户信息
+         * 复用NewTodoNotificationController的成功模式
+         */
+        private CampusAuthContextHolder.UserInfo getUserInfoFromMockApi(String authToken) {
+            try {
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_JSON);
+                headers.set("Authorization", authToken);
+
+                HttpEntity<Map<String, String>> entity = new HttpEntity<>(new HashMap<>(), headers);
+
+                ResponseEntity<Map> response = restTemplate.exchange(
+                    MOCK_API_BASE + "/mock-school-api/auth/user-info",
+                    HttpMethod.POST,
+                    entity,
+                    Map.class
+                );
+
+                if (response.getStatusCode() == HttpStatus.OK) {
+                    Map<String, Object> body = response.getBody();
+                    if (body != null && Boolean.TRUE.equals(body.get("success"))) {
+                        Map<String, Object> data = (Map<String, Object>) body.get("data");
+                        if (data != null) {
+                            CampusAuthContextHolder.UserInfo userInfo = new CampusAuthContextHolder.UserInfo();
+                            userInfo.setUsername((String) data.get("username"));
+                            userInfo.setRoleCode((String) data.get("roleCode"));
+                            userInfo.setRoleName((String) data.get("roleName"));
+
+                            // 提取详细信息
+                            String studentId = (String) data.get("studentId");
+                            if (studentId == null) {
+                                studentId = (String) data.get("employeeId");
+                            }
+                            userInfo.setStudentId(studentId);
+                            userInfo.setEmployeeId(studentId);
+                            userInfo.setGradeId((String) data.get("gradeId"));
+                            userInfo.setClassId((String) data.get("classId"));
+
+                            // 处理departmentId类型转换
+                            Object deptId = data.get("departmentId");
+                            if (deptId instanceof String) {
+                                try {
+                                    userInfo.setDepartmentId(Long.parseLong((String) deptId));
+                                } catch (NumberFormatException e) {
+                                    userInfo.setDepartmentId(null);
+                                }
+                            } else if (deptId instanceof Long) {
+                                userInfo.setDepartmentId((Long) deptId);
+                            }
+
+                            log.debug("✅ [MOCK_API_AUTH] 用户认证成功: {} ({})",
+                                    userInfo.getUsername(), userInfo.getRoleCode());
+                            return userInfo;
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                log.error("🔗 [MOCK_API_AUTH] Mock API调用异常: {}", e.getMessage());
+            }
+            return null;
         }
     }
 }
