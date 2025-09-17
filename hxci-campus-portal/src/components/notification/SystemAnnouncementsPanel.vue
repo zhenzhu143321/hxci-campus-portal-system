@@ -5,8 +5,12 @@
  * @description 使用InfoListPanel重构的系统公告展示组件
  * @author Claude Code AI Assistant
  * @date 2025-09-14
- * 
+ *
  * @refactored 使用通用InfoListPanel组件，减少70%重复代码
+ * @fixed 2025-09-17 移除三行内容限制，支持完整公告显示
+ *   - 移除CSS中的-webkit-line-clamp:3限制
+ *   - 设置maxPreviewLength为Infinity
+ *   - 改用white-space:pre-wrap支持自然换行
  */
 -->
 
@@ -58,7 +62,7 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   title: '🔔 系统公告',
-  maxPreviewLength: 160,
+  maxPreviewLength: Infinity,
   showEmptyHint: true,
   emptyDescription: '暂无系统公告'
 })
@@ -107,7 +111,8 @@ const getFormattedPreview = (content: string, maxLength = 80): string => {
   const preview = formatNotificationContent(content)
     .replace(/\n{2,}/g, ' | ')
     .replace(/\n/g, ' ')
-  return preview.length > maxLength ? preview.slice(0, maxLength) + '...' : preview
+  // 如果maxLength为Infinity或未定义，则跳过长度限制
+  return (maxLength === Infinity || !maxLength) ? preview : (preview.length > maxLength ? preview.slice(0, maxLength) + '...' : preview)
 }
 </script>
 
@@ -150,10 +155,8 @@ const getFormattedPreview = (content: string, maxLength = 80): string => {
   font-size: var(--font-size-xs);
   color: var(--color-text-regular);
   line-height: var(--line-height-base);
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 </style>
