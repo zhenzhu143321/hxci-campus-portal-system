@@ -150,6 +150,7 @@ export const renderMarkdown = (
 
 /**
  * 专门用于通知内容摘要的markdown渲染
+ * 🔧 修复版：集成转义字符处理，解决显示原始markdown问题
  *
  * @param content 通知内容
  * @param maxLength 最大长度，默认100字符
@@ -159,11 +160,27 @@ export const renderNotificationSummary = (
   content: string | null | undefined,
   maxLength: number = 100
 ): string => {
-  return renderMarkdown(content, {
-    maxLength,
-    fallback: '',
-    enableSummary: true  // 启用摘要模式，简化复杂元素
-  })
+  if (!content || content.trim() === '') {
+    return '<span class="empty-content">暂无内容</span>'
+  }
+
+  console.debug('🔍 [renderNotificationSummary] 原始内容:', content.substring(0, 50) + '...')
+
+  try {
+    // 🔧 核心修复：先解码转义字符，再进行Markdown渲染
+    const normalizedContent = decodeEscapes(content)
+    console.debug('🔧 [renderNotificationSummary] 转义解码后:', normalizedContent.substring(0, 50) + '...')
+
+    return renderMarkdown(normalizedContent, {
+      maxLength,
+      fallback: '',
+      enableSummary: true  // 启用摘要模式，简化复杂元素
+    })
+  } catch (error) {
+    console.error('❌ [renderNotificationSummary] 渲染失败:', error)
+    // 降级处理：返回纯文本
+    return content.replace(/</g, '&lt;').replace(/>/g, '&gt;').substring(0, maxLength) + (content.length > maxLength ? '...' : '')
+  }
 }
 
 /**
@@ -243,7 +260,7 @@ const mdAdvanced = new MarkdownIt({
 })
 
 // 配置链接安全属性
-mdAdvanced.renderer.rules.link_open = (tokens, idx, options, env, self) => {
+mdAdvanced.renderer.rules.link_open = (tokens, idx, options, _env, self) => {
   const token = tokens[idx]
 
   // 添加target="_blank"
