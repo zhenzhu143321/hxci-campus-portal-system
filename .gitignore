@@ -91,3 +91,11 @@ IMPLEMENTATION_PLAN.md
 **/backup/
 **/*_backup_*
 **/*.bak
+
+# 包含敏感信息的SQL文件 (阿里云/腾讯云API密钥等)
+**/sql/**/ruoyi-vue-pro*.sql
+yudao-boot-mini/sql/kingbase/ruoyi-vue-pro.sql
+yudao-boot-mini/sql/mysql/ruoyi-vue-pro.sql
+yudao-boot-mini/sql/dm/ruoyi-vue-pro-dm8.sql
+yudao-boot-mini/sql/opengauss/ruoyi-vue-pro.sql
+yudao-boot-mini/sql/sqlserver/ruoyi-vue-pro.sql
