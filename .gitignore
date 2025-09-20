@@ -86,6 +86,9 @@ TaskArchitect_ProjectManagement_Plan.md
 CURRENT_WORK_STATUS.md
 IMPLEMENTATION_PLAN.md
 
+# 敏感配置文档 (包含Git凭据和API密钥)
+CLAUDE.md
+
 # 临时备份和工作文件
 **/*.backup.*
 **/backup/
