@@ -18,8 +18,8 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 
 # OpenRouter配置
-OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY', 
-    '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')
+OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY',
+    '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')
 OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1'
 OPENROUTER_MODEL = os.getenv('OPENROUTER_MODEL', 'google/gemini-2.5-pro')
 

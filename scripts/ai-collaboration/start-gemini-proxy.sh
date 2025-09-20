@@ -53,6 +53,7 @@ start_proxy() {
     fi
     
     # 启动代理服务（后台运行）
+    export OPENROUTER_API_KEY='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'
     nohup python3 "$PROXY_SCRIPT" > /tmp/gemini-proxy.log 2>&1 &
     local pid=$!
     echo $pid > /tmp/gemini-proxy.pid

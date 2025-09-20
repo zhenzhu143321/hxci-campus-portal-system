@@ -89,6 +89,7 @@
     v-model:visible="showNotificationDetail"
     :notification="uiStore.selectedNotification"
     :read-status-checker="notificationStore.isRead"
+    :is-marking-read="uiStore.selectedNotification ? isMarkingRead(uiStore.selectedNotification.id) : false"
     @mark-read="handleMarkAsRead"
   />
 </template>
@@ -453,13 +454,14 @@ const handleMarkAsRead = async (notificationId: number) => {
 */
 
 // 使用composable中的处理函数
-const { 
+const {
   handleMarkAsRead,
   handleMarkAsUnread,
   handlePermanentDelete,
   handleClearAllArchive,
   handleNotificationClick,
-  handleEmergencyClick
+  handleEmergencyClick,
+  isMarkingRead
 } = notificationHandlers
 
 // 保留原函数名以保持兼容性

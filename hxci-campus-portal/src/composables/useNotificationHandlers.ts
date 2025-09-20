@@ -40,8 +40,8 @@ export function useNotificationHandlers() {
    * 标记通知为已读
    */
   const handleMarkAsRead = async (notificationId: number) => {
-    const endTimer = performanceAnalyzer.startTimer(`标记已读-${notificationId}`)
-    
+    const startTime = performance.now()
+
     console.log('📖 [通知处理] 开始标记已读:', notificationId)
     
     const animationManager = initializeArchiveAnimationManager()
@@ -53,7 +53,7 @@ export function useNotificationHandlers() {
     try {
       // 使用动画效果标记已读
       if (animationManager) {
-        await animationManager.animateToArchive(notificationId)
+        await animationManager.triggerArchiveAnimation(notificationId)
       }
       
       // 标记已读
@@ -73,7 +73,10 @@ export function useNotificationHandlers() {
     } finally {
       markingReadLoading.value.delete(notificationId)
       uiStore.removeMarkingReadLoading(notificationId)
-      endTimer()
+
+      // 记录性能数据
+      const duration = performance.now() - startTime
+      performanceAnalyzer.recordMetric(`标记已读-${notificationId}`, duration, 'interaction')
     }
   }
   
@@ -243,7 +246,7 @@ export function useNotificationHandlers() {
   const handleMarkAllAsRead = async () => {
     console.log('📖 [通知处理] 准备标记全部已读')
     
-    const unreadNotifications = notificationStore.unreadNotifications
+    const unreadNotifications = notificationStore.notifications.filter((n: NotificationItem) => !n.isRead)
     
     if (unreadNotifications.length === 0) {
       ElMessage.info('没有未读通知')
@@ -261,7 +264,7 @@ export function useNotificationHandlers() {
         }
       )
       
-      const notificationIds = unreadNotifications.map(n => n.id)
+      const notificationIds = unreadNotifications.map((n: NotificationItem) => n.id)
       await handleBatchMarkAsRead(notificationIds)
       
     } catch (error) {
